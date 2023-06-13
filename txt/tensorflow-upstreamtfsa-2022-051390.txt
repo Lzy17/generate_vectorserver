@@ -1,0 +1,10 @@
+<h2>TFSA-2022-051: Integer overflow in Grappler cost estimation of crop and resize operation</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23587</p>
+<h3>Impact</h3>
+<p>Under certain scenarios, Grappler component of TensorFlow is vulnerable to an integer overflow during <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/costs/op_level_cost_estimator.cc#L2621-L2689">cost estimation for crop and resize</a>. Since the cropping parameters are user controlled, a malicious person can trigger undefined behavior.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/0aaaae6eca5a7175a193696383f582f53adab23f">0aaaae6eca5a7175a193696383f582f53adab23f</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

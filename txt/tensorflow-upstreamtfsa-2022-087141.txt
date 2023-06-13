@@ -1,0 +1,12 @@
+<h2>TFSA-2022-087: OOB read in <code>Gather_nd</code> op in TF Lite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35937</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/f463040eb3997e42e60a2ffc6dc72de7ef11dbb4/tensorflow/lite/kernels/gather_nd.cc#L105-L111"><code>GatherNd</code></a> function takes arguments that determine the sizes of inputs and outputs. If the inputs given are greater than or equal to the sizes of the outputs, an out-of-bounds memory read is triggered.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/595a65a3e224a0362d7e68c2213acfc2b499a196">595a65a3e224a0362d7e68c2213acfc2b499a196</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Hui Peng from Baidu Security.</p>

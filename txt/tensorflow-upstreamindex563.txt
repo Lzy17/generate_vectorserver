@@ -1,0 +1,122 @@
+<h1>Build TensorFlow Lite models</h1>
+<p>This page provides guidance for building
+your TensorFlow models with the intention of converting to the TensorFlow
+Lite model format. The machine learning (ML) models you use with TensorFlow
+Lite are originally
+built and trained using TensorFlow core libraries and tools. Once you've built
+a model with TensorFlow core, you can convert it to a smaller, more
+efficient ML model format called a TensorFlow Lite model.</p>
+<ul>
+<li>
+<p>If you have a model to convert already, see the
+    <a href="../convert/">Convert models overview</a>
+    page for guidance on converting your model.</p>
+</li>
+<li>
+<p>If you want to modify an existing model instead of starting from scratch,
+  see the <a href="../modify/model_maker">Modify models overview</a> for guidance.</p>
+</li>
+</ul>
+<h2>Building your model</h2>
+<p>If you are building a custom model for your specific use case,
+you should start with developing and training a TensorFlow model or extending
+an existing one.</p>
+<h3>Model design constraints</h3>
+<p>Before you start your model development process, you should be aware of the
+constraints for TensorFlow Lite models and build your model with these
+constraints in mind:</p>
+<ul>
+<li><strong>Limited compute capabilities</strong> - Compared to fully equipped servers with
+  multiple CPUs, high memory capacity, and specialized processors such as GPUs
+  and TPUs, mobile and edge devices are much more limited. While they are
+  growing in compute power and specialized hardware compatibility, the models
+  and data you can effectively process with them are still comparably limited.</li>
+<li><strong>Size of models</strong> - The overall complexity of a model, including data
+  pre-processing logic and the number of layers in the model, increases the
+  in-memory size of a model. A large model may run unacceptably slow or simply
+  may not fit in the available memory of a mobile or edge device.</li>
+<li><strong>Size of data</strong> - The size of input data that can be effectively processed
+  with a machine learning model is limited on a mobile or edge device. Models
+  that use large data libraries such as language libraries, image libraries, or
+  video clip libraries may not fit on these devices, and may require
+  off-device storage and access solutions.</li>
+<li><strong>Supported TensorFlow operations</strong> - TensorFlow Lite runtime environments
+  support a subset of machine learning model operations compared to
+  regular TensorFlow models. As you develop a model for use with TensorFlow
+  Lite, you should track the compatibility of your model against the
+  capabilities of TensorFlow Lite runtime environments.</li>
+</ul>
+<p>For more information building effective, compatible, high performance models
+for TensorFlow Lite, see
+<a href="../../performance/best_practices">Performance best practices</a>.</p>
+<h3>Model development</h3>
+<p>To build a TensorFlow Lite model, you first need to build a model using the
+TensorFlow core libraries. TensorFlow core libraries are the lower-level
+libraries that provide APIs to build, train and deploy ML models.</p>
+<p><img alt="TFLite build workflow" src="../../images/build/build_workflow_diag.png" /></p>
+<p>TensorFlow provides two paths for doing this. You can develop
+your own custom model code or you can start with a model implementation
+available in the TensorFlow
+<a href="https://www.tensorflow.org/tfmodels">Model Garden</a>.</p>
+<h4>Model Garden</h4>
+<p>The TensorFlow Model Garden provides implementations of many state-of-the-art
+machine learning (ML) models for vision and natural language processing (NLP).
+You'll also find workflow tools to let you quickly configure and run those
+models on standard datasets. The machine learning models in the
+Model Garden include full code so you can
+test, train, or re-train them using your own datasets.</p>
+<p>Whether you are looking to benchmark performance for a
+well-known model, verify the results of recently released research, or extend
+existing models, the Model Garden can help you drive your ML goals.</p>
+<h4>Custom models</h4>
+<p>If your use case is outside of those supported by the models in Model Garden,
+you can use a high level library like
+<a href="https://www.tensorflow.org/guide/keras/sequential_model">Keras</a> to
+develop your custom training code. To learn the fundamentals of TensorFlow, see
+the <a href="https://www.tensorflow.org/guide/basics">TensorFlow guide</a>. To get started
+with examples, see the
+<a href="https://www.tensorflow.org/tutorials">TensorFlow tutorials overview</a> which
+contain pointers to beginning to expert level tutorials.</p>
+<h3>Model evaluation</h3>
+<p>Once you've developed your model, you should evaluate its performance and test
+it on end-user devices.
+TensorFlow provides a few ways to do this.</p>
+<ul>
+<li><a href="https://www.tensorflow.org/tensorboard/tensorboard_profiling_keras">TensorBoard</a>
+  is a tool for providing the measurements and visualizations needed during
+  the machine learning workflow. It enables tracking experiment metrics like
+  loss and accuracy, visualizing the model graph, projecting embeddings to a
+  lower dimensional space, and much more.</li>
+<li><a href="https://www.tensorflow.org/lite/performance/measurement">Benchmarking tools</a>
+  are available for each supported platform such as the Android benchmark app
+  and the iOS benchmark app. Use these tools to measure and calculate statistics
+  for important performance metrics.</li>
+</ul>
+<h3>Model optimization</h3>
+<p>With the <a href="#model_constraints">constraints</a> on resources specific to
+TensorFlow Lite models, model optimization can help to ensure your
+model performance well and uses less compute resources. Machine learning model
+performance is usually a balance between size and speed of inference vs
+accuracy. TensorFlow Lite currently supports optimization via quantization,
+pruning and clustering. See the
+[model optimization] (https://www.tensorflow.org/lite/performance/model_optimization)
+topic for more details on these techniques. TensorFlow also provides a
+<a href="https://www.tensorflow.org/model_optimization/guide">Model optimization toolkit</a>
+which provides an API that implements these techniques.</p>
+<h2>Next steps</h2>
+<ul>
+<li>To start building your custom model, see the
+  <a href="https://www.tensorflow.org/tutorials/quickstart/beginner">quick start for beginners</a>
+  tutorial in TensorFlow core documentation.</li>
+<li>To convert your custom TensorFlow model, see the
+  <a href="../convert">Convert models overview</a>.</li>
+<li>See the
+  <a href="../../guide/ops_compatibility">operator compatibility</a> guide to determine
+  if your model is compatible with TensorFlow Lite or if you'll need to take
+  additional steps to make it compatible.</li>
+<li>See the
+  <a href="https://www.tensorflow.org/lite/performance/best_practices">performance best practices guide</a>
+  for guidance on making your TensorFlow Lite models efficient and performant.</li>
+<li>See the <a href="../../performance/measurement">performance metrics guide</a> to learn
+  how to measure the performance of your model using benchmarking tools.</li>
+</ul>

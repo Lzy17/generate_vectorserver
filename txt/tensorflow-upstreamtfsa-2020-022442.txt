@@ -1,0 +1,38 @@
+<h2>TFSA-2020-022: Crash due to invalid shape of <code>grad_values</code> in SparseFillEmptyRowsGrad</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15194</p>
+<h3>Impact</h3>
+<p>The <code>SparseFillEmptyRowsGrad</code> implementation has <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/sparse_fill_empty_rows_op.cc#L235-L241">incomplete validation of the
+shapes of its
+arguments</a>:
+```cc
+    OP_REQUIRES(
+        context, TensorShapeUtils::IsVector(reverse_index_map_t-&gt;shape()),
+        errors::InvalidArgument("reverse_index_map must be a vector, saw: ",
+                                reverse_index_map_t-&gt;shape().DebugString()));</p>
+<pre><code>const auto reverse_index_map = reverse_index_map_t-&gt;vec&lt;int64&gt;();
+const auto grad_values = grad_values_t-&gt;vec&lt;T&gt;();
+</code></pre>
+<p>```</p>
+<p>Although <code>reverse_index_map_t</code> and <code>grad_values_t</code> are accessed in a similar
+pattern, only <code>reverse_index_map_t</code> is validated to be of proper shape. Hence,
+malicious users can pass a bad <code>grad_values_t</code> to trigger an assertion failure
+in <code>vec</code>, causing denial of service in serving installations.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/390611e0d45c5793c7066110af37c8514e6a6c54">390611e0d45c5793c7066110af37c8514e6a6c54</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-021.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

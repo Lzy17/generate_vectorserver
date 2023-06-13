@@ -1,0 +1,70 @@
+<h2>TFSA-2020-013: Format-string vulnerability in TensorFlow's <code>as_string</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15203</p>
+<h3>Impact</h3>
+<p>By controlling the <code>fill</code> argument of
+<a href="https://www.tensorflow.org/api_docs/python/tf/strings/as_string"><code>tf.strings.as_string</code></a>,
+a malicious attacker is able to trigger a format string vulnerability due to the
+way the internal format use in a <code>printf</code> call is
+<a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/as_string_op.cc#L68-L74">constructed</a>:
+<code>cc
+    format_ = "%";
+    if (width &gt; -1) {
+      strings::Appendf(&amp;format_, "%s%d", fill_string.c_str(), width);
+    }
+    if (precision &gt; -1) {
+      strings::Appendf(&amp;format_, ".%d", precision);
+    }</code></p>
+<p>This can result in unexpected output:
+<code>python
+In [1]: tf.strings.as_string(input=[1234], width=6, fill='-')
+Out[1]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['1234  '],
+dtype=object)&gt;
+In [2]: tf.strings.as_string(input=[1234], width=6, fill='+')
+Out[2]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array([' +1234'],
+dtype=object)&gt;
+In [3]: tf.strings.as_string(input=[1234], width=6, fill="h")
+Out[3]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['%6d'],
+dtype=object)&gt;
+In [4]: tf.strings.as_string(input=[1234], width=6, fill="d")
+Out[4]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['12346d'],
+dtype=object)&gt;
+In [5]: tf.strings.as_string(input=[1234], width=6, fill="o")
+Out[5]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['23226d'],
+dtype=object)&gt;
+In [6]: tf.strings.as_string(input=[1234], width=6, fill="x")
+Out[6]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['4d26d'],
+dtype=object)&gt;
+In [7]: tf.strings.as_string(input=[1234], width=6, fill="g")
+Out[7]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['8.67458e-3116d'],
+dtype=object)&gt;
+In [8]: tf.strings.as_string(input=[1234], width=6, fill="a")
+Out[8]: &lt;tf.Tensor: shape=(1,), dtype=string,
+numpy=array(['0x0.00ff7eebb4d4p-10226d'], dtype=object)&gt;
+In [9]: tf.strings.as_string(input=[1234], width=6, fill="c")
+Out[9]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['\xd26d'],
+dtype=object)&gt;
+In [10]: tf.strings.as_string(input=[1234], width=6, fill="p")
+Out[10]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['0x4d26d'],
+dtype=object)&gt;
+In [11]: tf.strings.as_string(input=[1234], width=6, fill='m')
+Out[11]: &lt;tf.Tensor: shape=(1,), dtype=string, numpy=array(['Success6d'],
+dtype=object)&gt;</code></p>
+<p>However, passing in <code>n</code> or <code>s</code> results in segmentation fault.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/33be22c65d86256e6826666662e40dbdfe70ee83">33be22c65d86256e6826666662e40dbdfe70ee83</a>
+and will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

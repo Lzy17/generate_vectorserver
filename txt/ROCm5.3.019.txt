@@ -1,0 +1,114 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>Deprecations and Warnings</h3>
+<h4>HIP Perl Scripts Deprecation</h4>
+<p>The <code>hipcc</code> and <code>hipconfig</code> Perl scripts are deprecated. In a future release, compiled binaries will be available as <code>hipcc.bin</code> and <code>hipconfig.bin</code> as replacements for the Perl scripts.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>There will be a transition period where the Perl scripts and compiled binaries are available  before the scripts are removed. There will be no functional difference between the Perl scripts and their compiled binary counterpart. No user action is required. Once these are available, users can optionally switch to <code>hipcc.bin</code> and <code>hipconfig.bin</code>. The <code>hipcc</code>/<code>hipconfig</code> soft link will be assimilated to point from <code>hipcc</code>/<code>hipconfig</code> to the respective compiled binaries as the default option.</p>
+</blockquote>
+<h4>Linux Filesystem Hierarchy Standard for ROCm</h4>
+<p>ROCm packages have adopted the Linux foundation filesystem hierarchy standard in this release to ensure ROCm components follow open source conventions for Linux-based distributions. While moving to a new filesystem hierarchy, ROCm ensures backward compatibility with its 5.1 version or older filesystem hierarchy. See below for a detailed explanation of the new filesystem hierarchy and backward compatibility.</p>
+<h5>New Filesystem Hierarchy</h5>
+<p>The following is the new filesystem hierarchy:</p>
+<p>```text
+/opt/rocm-<ver>
+    | --bin
+      | --All externally exposed Binaries
+    | --libexec
+        | --<component>
+            | -- Component specific private non-ISA executables (architecture independent)
+    | --include
+        | -- <component>
+            | --<header files>
+    | --lib
+        | --lib<soname>.so -&gt; lib<soname>.so.major -&gt; lib<soname>.so.major.minor.patch
+            (public libraries linked with application)
+        | --<component> (component specific private library, executable data)
+        | --<cmake>
+            | --components
+                | --<component>.config.cmake
+    | --share
+        | --html/<component>/<em>.html
+        | --info/<component>/</em>.[pdf, md, txt]
+        | --man
+        | --doc
+            | --<component>
+                | --<licenses>
+        | --<component>
+            | --<misc files> (arch independent non-executable)
+            | --samples</p>
+<p>```</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will not support backward compatibility with the v5.1(old) file system hierarchy in its next major release.</p>
+</blockquote>
+<p>For more information, refer to <a href="https://refspecs.linuxfoundation.org/fhs.shtml">https://refspecs.linuxfoundation.org/fhs.shtml</a>.</p>
+<h5>Backward Compatibility with Older Filesystems</h5>
+<p>ROCm has moved header files and libraries to its new location as indicated in the above structure and included symbolic-link and wrapper header files in its old location for backward compatibility.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will continue supporting backward compatibility until the next major release.</p>
+</blockquote>
+<h5>Wrapper header files</h5>
+<p>Wrapper header files are placed in the old location (<code>/opt/rocm-xxx/&lt;component&gt;/include</code>) with a warning message to include files from the new location (<code>/opt/rocm-xxx/include</code>) as shown in the example below:</p>
+<p>```h
+// Code snippet from hip_runtime.h</p>
+<h1>pragma message “This file is deprecated. Use file from include path /opt/rocm-ver/include/ and prefix with hip”.</h1>
+<h1>include "hip/hip_runtime.h"</h1>
+<p>```</p>
+<p>The wrapper header files’ backward compatibility deprecation is as follows:</p>
+<ul>
+<li><code>#pragma</code> message announcing deprecation -- ROCm v5.2 release</li>
+<li><code>#pragma</code> message changed to <code>#warning</code> -- Future release</li>
+<li><code>#warning</code> changed to <code>#error</code> -- Future release</li>
+<li>Backward compatibility wrappers removed -- Future release</li>
+</ul>
+<h5>Library files</h5>
+<p>Library files are available in the <code>/opt/rocm-xxx/lib</code> folder. For backward compatibility, the old library location (<code>/opt/rocm-xxx/&lt;component&gt;/lib</code>) has a soft link to the library at the new location.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/
+total 4
+drwxr-xr-x 4 root root 4096 May 12 10:45 cmake
+lrwxrwxrwx 1 root root   24 May 10 23:32 libamdhip64.so -&gt; ../../lib/libamdhip64.so</code></p>
+<h5>CMake Config files</h5>
+<p>All CMake configuration files are available in the <code>/opt/rocm-xxx/lib/cmake/&lt;component&gt;</code> folder. For backward compatibility, the old CMake locations (<code>/opt/rocm-xxx/&lt;component&gt;/lib/cmake</code>) consist of a soft link to the new CMake config.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/cmake/hip/
+total 0
+lrwxrwxrwx 1 root root 42 May 10 23:32 hip-config.cmake -&gt; ../../../../lib/cmake/hip/hip-config.cmake</code></p>
+<h3>Fixed Defects</h3>
+<p>The following defects are fixed in this release.</p>
+<p>These defects were identified and documented as known issues in previous ROCm releases and are fixed in the ROCm v5.3 release.</p>
+<h4>Kernel produces incorrect results with ROCm 5.2</h4>
+<p>User code did not initialize certain data constructs, leading to a correctness issue. A strict reading of the C++ standard suggests that failing to initialize these data constructs is undefined behavior. However, a special case was added for a specific compiler builtin to handle the uninitialized data in a defined manner.</p>
+<p>The compiler fix consists of the following patches:</p>
+<ul>
+<li>A new <code>noundef</code> attribute is added. This attribute denotes when a function call argument or return val may never contain uninitialized bits.
+For more information, see <a href="https://reviews.llvm.org/D81678">https://reviews.llvm.org/D81678</a></li>
+<li>The application of this attribute was refined such that it was not added to a specific compiler builtin where the compiler knows that inactive lanes do not impact program execution.</li>
+</ul>
+<p>For more information, see <a href="https://github.com/RadeonOpenCompute/llvm-project/commit/accf36c58409268ca1f216cdf5ad812ba97ceccd">https://github.com/RadeonOpenCompute/llvm-project/commit/accf36c58409268ca1f216cdf5ad812ba97ceccd</a>.</p>
+<h3>Known Issues</h3>
+<p>This section consists of known issues in this release.</p>
+<h4>Issue with OpenMP-Extras Package Upgrade</h4>
+<p>The <code>openmp-extras</code> package has been split into runtime (<code>openmp-extras-runtime</code>) and dev (<code>openmp-extras-devel</code>) packages. This change has broken the upgrade support for the <code>openmp-extras</code> package in RHEL/SLES.
+An available workaround in RHEL is to use the following command for upgrades:</p>
+<p>```sh
+sudo yum upgrade rocm-language-runtime --allowerasing</p>
+<p>```</p>
+<p>An available workaround in SLES is to use the following command for upgrades:</p>
+<p><code>sh
+zypper update --force-resolution &lt;meta-package&gt;</code></p>
+<h4>AMD Instinct™ MI200 SRIOV Virtualization Issue</h4>
+<p>There is a known issue in this ROCm v5.3 release with all AMD Instinct™ MI200 devices running within a virtual function (VF) under SRIOV virtualization. This issue will likely impact the functionality of SRIOV-based workloads, but does not impact Discrete Device Assignment (DDA) or Bare Metal.</p>
+<p>Until a fix is provided, users should rely on ROCm v5.2.3 to support their SRIOV workloads.</p>
+<h4>System Crash when IMMOU is Enabled</h4>
+<p>If IOMMU is enabled in SBIOS and ROCm is installed, the system may report the following failure or errors when running workloads such as bandwidth test, clinfo, and HelloWord.cl and cause a system crash.</p>
+<ul>
+<li>IO PAGE FAULT</li>
+<li>IRQ remapping does not support X2APIC mode</li>
+<li>NMI error</li>
+</ul>
+<p>Workaround: To avoid the system crash, add <code>amd_iommu=on iommu=pt</code> as the kernel bootparam, as indicated in the warning message.</p>

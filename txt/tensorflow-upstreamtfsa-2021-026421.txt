@@ -1,0 +1,40 @@
+<h2>TFSA-2021-026: Heap buffer overflow in <code>QuantizedReshape</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29536</p>
+<h3>Impact</h3>
+<p>An attacker can cause a heap buffer overflow in <code>QuantizedReshape</code> by
+passing in invalid thresholds for the quantization:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tensor = tf.constant([], dtype=tf.qint32)
+shape = tf.constant([], dtype=tf.int32)
+input_min = tf.constant([], dtype=tf.float32)
+input_max = tf.constant([], dtype=tf.float32)</p>
+<p>tf.raw_ops.QuantizedReshape(tensor=tensor, shape=shape, input_min=input_min, input_max=input_max)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/a324ac84e573fba362a5e53d4e74d5de6729933e/tensorflow/core/kernels/quantized_reshape_op.cc#L38-L55">implementation</a>
+assumes that the 2 arguments are always valid scalars and tries to access the
+numeric value directly:</p>
+<p><code>cc
+const auto&amp; input_min_float_tensor = ctx-&gt;input(2);
+...
+const float input_min_float = input_min_float_tensor.flat&lt;float&gt;()(0);
+const auto&amp; input_max_float_tensor = ctx-&gt;input(3);
+...
+const float input_max_float = input_max_float_tensor.flat&lt;float&gt;()(0);</code></p>
+<p>However, if any of these tensors is empty, then <code>.flat&lt;T&gt;()</code> is an empty buffer
+and accessing the element at position 0 results in overflow.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/a324ac84e573fba362a5e53d4e74d5de6729933e">a324ac84e573fba362a5e53d4e74d5de6729933e</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

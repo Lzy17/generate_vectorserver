@@ -1,0 +1,56 @@
+<h2>TFSA-2022-140: Null-dereference in <code>mlir::tfg::TFOp::nameAttr</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36014</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ir/importexport/graphdef_import.cc"><code>mlir::tfg::TFOp::nameAttr</code></a> receives null type list attributes, it crashes.
+```cpp</p>
+<p>StatusOr<unsigned> GraphDefImporter::ArgNumType(const NamedAttrList &amp;attrs,
+                                                const OpDef::ArgDef &amp;arg_def,
+                                                SmallVectorImpl<Type> &amp;types) {
+  // Check whether a type list attribute is specified.
+  if (!arg_def.type_list_attr().empty()) {
+    if (auto v = attrs.get(arg_def.type_list_attr()).dyn_cast<ArrayAttr>()) {
+      for (Attribute attr : v) {
+        if (auto dtype = attr.dyn_cast<TypeAttr>()) {
+          types.push_back(UnrankedTensorType::get(dtype.getValue()));
+        } else {
+          return InvalidArgument("Expected '", arg_def.type_list_attr(),
+                                 "' to be a list of types");
+        }
+      }
+      return v.size();
+    }
+    return NotFound("Type attr not found: ", arg_def.type_list_attr());
+  }</p>
+<p>unsigned num = 1;
+  // Check whether a number attribute is specified.
+  if (!arg_def.number_attr().empty()) {
+    if (auto v = attrs.get(arg_def.number_attr()).dyn_cast<IntegerAttr>()) {
+      num = v.getValue().getZExtValue();
+    } else {
+      return NotFound("Type attr not found: ", arg_def.number_attr());
+    }
+  }</p>
+<p>// Check for a type or type attribute.
+  Type dtype;
+  if (arg_def.type() != DataType::DT_INVALID) {
+    TF_RETURN_IF_ERROR(ConvertDataType(arg_def.type(), b_, &amp;dtype));
+  } else if (arg_def.type_attr().empty()) {
+    return InvalidArgument("Arg '", arg_def.name(),
+                           "' has invalid type and no type attribute");
+  } else {
+    if (auto v = attrs.get(arg_def.type_attr()).dyn_cast<TypeAttr>()) {
+      dtype = v.getValue();
+    } else {
+      return NotFound("Type attr not found: ", arg_def.type_attr());
+    }
+  }
+  types.append(num, UnrankedTensorType::get(dtype));
+  return num;
+}
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/3a754740d5414e362512ee981eefba41561a63a6">3a754740d5414e362512ee981eefba41561a63a6</a> and <a href="https://github.com/tensorflow/tensorflow/commit/a0f0b9a21c9270930457095092f558fbad4c03e5">a0f0b9a21c9270930457095092f558fbad4c03e5</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

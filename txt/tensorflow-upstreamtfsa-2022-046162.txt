@@ -1,0 +1,16 @@
+<h2>TFSA-2022-046: <code>CHECK</code>-failures in binary ops due to type confusion</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23583</p>
+<h3>Impact</h3>
+<p>A malicious user can cause a denial of service by altering a <code>SavedModel</code> such that <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/kernels/cwise_ops_common.h#L88-L137">any binary op</a> would trigger <code>CHECK</code> failures. This occurs when the protobuf part corresponding to the tensor arguments is modified such that the <code>dtype</code> no longer matches the <code>dtype</code> expected by the op. In that case, calling the templated binary operator for the binary op would receive corrupted data, due to the type confusion involved:</p>
+<p><code>cc
+functor::BinaryFunctor&lt;Device, Functor, 1&gt;()(
+    eigen_device, out-&gt;template flat&lt;Tout&gt;(),
+    input_0.template flat&lt;Tin&gt;(), input_1.template flat&lt;Tin&gt;(),
+    error_ptr);</code></p>
+<p>If <code>Tin</code> and <code>Tout</code> don't match the type of data in <code>out</code> and <code>input_*</code> tensors then <code>flat&lt;*&gt;</code> would interpret it wrongly. In most cases, this would be a silent failure, but we have noticed scenarios where this results in a <code>CHECK</code> crash, hence a denial of service.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/a7c02f1a9bbc35473969618a09ee5f9f5d3e52d9">a7c02f1a9bbc35473969618a09ee5f9f5d3e52d9</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,64 @@
+<p>So, you want to write some batching rules? This is the guide to get started :)</p>
+<p>First off, what are batching rules and why do we need so many of them? Well, to understand that, we need to understand how vmap works.</p>
+<h3>How does vmap work?</h3>
+<p>Vmap is a function transform (pioneered by Jax) that allows one to batch functions. That is, given a function <code>f(x: [N]) -&gt; [N]</code>, <code>vmap(f)</code> now transforms the signature to be <code>f(x: [B, N]) -&gt; [B, N]</code>. That is - it adds a batch dimension to both the input and the output of the function.</p>
+<p>This guide will gloss over all the cool things you can do this (there are many!), so let's focus on how we actually implement this.</p>
+<p>One misconception is that this is some magic compiler voodoo, or that it is inherent some function transform. It is not - and there's another framing of it that might make it more clear.</p>
+<p>Instead of providing <code>vmap</code>, imagine that we provide a <code>BatchedTensor</code> instead. This <code>BatchedTensor</code> wraps a <code>Tensor[B, N, M]</code>. <em>But</em>, to all the users of this tensor, it looks like a <code>Tensor[N, M]</code> (that is, without the <code>B</code> dimension). Then, when operations are done on this tensor, it transforms that operation to broadcast over the additional <code>B</code> dimension as well.</p>
+<p>For example, let's say that we wanted to sum a <code>BatchedTensor</code> with shape <code>[5]</code> - that is, <code>torch.sum(x)</code>. This would give us back a <code>BatchedTensor</code> with shape <code>[]</code> (i.e. a scalar tensor). <strong>But</strong>, in reality, we this is actually a <code>Tensor</code> with shape <code>[B]</code>. Instead of running <code>torch.sum(x: [5])</code>, we ran <code>torch.sum(x: [B, 5], dim=1)</code>. In other words, we transformed the sum operation so that instead of summing the whole tensor, it summed all the dimensions <em>except</em> the batch dimension.</p>
+<p>That is how <code>vmap</code> works. For every single operator, we define how to transform that operator to broadcast over an additional batch dimension.</p>
+<h3>Basic Batching Rule (unsqueeze)</h3>
+<p>Let's take a look at our batching rule API. For some reference, the function signature for unsqueeze is <code>unsqueeze(Tensor(a) self, int dim) -&gt; Tensor(a)</code>. This can be found <a href="https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/functorch/BatchRulesViews.cpp">here</a>.
+<code>std::tuple&lt;Tensor,optional&lt;int64_t&gt;&gt; unsqueeze_batch_rule(
+    const Tensor&amp; self,
+    optional&lt;int64_t&gt; self_bdim,
+    int64_t dim) {
+  auto self_ = moveBatchDimToFront(self, self_bdim);
+  auto rank = rankWithoutBatchDim(self, self_bdim);
+  dim = maybe_wrap_dim(dim, rank + 1) + 1;
+  return std::make_tuple(self_.unsqueeze(dim), 0);
+}</code>
+Now, let's look at each part individually.
+<code>std::tuple&lt;Tensor,optional&lt;int64_t&gt;&gt; unsqueeze_batch_rule(
+    const Tensor&amp; self,
+    optional&lt;int64_t&gt; self_bdim,
+    int64_t dim) {</code>
+For the most part, the function signature for a batching rule is identical to the function signature for the operator. The only difference is that for each <code>Tensor</code> (both in the input and the output), we have an additional <code>optional&lt;int64_t&gt;</code>. This is the batch dimension. In the previous explanation, we implicitly assumed that the batch dimension was always at 0, but we allow for batch dimensions to be on arbitrary dimensions. The <code>optional</code> part reflects that not all tensors are batched - if a function takes multiple tensors then it's possible for only one of them to be a <code>BatchedTensor</code>. Note, however, that we guarantee that at least one tensor will always have a batch dimension.</p>
+<p><code>auto self_ = moveBatchDimToFront(self, self_bdim);
+  auto rank = rankWithoutBatchDim(self, self_bdim);
+  dim = maybe_wrap_dim(dim, rank + 1) + 1;</code>
+For <code>unsqueeze(x, dim)</code>, the strategy for the batching rule is pretty simple. We first move the batching dimension to the front. Then, instead of doing <code>unsqueeze(x, dim)</code>, we do <code>unsqueeze(x, dim + 1)</code> (since there's now an extra bdim).</p>
+<p><code>return std::make_tuple(self_.unsqueeze(dim), 0);</code>
+Now, we return a tuple of the tensor along with its batch dimension (which is now 0 since we moved it to the front).</p>
+<p><code>VMAP_SUPPORT(unsqueeze, unsqueeze_batch_rule);</code>
+Finally, we add support for it by using the <code>VMAP_SUPPORT</code> macro.</p>
+<p>You may need to use the <code>VMAP_SUPPORT2</code> macro if the operator has an overload name.</p>
+<h3>Implementing multiple batching rules with boxed fallbacks or templates</h3>
+<p>Often, we find that large classes of operators have similar patterns of batching rules. For example, every single pointwise op has a similar pattern. In that case, it's a bit ridiculous to separately write a batching rule for those situations.</p>
+<p>In those cases, we have 2 primary tools - templates and boxed fallbacks. For example, we've written a boxed fallback that covers many reductions (see the <a href="https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/functorch/BatchRulesReduceOps.cpp">reduction batching rules</a>).</p>
+<p>There are 3 primary boxed fallbacks that we've used (I'll refer to the macros here). If you feel that there's any pattern that we could/should abstract away, feel free to post an issue.</p>
+<ol>
+<li><code>POINTWISE_BOXED</code>: Handles pointwise ops. Takes all tensors in the arguments, moves batch dimensions to the front, and unsqueezes all tensors so that they broadcast.</li>
+<li><code>REDUCTION_BOXED</code>: Handles reduction ops. Moves batch dimension to the front, and then modifies the dim argument so that it works with the extra batch dimension. For example, if the dim is an integer, then we add one. If it's a dimarray, then we add one to all entries (unless it's empty!, in which case we fill in all the entries except 0).</li>
+<li><code>VARIADIC_BDIMS_BOXED</code>: Handles ops that already natively support arbitrary batch dimensions. For example, if it supports <code>[B1,B2,..., N]</code>. In this case, we can simply move the batch dimension to the front and we're done!</li>
+</ol>
+<h3>Sidestepping batching rules by decomposing operators</h3>
+<p>Sometimes, it's difficult to implement a batching rule by transforming it into another operator. For example, <code>trace</code>. In that case, instead of transforming the operator, we can simply decompose it.</p>
+<p><code>Tensor trace_decomp(const Tensor&amp; self) {
+  return at::sum(at::diagonal(self));
+}
+...
+m.impl("trace", trace_decomp);</code>
+In general, this reduces the performance, since instead of launching one kernel we're launching multiple. So, we generally try to avoid this option :)</p>
+<h3>Testing your batching rule</h3>
+<p>We generally use OpInfos to test our batching rules. OpInfos are great since they let us test the same operator in many different ways.</p>
+<p>In general, if the operator you've added a batching rule for has an OpInfo test, that's good enough!</p>
+<p>Generally, you can try running <code>pytest -k op_name</code> to use <code>pytest</code> to find all tests that test your operator. Sometimes, if your operator doesn't match the public API, you need to figure out the public API that corresponds to the operator you've implemented a batching rule for. For example, <code>torch.where</code> actually often executes <code>aten::_s_where</code> underneath.</p>
+<p>Todo: Add more relevant details @zou</p>
+<h2>Cool, I'm convinced! And I want to write batching rules! Where do I find some?</h2>
+<p>There's a couple different resources for finding batching rules to write.</p>
+<ol>
+<li><a href="https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp">BatchingRegistrations.cpp</a>: This is probably the easiest place to start. These were batching rules that were written with an old API, and thus have a lot of cruft in them that are no longer necessary. Porting these batching rules to using one of the above options is an easy way to get started and help us reduce tech debt :) Once you've gotten your footing with writing batching rules, you can start helping with writing new batching rules.</li>
+<li>Popular operators. See <a href="https://github.com/pytorch/functorch/issues/112">1</a>, <a href="https://github.com/pytorch/functorch/issues/101">2</a>, <a href="https://github.com/pytorch/functorch/issues/102">3</a>, and <a href="https://github.com/pytorch/functorch/issues/102">4</a>. These contain lists of (user-facing) PyTorch operators sorted by usages, along with whether they have a batching rule implemented or not.</li>
+<li><a href="https://docs.google.com/spreadsheets/d/1Sp4HUjxwMifS5oDQg0yvjqk7hKOpCfKO4jWH4MTGP-k/edit#gid=0">Master List</a>. This is the master list of vmap operator support :). It's generated by <a href="op_analysis/gen_data.py">this script</a>. Theoretically, we want to support most of the operators in that list (that aren't composite or out variants).</li>
+</ol>

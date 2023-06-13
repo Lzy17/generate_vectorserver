@@ -1,0 +1,17 @@
+<h2>TFSA-2023-004: Segfault when opening multiframe gif</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25667</p>
+<h3>Impact</h3>
+<p>Integer overflow occurs when 2^31 &lt;= num_frames * height * width * channels &lt; 2^32, for example Full HD screencast of at least 346 frames.
+<code>python
+import urllib.request
+dat = urllib.request.urlopen('https://raw.githubusercontent.com/tensorflow/tensorflow/1c38ad9b78ffe06076745a1ee00cec42f39ff726/tensorflow/core/lib/gif/testdata/3g_multiframe.gif').read()
+import tensorflow as tf
+tf.io.decode_gif(dat)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8dc723fcdd1a6127d6c970bd2ecb18b019a1a58d">8dc723fcdd1a6127d6c970bd2ecb18b019a1a58d</a>.</p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Andrei</p>

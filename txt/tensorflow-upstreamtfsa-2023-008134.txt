@@ -1,0 +1,26 @@
+<h2>TFSA-2023-008: FPE in AudioSpectrogram</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25666</p>
+<h3>Impact</h3>
+<p>version:2.11.0 audio_ops.cc:70</p>
+<p>Status SpectrogramShapeFn(InferenceContext* c) { ShapeHandle input; TF_RETURN_IF_ERROR(c-&gt;WithRank(c-&gt;input(0), 2, &amp;input)); int32_t window_size; TF_RETURN_IF_ERROR(c-&gt;GetAttr("window_size", &amp;window_size)); int32_t stride; TF_RETURN_IF_ERROR(c-&gt;GetAttr("stride", &amp;stride)); .....[1]</p>
+<p>DimensionHandle input_length = c-&gt;Dim(input, 0); DimensionHandle input_channels = c-&gt;Dim(input, 1);</p>
+<p>DimensionHandle output_length; if (!c-&gt;ValueKnown(input_length)) { output_length = c-&gt;UnknownDim(); } else { const int64_t input_length_value = c-&gt;Value(input_length); const int64_t length_minus_window = (input_length_value - window_size); int64_t output_length_value; if (length_minus_window &lt; 0) { output_length_value = 0; } else { output_length_value = 1 + (length_minus_window / stride); .....[2] } output_length = c-&gt;MakeDim(output_length_value); }</p>
+<p>Get the value of stride at [1], and the used at [2]
+```python
+import tensorflow as tf</p>
+<p>para = {'input': tf.constant([[14.], [24.]], dtype=tf.float32), 'window_size': 1, 'stride': 0, 'magnitude_squared': False}
+func = tf.raw_ops.AudioSpectrogram</p>
+<p>@tf.function(jit_compile=True)
+def fuzz_jit():
+   y = func(**para)
+   return y</p>
+<p>fuzz_jit()
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/d0d4e779da0d0f56499c6fa5ba09f0a576cc6b14">d0d4e779da0d0f56499c6fa5ba09f0a576cc6b14</a>.</p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by r3pwnx</p>

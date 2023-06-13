@@ -1,0 +1,249 @@
+<h1>Get started with microcontrollers</h1>
+<p>This document explains how to train a model and run inference using a
+microcontroller.</p>
+<h2>The Hello World example</h2>
+<p>The
+<a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples/hello_world">Hello World</a>
+example is designed to demonstrate the absolute basics of using TensorFlow Lite
+for Microcontrollers. We train and run a model that replicates a sine function,
+i.e, it takes a single number as its input, and outputs the number's
+<a href="https://en.wikipedia.org/wiki/Sine">sine</a> value. When deployed to the
+microcontroller, its predictions are used to either blink LEDs or control an
+animation.</p>
+<p>The end-to-end workflow involves the following steps:</p>
+<ol>
+<li><a href="#train_a_model">Train a model</a> (in Python): A jupyter notebook to train,
+    convert and optimize a model for on-device use.</li>
+<li><a href="#run_inference">Run inference</a> (in C++ 17): An end-to-end unit test that
+    runs inference on the model using the <a href="library.md">C++ library</a>.</li>
+</ol>
+<h2>Get a supported device</h2>
+<p>The example application we'll be using has been tested on the following devices:</p>
+<ul>
+<li><a href="https://store-usa.arduino.cc/products/arduino-nano-33-ble-sense-with-headers">Arduino Nano 33 BLE Sense</a>
+    (using Arduino IDE)</li>
+<li><a href="https://www.sparkfun.com/products/15170">SparkFun Edge</a> (building directly
+    from source)</li>
+<li><a href="https://www.st.com/en/evaluation-tools/32f746gdiscovery.html">STM32F746 Discovery kit</a>
+    (using Mbed)</li>
+<li><a href="https://www.adafruit.com/product/4400">Adafruit EdgeBadge</a> (using Arduino
+    IDE)</li>
+<li><a href="https://www.adafruit.com/product/4317">Adafruit TensorFlow Lite for Microcontrollers Kit</a>
+    (using Arduino IDE)</li>
+<li><a href="https://learn.adafruit.com/tensorflow-lite-for-circuit-playground-bluefruit-quickstart?view=all">Adafruit Circuit Playground Bluefruit</a>
+    (using Arduino IDE)</li>
+<li><a href="https://www.espressif.com/en/products/hardware/esp32-devkitc/overview">Espressif ESP32-DevKitC</a>
+    (using ESP IDF)</li>
+<li><a href="https://www.espressif.com/en/products/hardware/esp-eye/overview">Espressif ESP-EYE</a>
+    (using ESP IDF)</li>
+</ul>
+<p>Learn more about supported platforms in
+<a href="index.md">TensorFlow Lite for Microcontrollers</a>.</p>
+<h2>Train a model</h2>
+<p>Note: You can skip this section and use the trained model included in the
+example code.</p>
+<p>Use Google Colaboratory to
+<a href="https://colab.research.google.com/github/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/hello_world/train/train_hello_world_model.ipynb">train your own model</a>.
+For more details, refer to the <code>README.md</code>:</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples/hello_world/train/README.md">Hello
+World Training README.md</a></p>
+<h2>Run inference</h2>
+<p>To run the model on your device, we will walk through the instructions in the
+<code>README.md</code>:</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples/hello_world/README.md">Hello
+World README.md</a></p>
+<p>The following sections walk through the example's
+<a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples/hello_world/evaluate_test.cc"><code>evaluate_test.cc</code></a>,
+unit test which demonstrates how to run inference using TensorFlow Lite for
+Microcontrollers. It loads the model and runs inference several times.</p>
+<h3>1. Include the library headers</h3>
+<p>To use the TensorFlow Lite for Microcontrollers library, we must include the
+following header files:</p>
+<p>```C++</p>
+<h1>include "tensorflow/lite/micro/micro_mutable_op_resolver.h"</h1>
+<h1>include "tensorflow/lite/micro/micro_error_reporter.h"</h1>
+<h1>include "tensorflow/lite/micro/micro_interpreter.h"</h1>
+<h1>include "tensorflow/lite/schema/schema_generated.h"</h1>
+<h1>include "tensorflow/lite/version.h"</h1>
+<p>```</p>
+<ul>
+<li><a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/micro_mutable_op_resolver.h"><code>micro_mutable_op_resolver.h</code></a>
+    provides the operations used by the interpreter to run the model.</li>
+<li><a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.h"><code>micro_error_reporter.h</code></a>
+    outputs debug information.</li>
+<li><a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/micro_interpreter.h"><code>micro_interpreter.h</code></a>
+    contains code to load and run models.</li>
+<li><a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/schema/schema_generated.h"><code>schema_generated.h</code></a>
+    contains the schema for the TensorFlow Lite
+    <a href="https://google.github.io/flatbuffers/"><code>FlatBuffer</code></a> model file format.</li>
+<li><a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/version.h"><code>version.h</code></a>
+    provides versioning information for the TensorFlow Lite schema.</li>
+</ul>
+<h3>2. Include the model header</h3>
+<p>The TensorFlow Lite for Microcontrollers interpreter expects the model to be
+provided as a C++ array. The model is defined in <code>model.h</code> and <code>model.cc</code> files.
+The header is included with the following line:</p>
+<p>```C++</p>
+<h1>include "tensorflow/lite/micro/examples/hello_world/model.h"</h1>
+<p>```</p>
+<h3>3. Include the unit test framework header</h3>
+<p>In order to create a unit test, we include the TensorFlow Lite for
+Microcontrollers unit test framework by including the following line:</p>
+<p>```C++</p>
+<h1>include "tensorflow/lite/micro/testing/micro_test.h"</h1>
+<p>```</p>
+<p>The test is defined using the following macros:</p>
+<p>```C++
+TF_LITE_MICRO_TESTS_BEGIN</p>
+<p>TF_LITE_MICRO_TEST(LoadModelAndPerformInference) {
+  . // add code here
+  .
+}</p>
+<p>TF_LITE_MICRO_TESTS_END
+```</p>
+<p>We now discuss the code included in the macro above.</p>
+<h3>4. Set up logging</h3>
+<p>To set up logging, a <code>tflite::ErrorReporter</code> pointer is created using a pointer
+to a <code>tflite::MicroErrorReporter</code> instance:</p>
+<p><code>C++
+tflite::MicroErrorReporter micro_error_reporter;
+tflite::ErrorReporter* error_reporter = &amp;micro_error_reporter;</code></p>
+<p>This variable will be passed into the interpreter, which allows it to write
+logs. Since microcontrollers often have a variety of mechanisms for logging, the
+implementation of <code>tflite::MicroErrorReporter</code> is designed to be customized for
+your particular device.</p>
+<h3>5. Load a model</h3>
+<p>In the following code, the model is instantiated using data from a <code>char</code> array,
+<code>g_model</code>, which is declared in <code>model.h</code>. We then check the model to ensure its
+schema version is compatible with the version we are using:</p>
+<p><code>C++
+const tflite::Model* model = ::tflite::GetModel(g_model);
+if (model-&gt;version() != TFLITE_SCHEMA_VERSION) {
+  TF_LITE_REPORT_ERROR(error_reporter,
+      "Model provided is schema version %d not equal "
+      "to supported version %d.\n",
+      model-&gt;version(), TFLITE_SCHEMA_VERSION);
+}</code></p>
+<h3>6. Instantiate operations resolver</h3>
+<p>A
+<a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/micro_mutable_op_resolver.h"><code>MicroMutableOpResolver</code></a>
+instance is declared. This will be used by the interpreter to register and
+access the operations that are used by the model:</p>
+<p>```C++
+using HelloWorldOpResolver = tflite::MicroMutableOpResolver&lt;1&gt;;</p>
+<p>TfLiteStatus RegisterOps(HelloWorldOpResolver&amp; op_resolver) {
+  TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
+  return kTfLiteOk;</p>
+<p>```</p>
+<p>The <code>MicroMutableOpResolver</code>requires a template parameter indicating the number
+of ops that will be registered. The <code>RegisterOps</code> function registers the ops
+with the resolver.</p>
+<p>```C++
+HelloWorldOpResolver op_resolver;
+TF_LITE_ENSURE_STATUS(RegisterOps(op_resolver));</p>
+<p>```</p>
+<h3>7. Allocate memory</h3>
+<p>We need to preallocate a certain amount of memory for input, output, and
+intermediate arrays. This is provided as a <code>uint8_t</code> array of size
+<code>tensor_arena_size</code>:</p>
+<p><code>C++
+const int tensor_arena_size = 2 * 1024;
+uint8_t tensor_arena[tensor_arena_size];</code></p>
+<p>The size required will depend on the model you are using, and may need to be
+determined by experimentation.</p>
+<h3>8. Instantiate interpreter</h3>
+<p>We create a <code>tflite::MicroInterpreter</code> instance, passing in the variables
+created earlier:</p>
+<p><code>C++
+tflite::MicroInterpreter interpreter(model, resolver, tensor_arena,
+                                     tensor_arena_size, error_reporter);</code></p>
+<h3>9. Allocate tensors</h3>
+<p>We tell the interpreter to allocate memory from the <code>tensor_arena</code> for the
+model's tensors:</p>
+<p><code>C++
+interpreter.AllocateTensors();</code></p>
+<h3>10. Validate input shape</h3>
+<p>The <code>MicroInterpreter</code> instance can provide us with a pointer to the model's
+input tensor by calling <code>.input(0)</code>, where <code>0</code> represents the first (and only)
+input tensor:</p>
+<p><code>C++
+  // Obtain a pointer to the model's input tensor
+  TfLiteTensor* input = interpreter.input(0);</code></p>
+<p>We then inspect this tensor to confirm that its shape and type are what we are
+expecting:</p>
+<p><code>C++
+// Make sure the input has the properties we expect
+TF_LITE_MICRO_EXPECT_NE(nullptr, input);
+// The property "dims" tells us the tensor's shape. It has one element for
+// each dimension. Our input is a 2D tensor containing 1 element, so "dims"
+// should have size 2.
+TF_LITE_MICRO_EXPECT_EQ(2, input-&gt;dims-&gt;size);
+// The value of each element gives the length of the corresponding tensor.
+// We should expect two single element tensors (one is contained within the
+// other).
+TF_LITE_MICRO_EXPECT_EQ(1, input-&gt;dims-&gt;data[0]);
+TF_LITE_MICRO_EXPECT_EQ(1, input-&gt;dims-&gt;data[1]);
+// The input is a 32 bit floating point value
+TF_LITE_MICRO_EXPECT_EQ(kTfLiteFloat32, input-&gt;type);</code></p>
+<p>The enum value <code>kTfLiteFloat32</code> is a reference to one of the TensorFlow Lite
+data types, and is defined in
+<a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/c/common.h"><code>common.h</code></a>.</p>
+<h3>11. Provide an input value</h3>
+<p>To provide an input to the model, we set the contents of the input tensor, as
+follows:</p>
+<p><code>C++
+input-&gt;data.f[0] = 0.;</code></p>
+<p>In this case, we input a floating point value representing <code>0</code>.</p>
+<h3>12. Run the model</h3>
+<p>To run the model, we can call <code>Invoke()</code> on our <code>tflite::MicroInterpreter</code>
+instance:</p>
+<p><code>C++
+TfLiteStatus invoke_status = interpreter.Invoke();
+if (invoke_status != kTfLiteOk) {
+  TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed\n");
+}</code></p>
+<p>We can check the return value, a <code>TfLiteStatus</code>, to determine if the run was
+successful. The possible values of <code>TfLiteStatus</code>, defined in
+<a href="https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/c/common.h"><code>common.h</code></a>,
+are <code>kTfLiteOk</code> and <code>kTfLiteError</code>.</p>
+<p>The following code asserts that the value is <code>kTfLiteOk</code>, meaning inference was
+successfully run.</p>
+<p><code>C++
+TF_LITE_MICRO_EXPECT_EQ(kTfLiteOk, invoke_status);</code></p>
+<h3>13. Obtain the output</h3>
+<p>The model's output tensor can be obtained by calling <code>output(0)</code> on the
+<code>tflite::MicroInterpreter</code>, where <code>0</code> represents the first (and only) output
+tensor.</p>
+<p>In the example, the model's output is a single floating point value contained
+within a 2D tensor:</p>
+<p><code>C++
+TfLiteTensor* output = interpreter.output(0);
+TF_LITE_MICRO_EXPECT_EQ(2, output-&gt;dims-&gt;size);
+TF_LITE_MICRO_EXPECT_EQ(1, input-&gt;dims-&gt;data[0]);
+TF_LITE_MICRO_EXPECT_EQ(1, input-&gt;dims-&gt;data[1]);
+TF_LITE_MICRO_EXPECT_EQ(kTfLiteFloat32, output-&gt;type);</code></p>
+<p>We can read the value directly from the output tensor and assert that it is what
+we expect:</p>
+<p><code>C++
+// Obtain the output value from the tensor
+float value = output-&gt;data.f[0];
+// Check that the output value is within 0.05 of the expected value
+TF_LITE_MICRO_EXPECT_NEAR(0., value, 0.05);</code></p>
+<h3>14. Run inference again</h3>
+<p>The remainder of the code runs inference several more times. In each instance,
+we assign a value to the input tensor, invoke the interpreter, and read the
+result from the output tensor:</p>
+<p>```C++
+input-&gt;data.f[0] = 1.;
+interpreter.Invoke();
+value = output-&gt;data.f[0];
+TF_LITE_MICRO_EXPECT_NEAR(0.841, value, 0.05);</p>
+<p>input-&gt;data.f[0] = 3.;
+interpreter.Invoke();
+value = output-&gt;data.f[0];
+TF_LITE_MICRO_EXPECT_NEAR(0.141, value, 0.05);</p>
+<p>input-&gt;data.f[0] = 5.;
+interpreter.Invoke();
+value = output-&gt;data.f[0];
+TF_LITE_MICRO_EXPECT_NEAR(-0.959, value, 0.05);
+```</p>

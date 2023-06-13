@@ -1,0 +1,78 @@
+<h2>Quickstart</h2>
+<ul>
+<li>Refer to
+    <a href="https://www.tensorflow.org/install/lang_java">Installing TensorFlow for Java</a></li>
+<li><a href="https://www.tensorflow.org/api_docs/java/reference/org/tensorflow/package-summary">Javadoc</a></li>
+<li><a href="https://maven-badges.herokuapp.com/maven-central/org.tensorflow/tensorflow"><img alt="Maven Central" src="https://maven-badges.herokuapp.com/maven-central/org.tensorflow/tensorflow/badge.svg" /></a></li>
+</ul>
+<h2>Nightly builds</h2>
+<p>Releases built from release branches are available on Maven Central.
+Additionally, every day binaries are built from the <code>master</code> branch on GitHub:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package/libtensorflow.jar">JAR</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package/libtensorflow-src.jar">Source JAR</a></li>
+<li>JNI:<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package/libtensorflow_jni-cpu-linux-x86_64.tar.gz">Linux CPU-only</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package/libtensorflow_jni-gpu-linux-x86_64.tar.gz">Linux GPU</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package/libtensorflow_jni-cpu-darwin-x86_64.tar.gz">MacOS</a></li>
+<li>Windows: (No nightly builds available yet)</li>
+</ul>
+</li>
+</ul>
+<h2>Building from source</h2>
+<p>If the quickstart instructions above do not work out, the TensorFlow Java and
+native libraries will need to be built from source.</p>
+<ol>
+<li>
+<p>Install <a href="https://www.bazel.build/versions/master/docs/install.html">bazel</a></p>
+</li>
+<li>
+<p>Setup the environment to build TensorFlow from source code
+    (<a href="https://www.tensorflow.org/install/source">Linux or macOS</a>). If you'd like
+    to skip reading those details and do not care about GPU support, try the
+    following:</p>
+<p>```sh</p>
+<h1>On Linux</h1>
+<p>sudo apt-get install python swig python-numpy</p>
+<h1>On Mac OS X with homebrew</h1>
+<p>brew install swig
+```</p>
+</li>
+<li>
+<p><a href="https://www.tensorflow.org/install/source">Configure</a> (e.g., enable GPU
+    support) and build:</p>
+<p><code>sh
+./configure
+bazel build --config opt \
+  //tensorflow/java:tensorflow \
+  //tensorflow/java:libtensorflow_jni</code></p>
+</li>
+</ol>
+<p>The command above will produce two files in the <code>bazel-bin/tensorflow/java</code>
+directory:</p>
+<ul>
+<li>An archive of Java classes: <code>libtensorflow.jar</code></li>
+<li>A native library: <code>libtensorflow_jni.so</code> on Linux, <code>libtensorflow_jni.dylib</code>
+    on OS X, or <code>tensorflow_jni.dll</code> on Windows.</li>
+</ul>
+<p>To compile Java code that uses the TensorFlow Java API, include
+<code>libtensorflow.jar</code> in the classpath. For example:</p>
+<p><code>sh
+javac -cp bazel-bin/tensorflow/java/libtensorflow.jar ...</code></p>
+<p>To execute the compiled program, include <code>libtensorflow.jar</code> in the classpath
+and the native library in the library path. For example:</p>
+<p><code>sh
+java -cp bazel-bin/tensorflow/java/libtensorflow.jar \
+  -Djava.library.path=bazel-bin/tensorflow/java \
+  ...</code></p>
+<p>Installation on Windows requires the more experimental
+<a href="https://bazel.build/versions/master/docs/windows.html">bazel on Windows</a>.
+Details are omitted here, but find inspiration in the script used for building
+the release archive:
+<a href="https://www.tensorflow.org/code/tensorflow/tools/ci_build/windows/libtensorflow_cpu.sh"><code>tensorflow/tools/ci_build/windows/libtensorflow_cpu.sh</code></a>.</p>
+<h3>Bazel</h3>
+<p>If your project uses bazel for builds, add a dependency on
+<code>//tensorflow/java:tensorflow</code> to the <code>java_binary</code> or <code>java_library</code> rule. For
+example:</p>
+<p><code>sh
+bazel run -c opt //tensorflow/java/src/main/java/org/tensorflow/examples:label_image</code></p>

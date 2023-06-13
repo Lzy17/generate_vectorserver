@@ -1,0 +1,33 @@
+<h2>TFSA-2021-093: Heap OOB write in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29603</p>
+<h3>Impact</h3>
+<p>A specially crafted TFLite model could trigger an OOB write on heap in the
+TFLite implementation of
+<a href="https://github.com/tensorflow/tensorflow/blob/102b211d892f3abc14f845a72047809b39cc65ab/tensorflow/lite/kernels/arg_min_max.cc#L52-L59"><code>ArgMin</code>/<code>ArgMax</code></a>:</p>
+<p><code>cc
+TfLiteIntArray* output_dims = TfLiteIntArrayCreate(NumDimensions(input) - 1);
+int j = 0;
+for (int i = 0; i &lt; NumDimensions(input); ++i) {
+  if (i != axis_value) {
+    output_dims-&gt;data[j] = SizeOfDimension(input, i);
+    ++j;
+  }
+}</code></p>
+<p>If <code>axis_value</code> is not a value between 0 and <code>NumDimensions(input)</code>, then the
+condition in the <code>if</code> is never true, so code writes past the last valid element
+of <code>output_dims-&gt;data</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c59c37e7b2d563967da813fa50fe20b21f4da683">c59c37e7b2d563967da813fa50fe20b21f4da683</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

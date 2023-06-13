@@ -1,0 +1,23 @@
+<h2>TFSA-2022-018: Reference binding to null pointer in <code>QuantizedMaxPool</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21739</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/quantized_pooling_ops.cc#L114-L130">implementation of <code>QuantizedMaxPool</code></a> has an undefined behavior where user controlled inputs can trigger a reference binding to null pointer.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.QuantizedMaxPool(
+    input = tf.constant([[[[4]]]], dtype=tf.quint8),
+    min_input = [],
+    max_input = [1],
+    ksize = [1, 1, 1, 1],
+    strides = [1, 1, 1, 1],
+    padding = "SAME", name=None
+)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/53b0dd6dc5957652f35964af16b892ec9af4a559">53b0dd6dc5957652f35964af16b892ec9af4a559</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Faysal Hossain Shezan from University of Virginia.</p>

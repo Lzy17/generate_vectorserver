@@ -1,0 +1,34 @@
+<h2>TFSA-2020-034: Heap out of bounds access in MakeEdge</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-26271</p>
+<h3>Impact</h3>
+<p>Under certain cases, loading a saved model can result in accessing uninitialized
+memory while building the computation graph. The <a href="https://github.com/tensorflow/tensorflow/blob/3616708cb866365301d8e67b43b32b46d94b08a0/tensorflow/core/common_runtime/graph_constructor.cc#L1426-L1438"><code>MakeEdge</code>
+function</a>
+creates an edge between one output tensor of the <code>src</code> node (given by
+<code>output_index</code>) and the input slot of the <code>dst</code> node (given by <code>input_index</code>).
+This is only possible if the types of the tensors on both sides coincide, so the
+function begins by obtaining the corresponding <code>DataType</code> values and comparing
+these for equality:</p>
+<p><code>cc
+  DataType src_out = src-&gt;output_type(output_index);
+  DataType dst_in = dst-&gt;input_type(input_index);
+  //...</code></p>
+<p>However, there is no check that the indices point to inside of the arrays they
+index into. Thus, this can result in accessing data out of bounds of the
+corresponding heap allocated arrays.</p>
+<p>In most scenarios, this can manifest as unitialized data access, but if the
+index points far away from the boundaries of the arrays this can be used to leak
+addresses from the library.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/0cc38aaa4064fd9e79101994ce9872c6d91f816b">0cc38aaa4064fd9e79101994ce9872c6d91f816b</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<p>Since this issue also impacts TF versions before 2.4, we will patch all releases
+between 1.15 and 2.3 inclusive.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>

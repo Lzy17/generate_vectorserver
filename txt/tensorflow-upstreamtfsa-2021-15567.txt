@@ -1,0 +1,38 @@
+<h2>TFSA-2021-155: NPE in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37681</p>
+<h3>Impact</h3>
+<p>The implementation of SVDF in TFLite is <a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/lite/kernels/svdf.cc#L300-L313">vulnerable to a null pointer
+error</a>:</p>
+<p><code>cc
+  TfLiteTensor* state = GetVariableInput(context, node, kStateTensor);
+  // ...
+  GetTensorData&lt;float&gt;(state)</code></p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/lite/kernels/kernel_util.cc#L115-L119"><code>GetVariableInput</code>
+function</a>
+can return a null pointer but <code>GetTensorData</code> assumes that the argument is
+always a valid tensor.</p>
+<p><code>cc
+TfLiteTensor* GetVariableInput(TfLiteContext* context, const TfLiteNode* node,
+                               int index) {
+  TfLiteTensor* tensor = GetMutableInput(context, node, index);
+  return tensor-&gt;is_variable ? tensor : nullptr;
+}</code></p>
+<p>Furthermore, because <code>GetVariableInput</code> calls
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/lite/kernels/kernel_util.cc#L82-L90"><code>GetMutableInput</code></a>
+which might return <code>nullptr</code>, the <code>tensor-&gt;is_variable</code> expression can also
+trigger a null pointer exception.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/5b048e87e4e55990dae6b547add4dae59f4e1c76">5b048e87e4e55990dae6b547add4dae59f4e1c76</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

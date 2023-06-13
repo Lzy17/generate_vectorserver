@@ -1,0 +1,26 @@
+<h2>TFSA-2022-130: <code>CHECK</code> fail in <code>FakeQuantWithMinMaxVarsPerChannelGradient</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35990</p>
+<h3>Impact</h3>
+<p>When <code>tf.quantization.fake_quant_with_min_max_vars_per_channel_gradient</code> receives input <code>min</code> or <code>max</code> of rank other than 1, it gives a <code>CHECK</code> fail that can trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+arg_0=tf.random.uniform(shape=(1,1), dtype=tf.float32, maxval=None)
+arg_1=tf.random.uniform(shape=(1,1), dtype=tf.float32, maxval=None)
+arg_2=tf.random.uniform(shape=(1,1), dtype=tf.float32, maxval=None)
+arg_3=tf.random.uniform(shape=(1,1), dtype=tf.float32, maxval=None)
+arg_4=8
+arg_5=False
+arg_6=None
+tf.quantization.fake_quant_with_min_max_vars_per_channel_gradient(gradients=arg_0, 
+            inputs=arg_1, min=arg_2,  max=arg_3, num_bits=arg_4, 
+            narrow_range=arg_5, name=arg_6)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/f3cf67ac5705f4f04721d15e485e192bb319feed">f3cf67ac5705f4f04721d15e485e192bb319feed</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by 
+ - 刘力源, Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology
+ - Neophytos Christou, Secure Systems Labs, Brown University</p>

@@ -1,0 +1,29 @@
+<h2>TFSA-2021-088: Division by zero in TFLite's implementation of <code>OneHot</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29600</p>
+<h3>Impact</h3>
+<p>The implementation of the <code>OneHot</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/f61c57bd425878be108ec787f4d96390579fb83e/tensorflow/lite/kernels/one_hot.cc#L68-L72">vulnerable to a
+division by zero
+error</a>:</p>
+<p><code>cc
+int prefix_dim_size = 1;
+for (int i = 0; i &lt; op_context.axis; ++i) {
+  prefix_dim_size *= op_context.indices-&gt;dims-&gt;data[i];
+}
+const int suffix_dim_size = NumElements(op_context.indices) / prefix_dim_size;</code></p>
+<p>An attacker can craft a model such that at least one of the dimensions of
+<code>indices</code> would be 0. In turn, the <code>prefix_dim_size</code> value would become 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/3ebedd7e345453d68e279cfc3e4072648e5e12e5">3ebedd7e345453d68e279cfc3e4072648e5e12e5</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,110 @@
+<h1>Performance best practices</h1>
+<p>Mobile and embedded devices have limited computational resources, so it is
+important to keep your application resource efficient. We have compiled a list
+of best practices and strategies that you can use to improve your TensorFlow
+Lite model performance.</p>
+<h2>Choose the best model for the task</h2>
+<p>Depending on the task, you will need to make a tradeoff between model complexity
+and size. If your task requires high accuracy, then you may need a large and
+complex model. For tasks that require less precision, it is better to use a
+smaller model because they not only use less disk space and memory, but they are
+also generally faster and more energy efficient. For example, graphs below show
+accuracy and latency tradeoffs for some common image classification models.</p>
+<p><img alt="Graph of model size vs accuracy" src="../images/performance/model_size_vs_accuracy.png" title="Model Size vs Accuracy" /></p>
+<p><img alt="Graph of accuracy vs latency" src="../images/performance/accuracy_vs_latency.png" title="Accuracy vs Latency" /></p>
+<p>One example of models optimized for mobile devices are
+<a href="https://arxiv.org/abs/1704.04861">MobileNets</a>, which are optimized for mobile
+vision applications.
+<a href="https://tfhub.dev/s?deployment-format=lite">TensorFlow Hub</a> lists several other
+models that have been optimized specifically for mobile and embedded devices.</p>
+<p>You can retrain the listed models on your own dataset by using transfer
+learning. Check out the transfer learning tutorials using TensorFlow Lite
+<a href="../models/modify/model_maker/">Model Maker</a>.</p>
+<h2>Profile your model</h2>
+<p>Once you have selected a candidate model that is right for your task, it is a
+good practice to profile and benchmark your model. TensorFlow Lite
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark">benchmarking tool</a>
+has a built-in profiler that shows per operator profiling statistics. This can
+help in understanding performance bottlenecks and which operators dominate the
+computation time.</p>
+<p>You can also use
+<a href="measurement#trace_tensorflow_lite_internals_in_android">TensorFlow Lite tracing</a>
+to profile the model in your Android application, using standard Android system
+tracing, and to visualize the operator invocations by time with GUI based
+profiling tools.</p>
+<h2>Profile and optimize operators in the graph</h2>
+<p>If a particular operator appears frequently in the model and, based on
+profiling, you find that the operator consumes the most amount of time, you can
+look into optimizing that operator. This scenario should be rare as TensorFlow
+Lite has optimized versions for most operators. However, you may be able to
+write a faster version of a custom op if you know the constraints in which the
+operator is executed. Check out the
+<a href="../guide/ops_custom">custom operators guide</a>.</p>
+<h2>Optimize your model</h2>
+<p>Model optimization aims to create smaller models that are generally faster and
+more energy efficient, so that they can be deployed on mobile devices.
+TensorFlow Lite supports multiple optimization techniques, such as quantization.</p>
+<p>Check out the <a href="model_optimization">model optimization docs</a> for details.</p>
+<h2>Tweak the number of threads</h2>
+<p>TensorFlow Lite supports multi-threaded kernels for many operators. You can
+increase the number of threads and speed up execution of operators. Increasing
+the number of threads will, however, make your model use more resources and
+power.</p>
+<p>For some applications, latency may be more important than energy efficiency. You
+can increase the number of threads by setting the number of interpreter
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/interpreter.h#L346">threads</a>.
+Multi-threaded execution, however, comes at the cost of increased performance
+variability depending on what else is executed concurrently. This is
+particularly the case for mobile apps. For example, isolated tests may show 2x
+speed-up vs single-threaded, but, if another app is executing at the same time,
+it may result in worse performance than single-threaded.</p>
+<h2>Eliminate redundant copies</h2>
+<p>If your application is not carefully designed, there can be redundant copies
+when feeding the input to and reading the output from the model. Make sure to
+eliminate redundant copies. If you are using higher level APIs, like Java, make
+sure to carefully check the documentation for performance caveats. For example,
+the Java API is a lot faster if <code>ByteBuffers</code> are used as
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/java/src/main/java/org/tensorflow/lite/Interpreter.java#L175">inputs</a>.</p>
+<h2>Profile your application with platform specific tools</h2>
+<p>Platform specific tools like
+<a href="https://developer.android.com/studio/profile/android-profiler">Android profiler</a>
+and <a href="https://help.apple.com/instruments/mac/current/">Instruments</a> provide a
+wealth of profiling information that can be used to debug your app. Sometimes
+the performance bug may be not in the model but in parts of application code
+that interact with the model. Make sure to familiarize yourself with platform
+specific profiling tools and best practices for your platform.</p>
+<h2>Evaluate whether your model benefits from using hardware accelerators available on the device</h2>
+<p>TensorFlow Lite has added new ways to accelerate models with faster hardware
+like GPUs, DSPs, and neural accelerators. Typically, these accelerators are
+exposed through <a href="delegates">delegate</a> submodules that take over parts of the
+interpreter execution. TensorFlow Lite can use delegates by:</p>
+<ul>
+<li>Using Android's
+    <a href="https://developer.android.com/ndk/guides/neuralnetworks/">Neural Networks API</a>.
+    You can utilize these hardware accelerator backends to improve the speed and
+    efficiency of your model. To enable the Neural Networks API, check out the
+    <a href="https://www.tensorflow.org/lite/android/delegates/nnapi">NNAPI delegate</a>
+    guide.</li>
+<li>GPU delegate is available on Android and iOS, using OpenGL/OpenCL and Metal,
+    respectively. To try them out, see the <a href="gpu">GPU delegate tutorial</a> and
+    <a href="gpu_advanced">documentation</a>.</li>
+<li>Hexagon delegate is available on Android. It leverages the Qualcomm Hexagon
+    DSP if it is available on the device. See the
+    <a href="https://www.tensorflow.org/lite/android/delegates/hexagon">Hexagon delegate tutorial</a>
+    for more information.</li>
+<li>It is possible to create your own delegate if you have access to
+    non-standard hardware. See <a href="delegates">TensorFlow Lite delegates</a> for more
+    information.</li>
+</ul>
+<p>Be aware that some accelerators work better for different types of models. Some
+delegates only support float models or models optimized in a specific way. It is
+important to <a href="measurement">benchmark</a> each delegate to see if it is a good
+choice for your application. For example, if you have a very small model, it may
+not be worth delegating the model to either the NN API or the GPU. Conversely,
+accelerators are a great choice for large models that have high arithmetic
+intensity.</p>
+<h2>Need more help</h2>
+<p>The TensorFlow team is happy to help diagnose and address specific performance
+issues you may be facing. Please file an issue on
+<a href="https://github.com/tensorflow/tensorflow/issues">GitHub</a> with details of the
+issue.</p>

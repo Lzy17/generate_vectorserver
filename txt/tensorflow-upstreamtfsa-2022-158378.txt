@@ -1,0 +1,22 @@
+<h2>TFSA-2022-158: <code>tf.raw_ops.Mfcc</code> crashes</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41896</p>
+<h3>Impact</h3>
+<p>If <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/image/mirror_pad_op.cc"><code>ThreadUnsafeUnigramCandidateSampler</code></a> is given input <code>filterbank_channel_count</code> greater than the allowed max size, TensorFlow will crash.</p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.Mfcc(
+    spectrogram = [[[1.38, 6.32, 5.75, 9.51]]],
+    sample_rate = 2,
+    upper_frequency_limit = 5.0,
+    lower_frequency_limit = 1.0,
+    filterbank_channel_count = 2**31 - 1,
+    dct_coefficient_count = 1
+)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/39ec7eaf1428e90c37787e5b3fbd68ebd3c48860">39ec7eaf1428e90c37787e5b3fbd68ebd3c48860</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian from Qihoo 360 AIVul Team.</p>

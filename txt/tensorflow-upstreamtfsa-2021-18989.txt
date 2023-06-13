@@ -1,0 +1,13 @@
+<h2>TFSA-2021-189: Incomplete validation in boosted trees code</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41208</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/e0b6e58c328059829c3eb968136f17aa72b6c876/tensorflow/core/kernels/boosted_trees/stats_ops.cc">code for boosted trees in TensorFlow</a> is still missing validation. As a result, attackers can trigger denial of service (via dereferencing <code>nullptr</code>s or via <code>CHECK</code>-failures) as well as abuse undefined behavior (binding references to <code>nullptr</code>s). An attacker can also read and write from heap buffers, depending on the API that gets used and the arguments that are passed to the call.</p>
+<p><strong>Note</strong>: Given that the boosted trees implementation in TensorFlow is unmaintained, it is recommend to no longer use these APIs.  Instead, please use the downstream <a href="https://github.com/tensorflow/decision-forests">TensorFlow Decision Forests</a> project which is newer and supports more features. We will deprecate TensorFlow's boosted trees APIs in subsequent releases.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/5c8c9a8bfe750f9743d0c859bae112060b216f5c">5c8c9a8bfe750f9743d0c859bae112060b216f5c</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

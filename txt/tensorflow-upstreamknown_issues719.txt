@@ -1,0 +1,62 @@
+<h1>Known Issues</h1>
+<p>Compilation with XLA can greatly improve the performance of your programs, but
+the TensorFlow interop has a number of known sharp corners.</p>
+<h2><code>tf.Variable</code> on a different device</h2>
+<p><em>Error message</em>: <code>INVALID_ARGUMENT: Trying to access resource &lt;Variable&gt;
+(defined @ &lt;Loc&gt;) located in device CPU:0 from device GPU:0</code></p>
+<p>XLA cluster runs on exactly one device, and it can not read or write to
+<code>tf.Variable</code> located on a different device. Usually this error message
+indicates that the variable was not placed on the right device to begin with.
+The error message should precisely specify the location of the offending
+variable.</p>
+<p>NOTE: <code>tf.Variable</code> of type <code>int32</code> are always placed on a host, and can not be
+placed on a GPU. As a workaround, <code>int64</code> can be used.</p>
+<h2>TensorArray TF/XLA interconversion is not supported</h2>
+<p><em>Error message</em>: <code>Support for TensorList crossing the XLA/TF boundary is not
+implemented</code>.</p>
+<p>XLA supports <code>tf.TensorArray</code>. However, the <em>interconversion</em> between TF and XLA
+representations is not implemented yet. This error often arises when the
+<code>TensorArray</code> is used inside the compiled block, but the derivative is taken
+outside.</p>
+<p><em>Workaround</em>: compile the outermost scope which is taking the derivative.</p>
+<h2>TensorFlow while loops need to be bounded (or have backprop disabled)</h2>
+<p><em>Error message</em>: <code>XLA compilation requires a fixed tensor list size. Set the max
+number of elements. This could also happen if you're using a TensorArray in a
+while loop that does not have its maximum_iteration set, you can fix this by
+setting maximum_iteration to a suitable value</code>.</p>
+<p>TF while <a href="https://www.tensorflow.org/api_docs/python/tf/while_loop">loops</a>
+created using <code>tf.while_loop</code> support backpropagation by accumulating all
+intermediate results in a <code>TensorArray</code>, but XLA only supports bounded
+<code>TensorArray</code>s.</p>
+<p><em>Workaround</em>: all compiled while loops need to either have <code>maximum_iterations</code>
+parameter set to a constant value known at compile time, or backpropagation
+disabled using <code>back_prop=False</code>.</p>
+<h2>Dynamic <code>tf.TensorArray</code> is not supported</h2>
+<p>Writes into <code>tf.TensorArray(..., dynamic_size=True)</code> are not compilable with
+XLA, as such writes require an unknown number of reallocations when the array
+exceeds the original bound.</p>
+<p><em>Workaround</em>: provide a statically known bound to your arrays.</p>
+<h2>Random number generation ignores TF seed</h2>
+<p>XLA currently ignores TF seeds to random operations. This affects stateful TF
+random operations, such as <code>tf.random.normal</code>, or <code>tf.nn.dropout</code>. XLA will
+behave as if the compilation was seeded with a new unique seed at each run
+within the same process (the first run of the process will always yield the same
+result).</p>
+<p><em>Workaround</em>: use
+<a href="https://www.tensorflow.org/guide/random_numbers#stateless_rngs">the recommended RNGs</a>
+such as <code>tf.random.stateless_uniform</code> or the <code>tf.random.Generator</code> directly.</p>
+<h2>Must-be-constant inputs which are functions of induction variables are not supported</h2>
+<p><em>Error Message</em>: <code>XLA compilation requires that operator arguments that
+represent shapes or dimensions be evaluated to concrete values at compile time.
+This error means that a shape or dimension argument could not be evaluated at
+compile time, usually because the value of the argument depends on a parameter
+to the computation, on a variable, or on a stateful operation such as a random
+number generator</code>.</p>
+<p>XLA requires certain values to be known at compile time, such as reduction axis
+of a reduce operation, or transposition dimensions. Consider the case when e.g.
+reduction axis is defined as a function of an induction variable of <code>tf.range</code>:
+resolving it statically is not possible without unrolling the entire loop, which
+might not be desired by the user.</p>
+<p><em>Workaround</em>: Unroll loops, e.g. by converting <code>tf.range</code> into Python <code>range</code>.</p>
+<p>NOTE: The error message above is not unique to this issue, and can arise due to
+other limitations or bugs.</p>

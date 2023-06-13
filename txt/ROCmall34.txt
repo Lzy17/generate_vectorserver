@@ -1,0 +1,81 @@
+<h1>All Reference Material</h1>
+<h2>ROCm Software Groups</h2>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} <a href="./hip">HIP</a>
+HIP is both AMD's GPU programming language extension and the GPU runtime.</p>
+<ul>
+<li>{doc}<code>hip:.doxygen/docBin/html/index</code></li>
+<li><a href="https://github.com/amd/rocm-examples/tree/develop/HIP-Basic">Examples</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="./gpu_libraries/math">Math Libraries</a>
+HIP Math Libraries support the following domains:</p>
+<ul>
+<li><a href="./gpu_libraries/linear_algebra">Linear Algebra Libraries</a></li>
+<li><a href="./gpu_libraries/fft">Fast Fourier Transforms</a></li>
+<li><a href="./gpu_libraries/rand">Random Numbers</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="./gpu_libraries/c++_primitives">C++ Primitive Libraries</a>
+ROCm template libraries for C++ primitives and algorithms are as follows:</p>
+<ul>
+<li>{doc}<code>rocPRIM &lt;rocprim:index&gt;</code></li>
+<li>{doc}<code>rocThrust &lt;rocthrust:index&gt;</code></li>
+<li>{doc}<code>hipCUB &lt;hipcub:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="gpu_libraries/communication">Communication Libraries</a>
+Inter and intra-node communication is supported by the following projects:</p>
+<ul>
+<li>{doc}<code>RCCL &lt;rccl:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="./ai_tools">AI Libraries</a>
+Libraries related to AI.</p>
+<ul>
+<li>{doc}<code>MIOpen &lt;miopen:index&gt;</code></li>
+<li>{doc}<code>Composable Kernel &lt;composable-kernel:index&gt;</code></li>
+<li>{doc}<code>MIGraphX &lt;migraphx:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="./computer_vision">Computer Vision</a>
+Computer vision related projects.</p>
+<ul>
+<li>{doc}<code>MIVisionX &lt;mivisionx:README&gt;</code></li>
+<li>{doc}<code>rocAL &lt;rocal:README&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="openmp/openmp">OpenMP</a></p>
+<ul>
+<li><a href="openmp/openmp">OpenMP Support Guide</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="compilers">Compilers and Tools</a></p>
+<ul>
+<li><a href="/reference/rocmcc/rocmcc">ROCmCC</a></li>
+<li>{doc}<code>ROCgdb &lt;rocgdb:index&gt;</code></li>
+<li>{doc}<code>ROCProfiler &lt;rocprofiler:rocprof&gt;</code></li>
+<li>{doc}<code>ROCTracer &lt;roctracer:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="management_tools">Management Tools</a></p>
+<ul>
+<li>AMD SMI</li>
+<li><a href="https://rocmdocs.amd.com/projects/rocmsmi/en/latest/">ROCm SMI</a></li>
+<li>{doc}<code>ROCm Datacenter Tool &lt;rdc:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="validation_tools">Validation Tools</a></p>
+<ul>
+<li>{doc}<code>ROCm Validation Suite &lt;rocm-validation-suite:index&gt;</code></li>
+<li>{doc}<code>TransferBench &lt;transferbench:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="gpu_arch">GPU Architectures</a></p>
+<ul>
+<li><a href="./gpu_arch/mi250.md">AMD Instinct MI200</a></li>
+<li><a href="./gpu_arch/mi100.md">AMD Instinct MI100</a></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

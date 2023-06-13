@@ -1,0 +1,195 @@
+<h1>TensorFlow ROCm port Quickstart Guide</h1>
+<p>In this quickstart guide, we'll walk through the steps for ROCm installation, run a few Tensorflow workloads, and discuss FAQs and tips.  </p>
+<h2>Install ROCm &amp; Tensorflow</h2>
+<p>For basic installation instructions for ROCm and Tensorflow, please see <a href="tensorflow-install-basic.md">this doc</a>.</p>
+<p>We also have docker images for quick deployment with dockerhub:
+<a href="https://hub.docker.com/r/rocm/tensorflow">https://hub.docker.com/r/rocm/tensorflow</a></p>
+<h2>Workloads</h2>
+<p>Now that we've got ROCm and Tensorflow installed, we'll want to clone the <code>tensorflow/models</code> repo that'll provide us with numerous useful workloads:
+<code>cd ~
+git clone https://github.com/tensorflow/models.git</code></p>
+<p>The following sections include the instructions for running various workloads.  They also include expected results, which may vary slightly from run to run.  </p>
+<h3>LeNet training on MNIST data</h3>
+<p>Here are the basic instructions:<br />
+```
+cd ~/models/tutorials/image/mnist</p>
+<p>python3 ./convolutional.py 
+```</p>
+<p>And here is what we expect to see:<br />
+```
+Step 0 (epoch 0.00), 165.1 ms
+Minibatch loss: 8.334, learning rate: 0.010000
+Minibatch error: 85.9%
+Validation error: 84.6%
+Step 100 (epoch 0.12), 8.0 ms
+Minibatch loss: 3.232, learning rate: 0.010000
+Minibatch error: 4.7%
+Validation error: 7.6%
+Step 200 (epoch 0.23), 8.1 ms
+Minibatch loss: 3.355, learning rate: 0.010000
+Minibatch error: 9.4%
+Validation error: 4.4%
+Step 300 (epoch 0.35), 8.1 ms
+Minibatch loss: 3.147, learning rate: 0.010000
+Minibatch error: 3.1%
+Validation error: 2.9%</p>
+<p>...</p>
+<p>Step 8500 (epoch 9.89), 7.2 ms
+Minibatch loss: 1.609, learning rate: 0.006302
+Minibatch error: 0.0%
+Validation error: 1.0%
+Test error: 0.8%
+```</p>
+<h3>CifarNet training on CIFAR-10 data</h3>
+<p>Details for this workload can be found at this <a href="https://www.tensorflow.org/tutorials/deep_cnn">link</a>.</p>
+<p>Here, we'll be running two simultaneous processes from different terminals:  one for training and one for evaluation.</p>
+<h4>Training (via terminal #1)</h4>
+<p>Run the training:<br />
+```
+cd ~/models/tutorials/image/cifar10</p>
+<p>export ROCR_VISIBLE_DEVICES=0
+python3 ./cifar10_train.py
+```</p>
+<p>You should see output similar to this:
+<code>2017-10-04 17:33:39.246053: step 0, loss = 4.66 (72.3 examples/sec; 1.770 sec/batch)
+2017-10-04 17:33:39.536988: step 10, loss = 4.64 (4399.5 examples/sec; 0.029 sec/batch)
+2017-10-04 17:33:39.794230: step 20, loss = 4.49 (4975.8 examples/sec; 0.026 sec/batch)
+2017-10-04 17:33:40.050329: step 30, loss = 4.33 (4998.1 examples/sec; 0.026 sec/batch)
+2017-10-04 17:33:40.255417: step 40, loss = 4.36 (6241.7 examples/sec; 0.021 sec/batch)
+2017-10-04 17:33:40.448037: step 50, loss = 4.40 (6644.5 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:40.640150: step 60, loss = 4.20 (6662.7 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:40.832118: step 70, loss = 4.23 (6667.8 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:41.017503: step 80, loss = 4.30 (6904.7 examples/sec; 0.019 sec/batch)
+2017-10-04 17:33:41.208288: step 90, loss = 4.21 (6709.0 examples/sec; 0.019 sec/batch)</code></p>
+<h4>Evaluation (via terminal #2)</h4>
+<p>Note: If you have a second GPU, you can run the evaluation in parallel with the training -- to do so, just change <code>ROCR_VISIBLE_DEVICES</code> to your second GPU's ID.  If you only have a single GPU, it is best to wait until training is complete, otherwise you risk running out of device memory.</p>
+<p>To run the evaluation, follow this:<br />
+```
+cd ~/models/tutorials/image/cifar10</p>
+<p>export ROCR_VISIBLE_DEVICES=0
+python3 ./cifar10_eval.py
+```</p>
+<p>Using the most recent training checkpoints, this script indicates how often the top prediction matches the true label of the image.  You should see periodic output similar to this:
+<code>2017-10-05 18:34:40.288277: precision @ 1 = 0.118
+2017-10-05 18:39:45.989197: precision @ 1 = 0.118
+2017-10-05 18:44:51.644702: precision @ 1 = 0.836
+2017-10-05 18:49:57.354438: precision @ 1 = 0.836
+2017-10-05 18:55:02.960087: precision @ 1 = 0.856
+2017-10-05 19:00:08.752611: precision @ 1 = 0.856
+2017-10-05 19:05:14.307137: precision @ 1 = 0.861
+...</code></p>
+<h3>ResNet training on CIFAR-10 data</h3>
+<p>Details can be found at this <a href="https://github.com/tensorflow/models/tree/master/research/resnet">link</a></p>
+<p>Set up the CIFAR-10 dataset
+```
+cd ~/models/research/resnet</p>
+<p>curl -o cifar-10-binary.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz
+tar -xzf cifar-10-binary.tar.gz
+ln -s ./cifar-10-batches-bin ./cifar10
+```</p>
+<p>Train ResNet:
+<code>python3 ./resnet_main.py --train_data_path=cifar10/data_batch* \
+                               --log_root=/tmp/resnet_model \
+                               --train_dir=/tmp/resnet_model/train \
+                               --dataset='cifar10' \
+                               --num_gpus=1</code></p>
+<p>Here are the expected results (note the <code>precision</code> metric in particular):
+<code>INFO:tensorflow:loss = 2.53745, step = 1, precision = 0.125
+INFO:tensorflow:loss = 1.9379, step = 101, precision = 0.40625
+INFO:tensorflow:loss = 1.68374, step = 201, precision = 0.421875
+INFO:tensorflow:loss = 1.41583, step = 301, precision = 0.554688
+INFO:tensorflow:loss = 1.37645, step = 401, precision = 0.5625
+...
+INFO:tensorflow:loss = 0.485584, step = 4001, precision = 0.898438
+...</code></p>
+<h3>Inception classification on ImageNet data</h3>
+<p>Details can be found at this <a href="https://github.com/ROCmSoftwarePlatform/hiptensorflow/blob/hip-amd-nccl/tensorflow/g3doc/tutorials/image_recognition/index.md">link</a></p>
+<p>Here's how to run the classification workload:<br />
+<code>cd models/tutorials/image/imagenet
+python3 ./classify_image.py</code>
+Here are the expected results:
+<code>giant panda, panda, panda bear, coon bear, Ailuropoda melanoleuca (score = 0.89107)
+indri, indris, Indri indri, Indri brevicaudatus (score = 0.00779)
+lesser panda, red panda, panda, bear cat, cat bear, Ailurus fulgens (score = 0.00296)
+custard apple (score = 0.00147)
+earthstar (score = 0.00117)</code></p>
+<h3>Tensorflow's tf_cnn_benchmarks</h3>
+<p>Details on the tf_cnn_benchmarks can be found at this <a href="https://github.com/tensorflow/benchmarks/blob/master/scripts/tf_cnn_benchmarks/README.md">link</a>.  </p>
+<p>Here are the basic instructions:
+```</p>
+<h1>Grab the repo</h1>
+<p>cd $HOME
+git clone -b cnn_tf_v1.12_compatible https://github.com/tensorflow/benchmarks.git
+cd benchmarks</p>
+<h1>Run the training benchmark (e.g. ResNet-50)</h1>
+<p>python3 ./scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py --model=resnet50 --num_gpus=1
+```</p>
+<h3>Perfzero Resnet50 v1.5 benchmark</h3>
+<p>Details on the Perfzero Resnet50 benchmark can be found at this <a href="https://github.com/ROCmSoftwarePlatform/models/tree/develop-upstream/official/r1/resnet">link</a>.</p>
+<p>Here are the basic instructions:
+```</p>
+<h1>Grab Perfzero</h1>
+<p>git clone https://github.com/tensorflow/benchmarks</p>
+<h1>Grab the model</h1>
+<p>git clone https://github.com/ROCmSoftwarePlatform/models rocm-models</p>
+<h1>Install prerequisites and set exports</h1>
+<p>cd rocm-models
+pip3 install --upgrade pip setuptools
+export PYTHONPATH="$PYTHONPATH:~/rocm-models"
+export HIP_HIDDEN_FREE_MEM=500
+pip3 install --user -r official/requirements.txt
+pip3 install py_cpuinfo==5</p>
+<h1>Run the training benchmark</h1>
+<h1>This benchmark configuration uses the following parameters:</h1>
+<h1>- 1 GPU</h1>
+<h1>- model = resnet50 v1.5</h1>
+<h1>- precision = fp32</h1>
+<h1>- batch size = 64</h1>
+<p>python3 /root/benchmarks/perfzero/lib/benchmark.py --gcloud_key_file_url="" --python_path=models --benchmark_methods=official.r1.resnet.estimator_benchmark.Resnet50EstimatorBenchmarkSynth.benchmark_graph_1_gpu</p>
+<h1>The following command is similar to the previous but uses 8 GPUs</h1>
+<p>python3 /root/benchmarks/perfzero/lib/benchmark.py --gcloud_key_file_url="" --python_path=models --benchmark_methods=official.r1.resnet.estimator_benchmark.Resnet50EstimatorBenchmarkSynth.benchmark_graph_8_gpu
+```</p>
+<h2>FAQs &amp; tips</h2>
+<h3>Temp workaround:  Solutions when running out of memory</h3>
+<p>As a temporary workaround, if your workload runs out of device memory, you can either reduce the batch size or set <code>config.gpu_options.allow_growth = True</code>.</p>
+<h3>How do I test out the latest tensorflow-rocm commit?</h3>
+<p>We build ROCm docker images for every tensorflow-rocm commit. Those docker images have latest tensorflow-rocm installed, and are aimed for testing.</p>
+<p>Docker image name: <code>rocm&lt;version&gt;-&lt;commit hash&gt;</code></p>
+<p>Latest docker image name: <code>rocm&lt;version&gt;-latest</code> and <code>latest</code></p>
+<p>Pull instructions: <code>$ docker pull rocm/tensorflow-autobuilds:latest</code></p>
+<h3>How do I build latest tensorflow-rocm commit?</h3>
+<p>We build dev builds for every dependency change. Those docker images that have latest dependencies for the purpose of building tensorflow-rocm, and are aimed for development.</p>
+<p>Docker image name: <code>dev-&lt;commit hash&gt;</code></p>
+<p>Latest docker image name: <code>dev-latest</code></p>
+<p>Pull instructions: <code>$ docker pull rocm/tensorflow-autobuilds:dev-latest</code></p>
+<h3>Finetuning GPT-2 with Huggingface Transformers and Tensorflow 2.x</h3>
+<p>To finetune GPT-2 with Huggingface Transformers and Tensorflow 2.x with AMD GPUs
+Enter a standard rocm docker image</p>
+<h4>Docker commands</h4>
+<p><code>alias drun='sudo docker run -it --rm --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $HOME/dockerx:/dockerx -w /dockerx'
+    drun rocm/tensorflow-autobuilds:rocm4.2.0-latest</code>
+Clone the OpenAI GPT-2 Dataset handling repository and run the download python script. This downloads the training sets for various model sizes and stores them into a directory named "data". This directory will be in the location where the command was run. </p>
+<h4>Clone Data Repo and Download Data</h4>
+<p><code>mkdir -p /data/tf-gpt-2 &amp;&amp; cd /data/tf-gpt-2
+    git clone https://github.com/openai/gpt-2-output-dataset.git
+    if [ -d "/data/tf-gpt-2/data" ]
+    then
+        echo "Directory TF GPT-2 data exists."
+    else
+        echo "Directory TF GPT-2 data does not exist, pulling data."
+        pip3 install tqdm
+        python3 gpt-2-output-dataset/download_dataset.py
+    fi</code></p>
+<h4>Install the Huggingface transformers pip package and the jsonlines package.</h4>
+<p><code>pip3 install transformers jsonlines</code></p>
+<h4>Clone GPT-2 Finetuning repo and run finetuning script</h4>
+<p><code>cd ~ &amp;&amp; git clone https://github.com/ROCmSoftwarePlatform/transformers
+    # Script to train the small 117M model
+    python3 transformers/scripts/gpt2-tf2/gpt2_train.py "Small" "/data/tf-gpt-2/data/" 1 1
+    # Script to train the Medium 345M model
+    python3 transformers/scripts/gpt2-tf2/gpt2_train.py "Medium" "/data/tf-gpt-2/data/" 1 1
+    # Script to train the Large 762M model
+    python3 transformers/scripts/gpt2-tf2/gpt2_train.py "Large" "/data/tf-gpt-2/data/" 1 1
+    # Script to train the XL 1542M model
+    python3 transformers/scripts/gpt2-tf2/gpt2_train.py "XL" "/data/tf-gpt-2/data/" 1 1</code>
+The arguments illustrate using either the "Small" (117M), "Medium" (345M), "Large" (762M), "XL" (1542M) GPT-2 models, and the location of the training data as whole. Using "Small" in the first argument not only loads the pretrained small model but also selects the appropriate datafile in the data folder. The third argument is to tell the trainer how many epochs to train for, and the final argument is for dataset truncation, if it is 1, then the dataset is truncated to 1000 data values, if 0, then the dataset is full (~250000 values). This script also evaluates the model with the appropriate dataset (Small, Medium, Large, XL) after finetuning. </p>

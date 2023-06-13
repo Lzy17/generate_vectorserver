@@ -1,0 +1,216 @@
+<h1>XLA Custom Calls</h1>
+<p>This document describes how to write and use XLA "custom calls". Custom calls
+let you invoke code written in a programming language like C++ or CUDA from an
+XLA program.</p>
+<p>Warning: Custom calls are a low-level power-user feature. It is easy to break
+your program in difficult-to-debug (and even difficult-to-notice) ways using
+custom-calls. You shouldn't use custom calls unless you're prepared to debug XLA
+yourself when something goes wrong, and you should expect relatively less
+assistance from XLA developers if you run into trouble.</p>
+<p>Warning: The custom-call API/ABI is not currently stable. We don't intend to
+change it capriciously, but it may change. Some possible future changes are
+described below.</p>
+<h2>Custom-call on CPU</h2>
+<p>You can create an HLO instruction which represents a custom-call via XLA's
+client API. This is not exposed via TensorFlow as of writing.</p>
+<p>For example, the following code uses a custom-call to compute <code>A[i] = B[i %
+128]+ C[i]</code> on the CPU. (Of course you could -- and should! -- do this with
+regular HLO.)</p>
+<p>```c++</p>
+<h1>include "tensorflow/compiler/xla/client/xla_builder.h"</h1>
+<h1>include "tensorflow/compiler/xla/service/custom_call_target_registry.h"</h1>
+<p>void do_it() {
+  xla::XlaBuilder b("do_it");
+  xla::XlaOp param0 =
+      xla::Parameter(&amp;b, 0, xla::ShapeUtil::MakeShape(xla::F32, {128}), "p0");
+  xla::XlaOp param1 =
+      xla::Parameter(&amp;b, 1, xla::ShapeUtil::MakeShape(xla::F32, {2048}), "p1");
+  xla::XlaOp custom_call =
+      xla::CustomCall(&amp;b, "do_custom_call", /<em>operands=</em>/{param0, param1},
+                      /<em>shape=</em>/xla::ShapeUtil::MakeShape(xla::F32, {2048}));
+}</p>
+<p>void do_custom_call(void<em> out, const void</em><em> in) {
+  float</em> out_buf = reinterpret_cast<float*>(out);
+  const float<em> in0 = reinterpret_cast<const float*>(in[0]);
+  const float</em> in1 = reinterpret_cast<const float*>(in[1]);
+  for (int i = 0; i &lt; 2048; ++i) {
+    out_buf[i] = in0[i % 128] + in1[i];
+  }
+}
+XLA_REGISTER_CUSTOM_CALL_TARGET(do_custom_call, "Host");
+```</p>
+<p>Notice that the function <code>do_custom_call</code> needs to know the dimensions of the
+buffers it operates over. In this example we hardcode the sizes 128 and 2048. If
+you don't want to do this, you can pass the dimensions in as parameters to the
+call.</p>
+<h2>Custom-call on GPU</h2>
+<p>The GPU custom call framework is somewhat different than that on the CPU. Here
+is a CUDA example that does the same <code>A[i] = B[i % 128] + C[i]</code> computation as
+the CPU code above.</p>
+<p>```c++
+void do_it() { /<em> same implementation as above </em>/ }</p>
+<p><strong>global</strong> custom_call_kernel(const float<em> in0, const float</em> in1, float* out) {
+  size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  out[idx] = in0[idx % 128] + in1[idx];
+}</p>
+<p>void do_custom_call(CUstream stream, void<em><em> buffers,
+                    const char</em> opaque, size_t opaque_len) {
+  const float</em> in0 = reinterpret_cast<const float*>(buffers[0]);
+  const float<em> in1 = reinterpret_cast<const float*>(buffers[1]);
+  float</em> out = reinterpret_cast<float*>(buffers[2]);</p>
+<p>const int64_t block_dim = 64;
+  const int64_t grid_dim = 2048 / block_dim;
+  custom_call_kernel&lt;&lt;<grid_dim, block_dim,
+                       /*dynamic_shared_mem_bytes=*/0, stream>&gt;&gt;(in0, in1, out);
+}
+XLA_REGISTER_CUSTOM_CALL_TARGET(do_custom_call, "CUDA");
+```</p>
+<p>Notice first that the GPU custom call function <em>is still a function executed on
+the CPU</em>. Our <code>do_custom_call</code> CPU function is responsible for enqueueing work
+on the GPU. Here it launches a CUDA kernel, but it could also do something else,
+like call cublas.</p>
+<p><code>buffers</code> is an array of pointers which lives on the host, and each element it
+contains points to device (i.e. GPU) memory. The parameters come first, followed
+by the output value. This is notably different from the CPU calling convention,
+which has two params, <code>ins</code> and <code>out</code>. The main reason we diverge is to make it
+possible to handle tuple-shaped inputs/outputs efficiently; see the section
+below.</p>
+<p>As in the CPU example, we've hardcoded the input and output buffer sizes into
+our custom call. However unlike in the CPU case, passing the buffer sizes in as
+operands to the custom call would not work well. Usually we need the buffer
+sizes available to us on the CPU; e.g. when launching a kernel, we need to know
+the block/grid dimensions to use. But if we were to pass the buffer sizes as
+operands to our custom call, their values would live in GPU memory. We'd then
+have to do an expensive synchronous device-to-host memcpy at the start of our
+operation just to read the sizes.</p>
+<p>To let you work around this, we provide the <code>opaque</code> parameter. You can set this
+to an arbitrary string of bytes when you create the custom call:</p>
+<p><code>c++
+std::string opaque = "...";
+xla::CustomCall(&amp;b, "do_custom_call", /*operands=*/{param0, param1},
+                /*output_shape=*/xla::ShapeUtil::MakeShape(xla::F32, {2048}),
+                opaque);</code></p>
+<p>Since <code>xla::Shape</code> has a protocol buffer representation, you could store this
+serialized proto inside of <code>opaque</code> and deserialize it within your GPU
+custom-call. Note however that although <code>xla::ShapeProto</code> does not change
+frequently, it <em>does</em> change. Check the git log to see how it has changed in the
+past.</p>
+<h2>Signalling an error.</h2>
+<p>If your custom call encounters an error, you can signal the error to the XLA
+runtime (instead of e.g. crashing or returning nonsense in the output buffers)
+by using the following signature for your function on CPU:</p>
+<p>```c++</p>
+<h1>include "tensorflow/compiler/xla/service/custom_call_status.h"</h1>
+<p>void do_custom_call(void<em> out, const void</em><em> in, XlaCustomCallStatus</em> status);
+```</p>
+<p>... and on GPU:</p>
+<p>```c++</p>
+<h1>include "tensorflow/compiler/xla/service/custom_call_status.h"</h1>
+<p>void do_custom_call(CUstream stream, void<em><em> buffers, const char</em> opaque,
+                    size_t opaque_len, xla::XlaCustomCallStatus</em> status);
+```</p>
+<p>You can signal failure by using <code>XlaCustomCallStatusSetFailure</code>, e.g.:</p>
+<p>```c++
+void do_custom_call(void<em> out, const void</em><em> in, XlaCustomCallStatus</em> status) {
+  // ... do some work.</p>
+<p>if (bad_condition) {
+    char* error_message = "An error occurred";
+    XlaCustomCallStatusSetFailure(status, error_message, strlen(error_message));
+    return;
+  }</p>
+<p>// ... continue.
+}
+```</p>
+<p>You can also use <code>XlaCustomCallStatusSetSuccess</code> to indicate success, but the
+<code>XlaCustomCallStatus</code> is in a success state by default, so ignoring it
+completely will also indicate success.</p>
+<p>When using custom call functions with this signature, you must create the
+corresponding <code>custom-call</code> op with the appropriate API version set, e.g.:</p>
+<p><code>c++
+xla::CustomCall(&amp;b, "do_custom_call", /*operands=*/{param0, param1},
+                /*output_shape=*/xla::ShapeUtil::MakeShape(F32, {2048}),
+                opaque, /*has_side_effect=*/false,
+                /*output_operand_aliasing=*/{}, /*literal=*/nullptr,
+                /*schedule=*/xla::CustomCallSchedule::SCHEDULE_NONE,
+                /*api_version=*/API_VERSION_STATUS_RETURNING);</code></p>
+<p>NOTE: In the future all clients will be required to migrate their custom call
+functions to the new API version and the old one will be deprecated. For custom
+calls that can't fail, you can simply add the new <code>XlaCustomCallStatus*</code>
+parameter and then ignore it.</p>
+<p>On failure, none of the custom call outputs will be used; the XLA runtime will
+terminate the computation. It is not possible for an HLO computation to recover
+from the error (e.g. by catching and handling it).</p>
+<h2>Passing tuples to custom-calls</h2>
+<p>Consider the following custom-call.</p>
+<p>```c++
+using xla::ShapeUtil;
+using xla::F32;
+Shape p0_shape = ShapeUtil::MakeTuple({
+    ShapeUtil::MakeShape(F32, {32}),
+    ShapeUtil::MakeTuple({
+        ShapeUtil::MakeShape(F32, {64}),
+        ShapeUtil::MakeShape(F32, {128}),
+    }),
+    ShapeUtil::MakeShape(F32, {256}),
+});
+xla::XlaOp p0 = xla::Parameter(0, p0_shape, "p0");</p>
+<p>Shape out_shape = ShapeUtil::MakeTuple({
+  ShapeUtil::MakeShape(F32, {512}),
+  ShapeUtil::MakeShape(F32, {1024}),
+});
+xla::CustomCall(&amp;b, "do_custom_call", /<em>operands=</em>/{p0}, out_shape);
+```</p>
+<p>On both CPU and GPU, a tuple is represented in memory as an array of pointers.
+In C++-pseudocode, parameter 0 above is laid out as follows.</p>
+<p>```c++
+// In-memory layout of parameter 0 from custom-call above.  True on both CPU
+// and GPU.
+float<em> subbuf0 = new float[32];
+float</em> subbuf1 = new float[64];
+float<em> subbuf2 = new float[128]
+float</em> subbuf3 = new float[256];</p>
+<p>void<em> subtuple = new void</em>[2];
+(<em>subtuple)[0] = subbuf1;
+(</em>subtuple)[1] = subbuf2;</p>
+<p>void<em> p0 = new void</em>[3];
+(<em>p0)[0] = subbuf0;
+(</em>p0)[1] = subtuple;
+(*p0)[2] = subbuf3;
+```</p>
+<p>Although the in-memory representation of tuples is the same in CPU and GPU, they
+are handled differently in the CPU and GPU custom-call calling conventions.</p>
+<h3>Tuple outputs as temp buffers</h3>
+<p>Tuple inputs to custom-calls are a convenience, but they aren't strictly
+necessary. If we didn't support tuple inputs to custom calls, you could always
+unpack the tuples using get-tuple-element before passing them to the custom
+call.</p>
+<p>On the other hand, tuple <em>outputs</em> do let you do things you couldn't otherwise.</p>
+<p>The obvious reason to have tuple outputs is, that's how a custom call (or any
+other XLA op) returns multiple independent arrays.</p>
+<p>But less obviously, a tuple output is also a way to give your custom call temp
+memory. Yes, an <em>output</em> can represent a temp buffer. Consider, an output buffer
+has the property that the op can write to it, and it can read from it after it's
+been written to. That's exactly what you want from a temp buffer.</p>
+<p>In the example above, suppose we wanted to use the <code>F32[1024]</code> as a temp buffer.
+Then we'd write the HLO just as above, and we'd simply never read tuple index 1
+of the custom call's output.</p>
+<h3>Tuples in CPU custom-calls</h3>
+<p>In CPU code, we have a function <code>do_custom_call(const void** ins, void* out)</code>.
+<code>ins</code> is an array with just one element, which points to <code>param0</code>. The
+subbuffers of <code>param0</code> are accessible by dereferencing that pointer, and the
+subbuffers of <code>output_tuple</code> are accessible by dereferencing <code>out</code>.</p>
+<h3>Tuples in GPU custom-calls</h3>
+<p>In GPU code, we have a function <code>do_custom_call(..., void** buffers, ...)</code>. In
+this case <code>buffers</code> is a host array of <em>six</em> device pointers, one for each leaf
+buffer in the input/output. To generate the flat list, we iterate over the
+parameters and output, and for each we do a preorder traversal of its shape.
+Concretely:</p>
+<p><code>c++
+// Layout of `buffers` parameter to GPU custom call function for custom-call
+// above.
+buffers[0] == subbuf0
+buffers[1] == subbuf1
+buffers[2] == subbuf2
+buffers[3] == subbuf3
+buffers[4] == output_subbuf0
+buffers[5] == output_subbuf1</code></p>

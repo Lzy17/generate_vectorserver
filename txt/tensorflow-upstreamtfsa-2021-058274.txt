@@ -1,0 +1,36 @@
+<h2>TFSA-2021-058: Heap out of bounds read in <code>RequantizationRange</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29569</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.MaxPoolGradWithArgmax</code> can cause reads outside
+of bounds of heap allocated data if attacker supplies specially crafted inputs:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant([1], shape=[1], dtype=tf.qint32)
+input_max = tf.constant([], dtype=tf.float32)
+input_min = tf.constant([], dtype=tf.float32)</p>
+<p>tf.raw_ops.RequantizationRange(input=input, input_min=input_min, input_max=input_max)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/ac328eaa3870491ababc147822cd04e91a790643/tensorflow/core/kernels/requantization_range_op.cc#L49-L50">implementation</a>
+assumes that the <code>input_min</code> and <code>input_max</code> tensors have at least one element,
+as it accesses the first element in two arrays:</p>
+<p><code>cc
+const float input_min_float = ctx-&gt;input(1).flat&lt;float&gt;()(0);
+const float input_max_float = ctx-&gt;input(2).flat&lt;float&gt;()(0);</code></p>
+<p>If the tensors are empty, <code>.flat&lt;T&gt;()</code> is an empty object, backed by an empty
+array. Hence, accesing even the 0th element is a read outside the bounds.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ef0c008ee84bad91ec6725ddc42091e19a30cf0e">ef0c008ee84bad91ec6725ddc42091e19a30cf0e</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

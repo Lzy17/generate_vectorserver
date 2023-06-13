@@ -1,0 +1,24 @@
+<h2>TFSA-2022-070: Missing validation causes denial of service via <code>Conv3DBackpropFilterV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29196</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/conv_grad_ops_3d.cc"><code>tf.raw_ops.Conv3DBackpropFilterV2</code></a> does not fully validate the input arguments. This results in a <code>CHECK</code>-failure which can be used to trigger a denial of service attack:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.Conv3DBackpropFilterV2(
+  input=tf.constant(.5053710941, shape=[2,2,2,2,1], dtype=tf.float16),
+  filter_sizes=tf.constant(0, shape=[], dtype=tf.int32),
+  out_backprop=tf.constant(.5053710941, shape=[2,2,2,2,1], dtype=tf.float16),
+  strides=[1, 1, 1, 1, 1],
+  padding="VALID",
+  data_format="NDHWC",
+  dilations=[1, 1, 1, 1, 1])
+```</p>
+<p>The code does not validate that the <code>filter_sizes</code> argument is a vector.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/174c5096f303d5be7ed2ca2662b08371bff4ab88">174c5096f303d5be7ed2ca2662b08371bff4ab88</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

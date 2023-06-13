@@ -1,0 +1,246 @@
+<h1>Integrate image segmenters</h1>
+<p>Image segmenters predict whether each pixel of an image is associated with a
+certain class. This is in contrast to
+<a href="../../examples/object_detection/overview">object detection</a>,
+which detects objects in rectangular regions, and
+<a href="../../examples/image_classification/overview">image
+classification</a>, which classifies the overall image. See the
+<a href="../../examples/segmentation/overview">image segmentation overview</a> for more
+information about image segmenters.</p>
+<p>Use the Task Library <code>ImageSegmenter</code> API to deploy your custom image segmenters
+or pretrained ones into your mobile apps.</p>
+<h2>Key features of the ImageSegmenter API</h2>
+<ul>
+<li>
+<p>Input image processing, including rotation, resizing, and color space
+    conversion.</p>
+</li>
+<li>
+<p>Label map locale.</p>
+</li>
+<li>
+<p>Two output types, category mask and confidence masks.</p>
+</li>
+<li>
+<p>Colored label for display purpose.</p>
+</li>
+</ul>
+<h2>Supported image segmenter models</h2>
+<p>The following models are guaranteed to be compatible with the <code>ImageSegmenter</code>
+API.</p>
+<ul>
+<li>
+<p>The
+    <a href="https://tfhub.dev/tensorflow/collections/lite/task-library/image-segmenter/1">pretrained image segmentation models on TensorFlow Hub</a>.</p>
+</li>
+<li>
+<p>Custom models that meet the
+    <a href="#model-compatibility-requirements">model compatibility requirements</a>.</p>
+</li>
+</ul>
+<h2>Run inference in Java</h2>
+<p>See the
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/image_segmentation/android/">Image Segmentation reference app</a>
+for an example of how to use <code>ImageSegmenter</code> in an Android app.</p>
+<h3>Step 1: Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> model file to the assets directory of the Android module
+where the model will be run. Specify that the file should not be compressed, and
+add the TensorFlow Lite library to the module’s <code>build.gradle</code> file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import the Task Vision Library dependency (NNAPI is included)
+implementation 'org.tensorflow:tensorflow-lite-task-vision'
+// Import the GPU delegate plugin Library for GPU inference
+implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin'
+</code></pre>
+<p>}
+```</p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>
+<h3>Step 2: Using the model</h3>
+<p>```java
+// Initialization
+ImageSegmenterOptions options =
+    ImageSegmenterOptions.builder()
+        .setBaseOptions(BaseOptions.builder().useGpu().build())
+        .setOutputType(OutputType.CONFIDENCE_MASK)
+        .build();
+ImageSegmenter imageSegmenter =
+    ImageSegmenter.createFromFileAndOptions(context, modelFile, options);</p>
+<p>// Run inference
+List<Segmentation> results = imageSegmenter.segment(image);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/java/src/java/org/tensorflow/lite/task/vision/segmenter/ImageSegmenter.java">source code and javadoc</a>
+for more options to configure <code>ImageSegmenter</code>.</p>
+<h2>Run inference in iOS</h2>
+<h3>Step 1: Install the dependencies</h3>
+<p>The Task Library supports installation using CocoaPods. Make sure that CocoaPods
+is installed on your system. Please see the
+<a href="https://guides.cocoapods.org/using/getting-started.html#getting-started">CocoaPods installation guide</a>
+for instructions.</p>
+<p>Please see the
+<a href="https://guides.cocoapods.org/using/using-cocoapods.html">CocoaPods guide</a> for
+details on adding pods to an Xcode project.</p>
+<p>Add the <code>TensorFlowLiteTaskVision</code> pod in the Podfile.</p>
+<p><code>target 'MyAppWithTaskAPI' do
+  use_frameworks!
+  pod 'TensorFlowLiteTaskVision'
+end</code></p>
+<p>Make sure that the <code>.tflite</code> model you will be using for inference is present in
+your app bundle.</p>
+<h3>Step 2: Using the model</h3>
+<h4>Swift</h4>
+<p>```swift
+// Imports
+import TensorFlowLiteTaskVision</p>
+<p>// Initialization
+guard let modelPath = Bundle.main.path(forResource: "deeplabv3",
+                                            ofType: "tflite") else { return }</p>
+<p>let options = ImageSegmenterOptions(modelPath: modelPath)</p>
+<p>// Configure any additional options:
+// options.outputType = OutputType.confidenceMasks</p>
+<p>let segmenter = try ImageSegmenter.segmenter(options: options)</p>
+<p>// Convert the input image to MLImage.
+// There are other sources for MLImage. For more details, please see:
+// https://developers.google.com/ml-kit/reference/ios/mlimage/api/reference/Classes/GMLImage
+guard let image = UIImage (named: "plane.jpg"), let mlImage = MLImage(image: image) else { return }</p>
+<p>// Run inference
+let segmentationResult = try segmenter.segment(mlImage: mlImage)
+```</p>
+<h4>Objective C</h4>
+<p>```objc
+// Imports</p>
+<h1>import <TensorFlowLiteTaskVision/TensorFlowLiteTaskVision.h></h1>
+<p>// Initialization
+NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"deeplabv3" ofType:@"tflite"];</p>
+<p>TFLImageSegmenterOptions *options =
+    [[TFLImageSegmenterOptions alloc] initWithModelPath:modelPath];</p>
+<p>// Configure any additional options:
+// options.outputType = TFLOutputTypeConfidenceMasks;</p>
+<p>TFLImageSegmenter *segmenter = [TFLImageSegmenter imageSegmenterWithOptions:options
+                                                                      error:nil];</p>
+<p>// Convert the input image to MLImage.
+UIImage *image = [UIImage imageNamed:@"plane.jpg"];</p>
+<p>// There are other sources for GMLImage. For more details, please see:
+// https://developers.google.com/ml-kit/reference/ios/mlimage/api/reference/Classes/GMLImage
+GMLImage *gmlImage = [[GMLImage alloc] initWithImage:image];</p>
+<p>// Run inference
+TFLSegmentationResult *segmentationResult =
+    [segmenter segmentWithGMLImage:gmlImage error:nil];
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/ios/task/vision/sources/TFLImageSegmenter.h">source code</a>
+for more options to configure <code>TFLImageSegmenter</code>.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install the pip package</h3>
+<p><code>pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python</p>
+<h1>Imports</h1>
+<p>from tflite_support.task import vision
+from tflite_support.task import core
+from tflite_support.task import processor</p>
+<h1>Initialization</h1>
+<p>base_options = core.BaseOptions(file_name=model_path)
+segmentation_options = processor.SegmentationOptions(
+    output_type=processor.SegmentationOptions.OutputType.CATEGORY_MASK)
+options = vision.ImageSegmenterOptions(base_options=base_options, segmentation_options=segmentation_options)
+segmenter = vision.ImageSegmenter.create_from_options(options)</p>
+<h1>Alternatively, you can create an image segmenter in the following manner:</h1>
+<h1>segmenter = vision.ImageSegmenter.create_from_file(model_path)</h1>
+<h1>Run inference</h1>
+<p>image_file = vision.TensorImage.create_from_file(image_path)
+segmentation_result = segmenter.segment(image_file)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/vision/image_segmenter.py">source code</a>
+for more options to configure <code>ImageSegmenter</code>.</p>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+ImageSegmenterOptions options;
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_path);
+std::unique_ptr<ImageSegmenter> image_segmenter = ImageSegmenter::CreateFromOptions(options).value();</p>
+<p>// Create input frame_buffer from your inputs, <code>image_data</code> and <code>image_dimension</code>.
+// See more information here: tensorflow_lite_support/cc/task/vision/utils/frame_buffer_common_utils.h
+std::unique_ptr<FrameBuffer> frame_buffer = CreateFromRgbRawBuffer(
+      image_data, image_dimension);</p>
+<p>// Run inference
+const SegmentationResult result = image_segmenter-&gt;Segment(*frame_buffer).value();
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/vision/image_segmenter.h">source code</a>
+for more options to configure <code>ImageSegmenter</code>.</p>
+<h2>Example results</h2>
+<p>Here is an example of the segmentation results of
+<a href="https://tfhub.dev/tensorflow/lite-model/deeplabv3/1/metadata/1">deeplab_v3</a>, a
+generic segmentation model available on TensorFlow Hub.</p>
+<p><img src="images/plane.jpg" alt="plane" width="50%"></p>
+<p>```
+Color Legend:
+ (r: 000, g: 000, b: 000):
+  index       : 0
+  class name  : background
+ (r: 128, g: 000, b: 000):
+  index       : 1
+  class name  : aeroplane</p>
+<h1>(omitting multiple lines for conciseness) ...</h1>
+<p>(r: 128, g: 192, b: 000):
+  index       : 19
+  class name  : train
+ (r: 000, g: 064, b: 128):
+  index       : 20
+  class name  : tv
+Tip: use a color picker on the output PNG file to inspect the output mask with
+this legend.
+```</p>
+<p>The segmentation category mask should looks like:</p>
+<p><img src="images/segmentation-output.png" alt="segmentation-output" width="30%"></p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/examples/task/vision/desktop#image-segmenter">CLI demo tool for ImageSegmenter</a>
+with your own model and test data.</p>
+<h2>Model compatibility requirements</h2>
+<p>The <code>ImageSegmenter</code> API expects a TFLite model with mandatory
+<a href="../../models/convert/metadata">TFLite Model Metadata</a>. See examples of creating
+metadata for image segmenters using the
+<a href="../../models/convert/metadata_writer_tutorial.ipynb#image_segmenters">TensorFlow Lite Metadata Writer API</a>.</p>
+<ul>
+<li>
+<p>Input image tensor (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>image input of size <code>[batch x height x width x channels]</code>.</li>
+<li>batch inference is not supported (<code>batch</code> is required to be 1).</li>
+<li>only RGB inputs are supported (<code>channels</code> is required to be 3).</li>
+<li>if type is kTfLiteFloat32, NormalizationOptions are required to be
+    attached to the metadata for input normalization.</li>
+</ul>
+</li>
+<li>
+<p>Output masks tensor: (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>tensor of size <code>[batch x mask_height x mask_width x num_classes]</code>, where
+    <code>batch</code> is required to be 1, <code>mask_width</code> and <code>mask_height</code> are the
+    dimensions of the segmentation masks produced by the model, and
+    <code>num_classes</code> is the number of classes supported by the model.</li>
+<li>optional (but recommended) label map(s) can be attached as
+    AssociatedFile-s with type TENSOR_AXIS_LABELS, containing one label per
+    line. The first such AssociatedFile (if any) is used to fill the <code>label</code>
+    field (named as <code>class_name</code> in C++) of the results. The <code>display_name</code>
+    field is filled from the AssociatedFile (if any) whose locale matches
+    the <code>display_names_locale</code> field of the <code>ImageSegmenterOptions</code> used at
+    creation time ("en" by default, i.e. English). If none of these are
+    available, only the <code>index</code> field of the results will be filled.</li>
+</ul>
+</li>
+</ul>

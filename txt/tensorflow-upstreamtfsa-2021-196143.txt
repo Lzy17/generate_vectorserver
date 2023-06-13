@@ -1,0 +1,17 @@
+<h2>TFSA-2021-196: Overflow/crash in <code>tf.tile</code> when tiling tensor is large</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41198</p>
+<h3>Impact</h3>
+<p>If <code>tf.tile</code> is called with a large input argument then the TensorFlow process will crash due to a <code>CHECK</code>-failure caused by an overflow.</p>
+<p><code>python
+import tensorflow as tf
+import numpy as np
+tf.keras.backend.tile(x=np.ones((1,1,1)), n=[100000000,100000000, 100000000])</code></p>
+<p>The number of elements in the output tensor is too much for the <code>int64_t</code> type and the overflow is detected via a <code>CHECK</code> statement. This aborts the process.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/9294094df6fea79271778eb7e7ae1bad8b5ef98f">9294094df6fea79271778eb7e7ae1bad8b5ef98f</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/51138">#51138</a>).</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/46911">GitHub issue</a>.</p>

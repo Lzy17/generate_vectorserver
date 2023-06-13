@@ -1,0 +1,38 @@
+<h2>TFSA-2022-068: Missing validation causes denial of service via <code>SparseTensorToCSRSparseMatrix</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29198</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/sparse/sparse_tensor_to_csr_sparse_matrix_op.cc#L65-L119"><code>tf.raw_ops.SparseTensorToCSRSparseMatrix</code></a> does not fully validate the input arguments. This results in a <code>CHECK</code>-failure which can be used to trigger a denial of service attack:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>indices = tf.constant(53, shape=[3], dtype=tf.int64)
+values = tf.constant(0.554979503, shape=[218650], dtype=tf.float32)
+dense_shape = tf.constant(53, shape=[3], dtype=tf.int64)</p>
+<p>tf.raw_ops.SparseTensorToCSRSparseMatrix(
+  indices=indices,
+  values=values,
+  dense_shape=dense_shape)
+```</p>
+<p>The code assumes <code>dense_shape</code> is a vector and <code>indices</code> is a matrix (as part of requirements for sparse tensors) but there is no validation for this:</p>
+<p><code>cc
+    const Tensor&amp; indices = ctx-&gt;input(0);
+    const Tensor&amp; values = ctx-&gt;input(1);
+    const Tensor&amp; dense_shape = ctx-&gt;input(2);
+    const int rank = dense_shape.NumElements();
+    OP_REQUIRES(ctx, rank == 2 || rank == 3,
+                errors::InvalidArgument("SparseTensor must have rank 2 or 3; ",
+                                        "but indices has rank: ", rank));
+    auto dense_shape_vec = dense_shape.vec&lt;int64_t&gt;();
+    // ...
+    OP_REQUIRES_OK(
+        ctx,
+        coo_to_csr(batch_size, num_rows, indices.template matrix&lt;int64_t&gt;(),
+                   batch_ptr.vec&lt;int32&gt;(), csr_row_ptr.vec&lt;int32&gt;(),
+                   csr_col_ind.vec&lt;int32&gt;()));</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ea50a40e84f6bff15a0912728e35b657548cef11">ea50a40e84f6bff15a0912728e35b657548cef11</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

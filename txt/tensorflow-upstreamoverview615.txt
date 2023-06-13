@@ -1,0 +1,69 @@
+<h1>Reinforcement Learning</h1>
+<p>Play a board game against an agent, which is trained using reinforcement
+learning and deployed with TensorFlow Lite.</p>
+<h2>Get started</h2>
+<p><img src="images/screenshot.gif" class="attempt-right" style="max-width: 300px"></p>
+<p>If you are new to TensorFlow Lite and are working with Android, we recommend
+exploring the following example application that can help you get started.</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/examples/tree/master/lite/examples/reinforcement_learning/android">Android
+example</a></p>
+<p>If you are using a platform other than Android, or you are already familiar with
+the <a href="https://www.tensorflow.org/api_docs/python/tf/lite">TensorFlow Lite APIs</a>,
+you can download our trained model.</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/examples/blob/master/lite/examples/reinforcement_learning/android/app/src/main/assets/planestrike_tf.tflite">Download
+model</a></p>
+<h2>How it works</h2>
+<p>The model is built for a game agent to play a small board game called 'Plane
+Strike'. For a quick introduction of this game and its rules, please refer to
+this
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/reinforcement_learning/android">README</a>.</p>
+<p>Underneath the app's UI, we have built an agent that plays against the human
+player. The agent is a 3-layer MLP that takes the board state as input and
+outputs the predicted score for each of the 64 possible board cells. The model
+is trained using policy gradient (REINFORCE) and you can find the training code
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/reinforcement_learning/ml">here</a>.
+After training the agent, we convert the model into TFLite and deploy it in the
+Android app.</p>
+<p>During the actual game play in the Android app, when it's the agent's turn to
+take action, the agent looks at the human player's board state (the board at the
+bottom), which contains information about previous successful and unsuccessful
+strikes (hits and misses), and uses the trained model to predict where to strike
+next, so that it can finish the game before the human player does.</p>
+<h2>Performance benchmarks</h2>
+<p>Performance benchmark numbers are generated with the tool described
+<a href="https://www.tensorflow.org/lite/performance/benchmarks">here</a>.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Model Name</th>
+      <th>Model size </th>
+      <th>Device </th>
+      <th>CPU</th>
+    </tr>
+  </thead>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/reinforcement_learning/android/app/src/main/assets/planestrike.tflite">Policy Gradient</a>
+    </td>
+    <td rowspan = 2>
+      84 Kb
+    </td>
+    <td>Pixel 3 (Android 10) </td>
+    <td>0.01ms*</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 (Android 10) </td>
+    <td>0.01ms*</td>
+  </tr>
+</table>
+
+<p>* 1 threads used.</p>
+<h2>Inputs</h2>
+<p>The model accepts a 3-D <code>float32</code> Tensor of (1, 8, 8) as the board state.</p>
+<h2>Outputs</h2>
+<p>The model returns a 2-D <code>float32</code> Tensor of shape (1,64) as the predicted scores
+for each of the 64 possible strike positions.</p>
+<h2>Train your own model</h2>
+<p>You could train your own model for a larger/smaller board by change the
+<code>BOARD_SIZE</code> parameter in the
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/reinforcement_learning/ml">training code</a>.</p>

@@ -1,0 +1,83 @@
+<h2>TFSA-2021-012: <code>CHECK</code>-fail in <code>AddManySparseToTensorsMap</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29523</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a denial of service via a <code>CHECK</code>-fail in
+<code>tf.raw_ops.AddManySparseToTensorsMap</code>:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>sparse_indices = tf.constant(530, shape=[1, 1], dtype=tf.int64)
+sparse_values = tf.ones([1], dtype=tf.int64)</p>
+<p>shape = tf.Variable(tf.ones([55], dtype=tf.int64))
+shape[:8].assign(np.array([855, 901, 429, 892, 892, 852, 93, 96], dtype=np.int64))</p>
+<p>tf.raw_ops.AddManySparseToTensorsMap(
+    sparse_indices=sparse_indices,
+    sparse_values=sparse_values,
+    sparse_shape=shape)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/6f9896890c4c703ae0a0845394086e2e1e523299/tensorflow/core/kernels/sparse_tensors_map_ops.cc#L257">implementation</a>
+takes the values specified in <code>sparse_shape</code> as dimensions for the output shape:</p>
+<p><code>cc
+    TensorShape tensor_input_shape(input_shape-&gt;vec&lt;int64&gt;());</code></p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/6f9896890c4c703ae0a0845394086e2e1e523299/tensorflow/core/framework/tensor_shape.cc#L183-L188"><code>TensorShape</code>
+constructor</a>
+uses a <code>CHECK</code> operation which triggers when
+<a href="https://github.com/tensorflow/tensorflow/blob/6f9896890c4c703ae0a0845394086e2e1e523299/tensorflow/core/framework/tensor_shape.cc#L212-L296"><code>InitDims</code></a>
+returns a non-OK status.</p>
+<p><code>cc
+template &lt;class Shape&gt;
+TensorShapeBase&lt;Shape&gt;::TensorShapeBase(gtl::ArraySlice&lt;int64&gt; dim_sizes) {
+  set_tag(REP16);
+  set_data_type(DT_INVALID);
+  TF_CHECK_OK(InitDims(dim_sizes));
+}</code></p>
+<p>In our scenario, this occurs when adding a dimension from the argument results
+in overflow:</p>
+<p>```cc
+template <class Shape>
+Status TensorShapeBase<Shape>::InitDims(gtl::ArraySlice<int64> dim_sizes) {
+  ...
+  Status status = OkStatus();
+  for (int64 s : dim_sizes) {
+    status.Update(AddDimWithStatus(internal::SubtleMustCopy(s)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+}</p>
+<p>template <class Shape>
+Status TensorShapeBase<Shape>::AddDimWithStatus(int64 size) {
+  ...
+  int64 new_num_elements;
+  if (kIsPartial &amp;&amp; (num_elements() &lt; 0 || size &lt; 0)) {
+    new_num_elements = -1;
+  } else {
+    new_num_elements = MultiplyWithoutOverflow(num_elements(), size);
+    if (TF_PREDICT_FALSE(new_num_elements &lt; 0)) {
+        return errors::Internal("Encountered overflow when multiplying ",
+                                num_elements(), " with ", size,
+                                ", result: ", new_num_elements);
+      }
+  }
+  ...
+}
+```</p>
+<p>This is a legacy implementation of the constructor and operations should
+use <code>BuildTensorShapeBase</code> or <code>AddDimWithStatus</code> to prevent <code>CHECK</code>-failures in
+the presence of overflows.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/69c68ecbb24dff3fa0e46da0d16c821a2dd22d7c">69c68ecbb24dff3fa0e46da0d16c821a2dd22d7c</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

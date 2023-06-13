@@ -1,0 +1,43 @@
+<h2>TFSA-2021-184: Heap OOB in shape inference for <code>QuantizeV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41211</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/framework/common_shape_fns.cc#L2509-L2530">shape inference code for <code>QuantizeV2</code></a> can trigger a read outside of bounds of heap allocated array:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def test():
+  data=tf.raw_ops.QuantizeV2(
+    input=[1.0,1.0],
+    min_range=[1.0,10.0],
+    max_range=[1.0,10.0],
+    T=tf.qint32,
+    mode='MIN_COMBINED',
+    round_mode='HALF_TO_EVEN',
+    narrow_range=False,
+    axis=-100,
+    ensure_minimum_range=10)
+  return data</p>
+<p>test()
+```</p>
+<p>This occurs whenever <code>axis</code> is a negative value less than <code>-1</code>. In this case, we are accessing data before the start of a heap buffer:</p>
+<p><code>cc
+int axis = -1;
+Status s = c-&gt;GetAttr("axis", &amp;axis);
+if (!s.ok() &amp;&amp; s.code() != error::NOT_FOUND) {
+  return s;
+}
+...
+if (axis != -1) {
+  ...
+  TF_RETURN_IF_ERROR(
+      c-&gt;Merge(c-&gt;Dim(minmax, 0), c-&gt;Dim(input, axis), &amp;depth));
+}</code></p>
+<p>The code allows <code>axis</code> to be an optional argument (<code>s</code> would contain an <code>error::NOT_FOUND</code> error code). Otherwise, it assumes that <code>axis</code> is a valid index into the dimensions of the <code>input</code> tensor. If <code>axis</code> is less than <code>-1</code> then this results in a heap OOB read.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/a0d64445116c43cf46a5666bd4eee28e7a82f244">a0d64445116c43cf46a5666bd4eee28e7a82f244</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, as this version is the only one that is also affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

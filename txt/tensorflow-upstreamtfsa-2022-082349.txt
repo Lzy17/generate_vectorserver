@@ -1,0 +1,12 @@
+<h2>TFSA-2022-082: Incomplete validation in signal ops leads to crashes</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29213</p>
+<h3>Impact</h3>
+<p>The <code>tf.compat.v1.signal.rfft2d</code> and <code>tf.compat.v1.signal.rfft3d</code> lack input validation and under certain condition can result in crashes (due to <code>CHECK</code>-failures).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/0a8a781e597b18ead006d19b7d23d0a369e9ad73">0a8a781e597b18ead006d19b7d23d0a369e9ad73</a> (merging GitHub PR <a href="https://github.com/tensorflow/tensorflow/pull/55274">#55274</a>).</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/55263">GitHub issue</a>.</p>

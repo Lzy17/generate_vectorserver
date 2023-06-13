@@ -1,0 +1,41 @@
+<h2>TFSA-2020-016: Segfault due to invalid splits in RaggedCountSparseOutput</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15200</p>
+<h3>Impact</h3>
+<p>The <code>RaggedCountSparseOutput</code> implementation does not validate that the input
+arguments form a valid ragged tensor. In particular, there is no validation that
+the values in the <code>splits</code> tensor generate a valid partitioning of the <code>values</code>
+tensor. Thus, the <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/count_ops.cc#L248-L265">following
+code</a> sets up conditions to cause a heap buffer overflow:
+<code>cc
+    auto per_batch_counts = BatchedMap&lt;W&gt;(num_batches);
+    int batch_idx = 0;
+    for (int idx = 0; idx &lt; num_values; ++idx) {
+      while (idx &gt;= splits_values(batch_idx)) {
+        batch_idx++;
+      }
+      const auto&amp; value = values_values(idx);
+      if (value &gt;= 0 &amp;&amp; (maxlength_ &lt;= 0 || value &lt; maxlength_)) {
+        per_batch_counts[batch_idx - 1][value] = 1;
+      }
+    }</code></p>
+<p>A <code>BatchedMap</code> is equivalent to a vector where each element is a hashmap.
+However, if the first element of <code>splits_values</code> is not 0, <code>batch_idx</code> will
+never be 1, hence there will be no hashmap at index 0 in <code>per_batch_counts</code>.
+Trying to access that in the user code results in a segmentation fault.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/3cbb917b4714766030b28eba9fb41bb97ce9ee02">3cbb917b4714766030b28eba9fb41bb97ce9ee02</a>
+and will release a patch release.</p>
+<p>We recommend users to upgrade to TensorFlow 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-015.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

@@ -1,0 +1,40 @@
+<h2>TFSA-2022-003: Heap OOB access in <code>Dequantize</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21726</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/dequantize_op.cc#L92-L153">implementation of <code>Dequantize</code></a> does not fully validate the value of <code>axis</code> and can result in heap OOB accesses:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def test():
+  y = tf.raw_ops.Dequantize(
+    input=tf.constant([1,1],dtype=tf.qint32),
+    min_range=[1.0],
+    max_range=[10.0],
+    mode='MIN_COMBINED',
+    narrow_range=False,
+    axis=2**31-1,
+    dtype=tf.bfloat16)
+  return y</p>
+<p>test()
+```</p>
+<p>The <code>axis</code> argument can be <code>-1</code> (the default value for the optional argument) or any other positive value at most the number of dimensions of the input. Unfortunately, the upper bound is not checked and this results in reading past the end of the array containing the dimensions of the input tensor:</p>
+<p><code>cc
+  if (axis_ &gt; -1) {
+    num_slices = input.dim_size(axis_);
+  }
+  // ...
+  int64_t pre_dim = 1, post_dim = 1;
+  for (int i = 0; i &lt; axis_; ++i) {
+    pre_dim *= float_output.dim_size(i);
+  }
+  for (int i = axis_ + 1; i &lt; float_output.dims(); ++i) {
+    post_dim *= float_output.dim_size(i);
+  }</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/23968a8bf65b009120c43b5ebcceaf52dbc9e943">23968a8bf65b009120c43b5ebcceaf52dbc9e943</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

@@ -1,0 +1,302 @@
+<h1>Tensorflow Lite Core ML delegate</h1>
+<p>The TensorFlow Lite Core ML delegate enables running TensorFlow Lite models on
+<a href="https://developer.apple.com/documentation/coreml">Core ML framework</a>, which
+results in faster model inference on iOS devices.</p>
+<p>Note: This delegate is in experimental (beta) phase. It is available from
+TensorFlow Lite 2.4.0 and latest nightly releases.</p>
+<p>Note: Core ML delegate supports Core ML version 2 and later.</p>
+<p><strong>Supported iOS versions and devices:</strong></p>
+<ul>
+<li>iOS 12 and later. In the older iOS versions, Core ML delegate will
+    automatically fallback to CPU.</li>
+<li>By default, Core ML delegate will only be enabled on devices with A12 SoC
+    and later (iPhone Xs and later) to use Neural Engine for faster inference.
+    If you want to use Core ML delegate also on the older devices, please see
+    <a href="#best-practices">best practices</a></li>
+</ul>
+<p><strong>Supported models</strong></p>
+<p>The Core ML delegate currently supports float (FP32 and FP16) models.</p>
+<h2>Trying the Core ML delegate on your own model</h2>
+<p>The Core ML delegate is already included in nightly release of TensorFlow lite
+CocoaPods. To use Core ML delegate, change your TensorFlow lite pod to include
+subspec <code>CoreML</code> in your <code>Podfile</code>.</p>
+<p>Note: If you want to use C API instead of Objective-C API, you can include
+<code>TensorFlowLiteC/CoreML</code> pod to do so.</p>
+<p><code>target 'YourProjectName'
+  pod 'TensorFlowLiteSwift/CoreML', '~&gt; 2.4.0'  # Or TensorFlowLiteObjC/CoreML</code></p>
+<p>OR</p>
+<p>```</p>
+<h1>Particularily useful when you also want to include 'Metal' subspec.</h1>
+<p>target 'YourProjectName'
+  pod 'TensorFlowLiteSwift', '~&gt; 2.4.0', :subspecs =&gt; ['CoreML']
+```</p>
+<p>Note: Core ML delegate can also use C API for Objective-C code. Prior to
+TensorFlow Lite 2.4.0 release, this was the only option.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+    let coreMLDelegate = CoreMLDelegate()
+    var interpreter: Interpreter
+
+    // Core ML delegate will only be created for devices with Neural Engine
+    if coreMLDelegate != nil {
+      interpreter = try Interpreter(modelPath: modelPath,
+                                    delegates: [coreMLDelegate!])
+    } else {
+      interpreter = try Interpreter(modelPath: modelPath)
+    }
+  </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+
+    // Import module when using CocoaPods with module support
+    @import TFLTensorFlowLite;
+
+    // Or import following headers manually
+    # import "tensorflow/lite/objc/apis/TFLCoreMLDelegate.h"
+    # import "tensorflow/lite/objc/apis/TFLTensorFlowLite.h"
+
+    // Initialize Core ML delegate
+    TFLCoreMLDelegate* coreMLDelegate = [[TFLCoreMLDelegate alloc] init];
+
+    // Initialize interpreter with model path and Core ML delegate
+    TFLInterpreterOptions* options = [[TFLInterpreterOptions alloc] init];
+    NSError* error = nil;
+    TFLInterpreter* interpreter = [[TFLInterpreter alloc]
+                                    initWithModelPath:modelPath
+                                              options:options
+                                            delegates:@[ coreMLDelegate ]
+                                                error:&amp;error];
+    if (error != nil) { /* Error handling... */ }
+
+    if (![interpreter allocateTensorsWithError:&amp;error]) { /* Error handling... */ }
+    if (error != nil) { /* Error handling... */ }
+
+    // Run inference ...
+  </pre></p>
+    </section>
+    <section>
+      <h3>C (Until 2.3.0)</h3>
+      <p><pre class="prettyprint lang-c">
+    #include "tensorflow/lite/delegates/coreml/coreml_delegate.h"
+
+    // Initialize interpreter with model
+    TfLiteModel* model = TfLiteModelCreateFromFile(model_path);
+
+    // Initialize interpreter with Core ML delegate
+    TfLiteInterpreterOptions* options = TfLiteInterpreterOptionsCreate();
+    TfLiteDelegate* delegate = TfLiteCoreMlDelegateCreate(NULL);  // default config
+    TfLiteInterpreterOptionsAddDelegate(options, delegate);
+    TfLiteInterpreterOptionsDelete(options);
+
+    TfLiteInterpreter* interpreter = TfLiteInterpreterCreate(model, options);
+
+    TfLiteInterpreterAllocateTensors(interpreter);
+
+    // Run inference ...
+
+    /* ... */
+
+    // Dispose resources when it is no longer used.
+    // Add following code to the section where you dispose of the delegate
+    // (e.g. `dealloc` of class).
+
+    TfLiteInterpreterDelete(interpreter);
+    TfLiteCoreMlDelegateDelete(delegate);
+    TfLiteModelDelete(model);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<h2>Best practices</h2>
+<h3>Using Core ML delegate on devices without Neural Engine</h3>
+<p>By default, Core ML delegate will only be created if the device has Neural
+Engine, and will return <code>null</code> if the delegate is not created. If you want to
+run Core ML delegate on other environments (for example, simulator), pass <code>.all</code>
+as an option while creating delegate in Swift. On C++ (and Objective-C), you can
+pass <code>TfLiteCoreMlDelegateAllDevices</code>. Following example shows how to do this:</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+    var options = CoreMLDelegate.Options()
+    options.enabledDevices = .all
+    let coreMLDelegate = CoreMLDelegate(options: options)!
+    let interpreter = try Interpreter(modelPath: modelPath,
+                                      delegates: [coreMLDelegate])
+      </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+    TFLCoreMLDelegateOptions* coreMLOptions = [[TFLCoreMLDelegateOptions alloc] init];
+    coreMLOptions.enabledDevices = TFLCoreMLDelegateEnabledDevicesAll;
+    TFLCoreMLDelegate* coreMLDelegate = [[TFLCoreMLDelegate alloc]
+                                          initWithOptions:coreMLOptions];
+
+    // Initialize interpreter with delegate
+  </pre></p>
+    </section>
+    <section>
+      <h3>C</h3>
+      <p><pre class="prettyprint lang-c">
+    TfLiteCoreMlDelegateOptions options;
+    options.enabled_devices = TfLiteCoreMlDelegateAllDevices;
+    TfLiteDelegate* delegate = TfLiteCoreMlDelegateCreate(&amp;options);
+    // Initialize interpreter with delegate
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<h3>Using Metal(GPU) delegate as a fallback.</h3>
+<p>When the Core ML delegate is not created, alternatively you can still use
+<a href="https://www.tensorflow.org/lite/performance/gpu#ios">Metal delegate</a> to get
+performance benefits. Following example shows how to do this:</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+    var delegate = CoreMLDelegate()
+    if delegate == nil {
+      delegate = MetalDelegate()  // Add Metal delegate options if necessary.
+    }
+
+    let interpreter = try Interpreter(modelPath: modelPath,
+                                      delegates: [delegate!])
+  </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+    TFLDelegate* delegate = [[TFLCoreMLDelegate alloc] init];
+    if (!delegate) {
+      // Add Metal delegate options if necessary
+      delegate = [[TFLMetalDelegate alloc] init];
+    }
+    // Initialize interpreter with delegate
+      </pre></p>
+    </section>
+    <section>
+      <h3>C</h3>
+      <p><pre class="prettyprint lang-c">
+    TfLiteCoreMlDelegateOptions options = {};
+    delegate = TfLiteCoreMlDelegateCreate(&amp;options);
+    if (delegate == NULL) {
+      // Add Metal delegate options if necessary
+      delegate = TFLGpuDelegateCreate(NULL);
+    }
+    // Initialize interpreter with delegate
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>The delegate creation logic reads device's machine id (e.g. iPhone11,1) to
+determine its Neural Engine availability. See the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/coreml/coreml_delegate.mm">code</a>
+for more detail. Alternatively, you can implement your own set of denylist
+devices using other libraries such as
+<a href="https://github.com/devicekit/DeviceKit">DeviceKit</a>.</p>
+<h3>Using older Core ML version</h3>
+<p>Although iOS 13 supports Core ML 3, the model might work better when it is
+converted with Core ML 2 model specification. The target conversion version is
+set to the latest version by default, but you can change this by setting
+<code>coreMLVersion</code> (in Swift, <code>coreml_version</code> in C API) in the delegate option to
+older version.</p>
+<h2>Supported ops</h2>
+<p>Following ops are supported by the Core ML delegate.</p>
+<ul>
+<li>Add<ul>
+<li>Only certain shapes are broadcastable. In Core ML tensor layout,
+    following tensor shapes are broadcastable. <code>[B, C, H, W]</code>, <code>[B, C, 1,
+    1]</code>, <code>[B, 1, H, W]</code>, <code>[B, 1, 1, 1]</code>.</li>
+</ul>
+</li>
+<li>AveragePool2D</li>
+<li>Concat<ul>
+<li>Concatenation should be done along the channel axis.</li>
+</ul>
+</li>
+<li>Conv2D<ul>
+<li>Weights and bias should be constant.</li>
+</ul>
+</li>
+<li>DepthwiseConv2D<ul>
+<li>Weights and bias should be constant.</li>
+</ul>
+</li>
+<li>FullyConnected (aka Dense or InnerProduct)<ul>
+<li>Weights and bias (if present) should be constant.</li>
+<li>Only supports single-batch case. Input dimensions should be 1, except
+    the last dimension.</li>
+</ul>
+</li>
+<li>Hardswish</li>
+<li>Logistic (aka Sigmoid)</li>
+<li>MaxPool2D</li>
+<li>MirrorPad<ul>
+<li>Only 4D input with <code>REFLECT</code> mode is supported. Padding should be
+    constant, and is only allowed for H and W dimensions.</li>
+</ul>
+</li>
+<li>Mul<ul>
+<li>Only certain shapes are broadcastable. In Core ML tensor layout,
+    following tensor shapes are broadcastable. <code>[B, C, H, W]</code>, <code>[B, C, 1,
+    1]</code>, <code>[B, 1, H, W]</code>, <code>[B, 1, 1, 1]</code>.</li>
+</ul>
+</li>
+<li>Pad and PadV2<ul>
+<li>Only 4D input is supported. Padding should be constant, and is only
+    allowed for H and W dimensions.</li>
+</ul>
+</li>
+<li>Relu</li>
+<li>ReluN1To1</li>
+<li>Relu6</li>
+<li>Reshape<ul>
+<li>Only supported when target Core ML version is 2, not supported when
+    targeting Core ML 3.</li>
+</ul>
+</li>
+<li>ResizeBilinear</li>
+<li>SoftMax</li>
+<li>Tanh</li>
+<li>TransposeConv<ul>
+<li>Weights should be constant.</li>
+</ul>
+</li>
+</ul>
+<h2>Feedback</h2>
+<p>For issues, please create a
+<a href="https://github.com/tensorflow/tensorflow/issues/new?template=50-other-issues.md">GitHub</a>
+issue with all the necessary details to reproduce.</p>
+<h2>FAQ</h2>
+<ul>
+<li>Does CoreML delegate support fallback to CPU if a graph contains unsupported
+  ops?</li>
+<li>Yes</li>
+<li>Does CoreML delegate work on iOS Simulator?</li>
+<li>Yes. The library includes x86 and x86_64 targets so it can run on
+    a simulator, but you will not see performance boost over CPU.</li>
+<li>Does TensorFlow Lite and CoreML delegate support MacOS?</li>
+<li>TensorFlow Lite is only tested on iOS but not MacOS.</li>
+<li>Is custom TF Lite ops supported?</li>
+<li>No, CoreML delegate does not support custom ops and they will fallback to
+    CPU.</li>
+</ul>
+<h2>APIs</h2>
+<ul>
+<li><a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/swift/Sources/CoreMLDelegate.swift">Core ML delegate Swift API</a></li>
+<li><a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/coreml/coreml_delegate.h">Core ML delegate C API</a><ul>
+<li>This can be used for Objective-C codes. ~~~</li>
+</ul>
+</li>
+</ul>

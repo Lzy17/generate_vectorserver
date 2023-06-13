@@ -1,0 +1,276 @@
+<p><strong>Supported operators for device: XLA_CPU_JIT</strong></p>
+<p>Operator                              | Type Constraint
+------------------------------------- | ---------------
+<code>Abs</code>                                 | <code>T={double,float,int32,int64}</code>
+<code>Acos</code>                                | <code>T={complex64,double,float,int32,int64}</code>
+<code>Acosh</code>                               | <code>T={complex64,double,float}</code>
+<code>Add</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>AddN</code>                                | <code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>AdjustContrastv2</code>                    |
+<code>AdjustHue</code>                           |
+<code>AdjustSaturation</code>                    |
+<code>All</code>                                 | <code>Tidx={int32,int64}</code>
+<code>Angle</code>                               | <code>Tout={double,float}</code><br><code>T={complex64}</code>
+<code>Any</code>                                 | <code>Tidx={int32,int64}</code>
+<code>ApproximateEqual</code>                    | <code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ArgMax</code>                              | <code>Tidx={int32,int64}</code><br><code>output_type={int32,int64}</code><br><code>T={float}</code>
+<code>ArgMin</code>                              | <code>Tidx={int32,int64}</code><br><code>output_type={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Asin</code>                                | <code>T={complex64,double,float,int32,int64}</code>
+<code>Asinh</code>                               | <code>T={complex64,double,float}</code>
+<code>AssignAddVariableOp</code>                 | <code>dtype={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>AssignSubVariableOp</code>                 | <code>dtype={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>AssignVariableOp</code>                    | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Atan</code>                                | <code>T={complex64,double,float,int32,int64}</code>
+<code>Atan2</code>                               | <code>T={double,float}</code>
+<code>Atanh</code>                               | <code>T={complex64,double,float}</code>
+<code>AvgPool</code>                             | <code>T={double,float}</code>
+<code>AvgPool3D</code>                           | <code>T={double,float}</code>
+<code>AvgPool3DGrad</code>                       | <code>T={double,float}</code>
+<code>AvgPoolGrad</code>                         | <code>T={double,float}</code>
+<code>BatchMatMul</code>                         | <code>T={complex64,double,float,int32}</code>
+<code>BatchToSpace</code>                        | <code>Tidx={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>BatchToSpaceND</code>                      | <code>Tcrops={int32,int64}</code><br><code>Tblock_shape={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>BiasAdd</code>                             | <code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>BiasAddGrad</code>                         | <code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>BiasAddV1</code>                           | <code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>BitwiseAnd</code>                          | <code>T={int32,int64,uint32,uint64}</code>
+<code>BitwiseOr</code>                           | <code>T={int32,int64,uint32,uint64}</code>
+<code>BroadcastArgs</code>                       | <code>T={int32,int64}</code>
+<code>BroadcastGradientArgs</code>               | <code>T={int32,int64}</code>
+<code>Cast</code>                                | <code>DstT={bool,complex64,double,float,int32,int64,uint32,uint64}</code><br><code>SrcT={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Ceil</code>                                | <code>T={double,float}</code>
+<code>Cholesky</code>                            | <code>T={double,float}</code>
+<code>Complex</code>                             | <code>Tout={complex64}</code><br><code>T={double,float}</code>
+<code>ComplexAbs</code>                          | <code>Tout={double,float}</code><br><code>T={complex64}</code>
+<code>Concat</code>                              | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ConcatOffset</code>                        |
+<code>ConcatV2</code>                            | <code>Tidx={int32}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Conj</code>                                | <code>T={complex64}</code>
+<code>Const</code>                               | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ControlTrigger</code>                      |
+<code>Conv2D</code>                              | <code>T={float}</code>
+<code>Conv2DBackpropFilter</code>                | <code>T={float}</code>
+<code>Conv2DBackpropInput</code>                 | <code>T={float}</code>
+<code>Conv3D</code>                              | <code>T={double,float}</code>
+<code>Conv3DBackpropFilterV2</code>              | <code>T={double,float}</code>
+<code>Conv3DBackpropInputV2</code>               | <code>T={double,float}</code>
+<code>Cos</code>                                 | <code>T={complex64,double,float}</code>
+<code>Cosh</code>                                | <code>T={complex64,double,float}</code>
+<code>Cross</code>                               | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Cumprod</code>                             | <code>Tidx={int32,int64}</code><br><code>T={float}</code>
+<code>Cumsum</code>                              | <code>Tidx={int32,int64}</code><br><code>T={float}</code>
+<code>DepthToSpace</code>                        | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>DepthwiseConv2dNative</code>               | <code>T={double,float}</code>
+<code>DepthwiseConv2dNativeBackpropFilter</code> | <code>T={double,float}</code>
+<code>DepthwiseConv2dNativeBackpropInput</code>  | <code>T={double,float}</code>
+<code>Diag</code>                                | <code>T={complex64,double,float,int32,int64}</code>
+<code>DiagPart</code>                            | <code>T={complex64,double,float,int32,int64}</code>
+<code>Div</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>DynamicStitch</code>                       | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Elu</code>                                 | <code>T={double,float}</code>
+<code>EluGrad</code>                             | <code>T={double,float}</code>
+<code>Equal</code>                               | <code>T={bool,complex64,double,float,int32,int64}</code>
+<code>Exp</code>                                 | <code>T={complex64,double,float}</code>
+<code>ExpandDims</code>                          | <code>Tdim={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Expm1</code>                               | <code>T={complex64,double,float}</code>
+<code>ExtractImagePatches</code>                 | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>FFT</code>                                 |
+<code>FFT2D</code>                               |
+<code>FFT3D</code>                               |
+<code>FakeQuantWithMinMaxArgs</code>             |
+<code>FakeQuantWithMinMaxArgsGradient</code>     |
+<code>FakeQuantWithMinMaxVars</code>             |
+<code>FakeQuantWithMinMaxVarsGradient</code>     |
+<code>Fill</code>                                | <code>index_type={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Floor</code>                               | <code>T={double,float}</code>
+<code>FloorDiv</code>                            | <code>T={complex64,double,float,int32,int64}</code>
+<code>FloorMod</code>                            | <code>T={double,float,int32,int64}</code>
+<code>FusedBatchNorm</code>                      | <code>T={float}</code>
+<code>FusedBatchNormGrad</code>                  | <code>T={float}</code>
+<code>FusedBatchNormGradV2</code>                | <code>U={float}</code><br><code>T={float}</code>
+<code>FusedBatchNormV2</code>                    | <code>U={float}</code><br><code>T={float}</code>
+<code>Gather</code>                              | <code>Tindices={int32,int64}</code><br><code>Tparams={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>GatherNd</code>                            | <code>Tindices={int32,int64}</code><br><code>Tparams={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>GatherV2</code>                            | <code>Taxis={int32,int64}</code><br><code>Tindices={int32,int64}</code><br><code>Tparams={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Greater</code>                             | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>GreaterEqual</code>                        | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>HSVToRGB</code>                            | <code>T={double,float}</code>
+<code>IFFT</code>                                |
+<code>IFFT2D</code>                              |
+<code>IFFT3D</code>                              |
+<code>IRFFT</code>                               |
+<code>IRFFT2D</code>                             |
+<code>IRFFT3D</code>                             |
+<code>Identity</code>                            | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>IdentityN</code>                           | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Imag</code>                                | <code>Tout={double,float}</code><br><code>T={complex64}</code>
+<code>Inv</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>Invert</code>                              | <code>T={int32,int64,uint32,uint64}</code>
+<code>InvertPermutation</code>                   | <code>T={int32}</code>
+<code>IsFinite</code>                            | <code>T={double,float}</code>
+<code>IsInf</code>                               | <code>T={double,float}</code>
+<code>IsNan</code>                               | <code>T={double,float}</code>
+<code>L2Loss</code>                              | <code>T={double,float}</code>
+<code>LRN</code>                                 | <code>T={float}</code>
+<code>LRNGrad</code>                             | <code>T={float}</code>
+<code>LeftShift</code>                           | <code>T={int32,int64,uint32,uint64}</code>
+<code>Less</code>                                | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>LessEqual</code>                           | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>LinSpace</code>                            | <code>Tidx={int32,int64}</code><br><code>T={double,float}</code>
+<code>Log</code>                                 | <code>T={complex64,double,float}</code>
+<code>Log1p</code>                               | <code>T={complex64,double,float}</code>
+<code>LogSoftmax</code>                          | <code>T={double,float}</code>
+<code>LogicalAnd</code>                          |
+<code>LogicalNot</code>                          |
+<code>LogicalOr</code>                           |
+<code>MatMul</code>                              | <code>T={complex64,double,float}</code>
+<code>MatrixBandPart</code>                      | <code>Tindex={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>MatrixDiag</code>                          | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>MatrixDiagPart</code>                      | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>MatrixSetDiag</code>                       | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>MatrixTriangularSolve</code>               | <code>T={complex64,double,float}</code>
+<code>Max</code>                                 | <code>Tidx={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>MaxPool</code>                             | <code>T={double,float,int32,int64}</code>
+<code>MaxPool3D</code>                           | <code>T={float}</code>
+<code>MaxPool3DGrad</code>                       | <code>TInput={float}</code><br><code>T={float}</code>
+<code>MaxPoolGrad</code>                         | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>MaxPoolGradGrad</code>                     | <code>T={float}</code>
+<code>MaxPoolGradGradV2</code>                   | <code>T={float}</code>
+<code>MaxPoolGradV2</code>                       | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>MaxPoolV2</code>                           | <code>T={double,float,int32,int64}</code>
+<code>Maximum</code>                             | <code>T={double,float,int32,int64}</code>
+<code>Mean</code>                                | <code>Tidx={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Min</code>                                 | <code>Tidx={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Minimum</code>                             | <code>T={double,float,int32,int64}</code>
+<code>MirrorPad</code>                           | <code>Tpaddings={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Mod</code>                                 | <code>T={double,float,int32,int64}</code>
+<code>Mul</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>Multinomial</code>                         | <code>output_dtype={int32,int64}</code><br><code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Neg</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>NoOp</code>                                |
+<code>NotEqual</code>                            | <code>T={bool,complex64,double,float,int32,int64}</code>
+<code>OneHot</code>                              | <code>TI={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>OnesLike</code>                            | <code>T={bool,complex64,double,float,int32,int64}</code>
+<code>Pack</code>                                | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Pad</code>                                 | <code>Tpaddings={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>PadV2</code>                               | <code>Tpaddings={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ParallelDynamicStitch</code>               | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Pow</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>PreventGradient</code>                     | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Prod</code>                                | <code>Tidx={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>QuantizeAndDequantizeV2</code>             | <code>T={double,float}</code>
+<code>RFFT</code>                                |
+<code>RFFT2D</code>                              |
+<code>RFFT3D</code>                              |
+<code>RGBToHSV</code>                            | <code>T={double,float}</code>
+<code>RandomStandardNormal</code>                | <code>dtype={float}</code>
+<code>RandomUniform</code>                       | <code>T={int32,int64}</code><br><code>dtype={double,float}</code>
+<code>RandomUniformInt</code>                    | <code>T={int32,int64}</code><br><code>Tout={int32,int64}</code>
+<code>Range</code>                               | <code>Tidx={double,float,int32,int64}</code>
+<code>Rank</code>                                | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ReadVariableOp</code>                      | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Real</code>                                | <code>Tout={double,float}</code><br><code>T={complex64}</code>
+<code>RealDiv</code>                             | <code>T={complex64,double,float,int32,int64}</code>
+<code>Reciprocal</code>                          | <code>T={complex64,double,float,int32,int64}</code>
+<code>ReciprocalGrad</code>                      | <code>T={complex64,double,float}</code>
+<code>Relu</code>                                | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Relu6</code>                               | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Relu6Grad</code>                           | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>ReluGrad</code>                            | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Reshape</code>                             | <code>Tshape={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ResizeBilinear</code>                      | <code>T={double,float,int32,int64}</code>
+<code>ResizeBilinearGrad</code>                  | <code>T={double,float}</code>
+<code>ResourceApplyAdagrad</code>                | <code>T={double,float}</code>
+<code>ResourceApplyAdam</code>                   | <code>T={double,float}</code>
+<code>ResourceApplyFtrl</code>                   | <code>T={double,float}</code>
+<code>ResourceApplyFtrlV2</code>                 | <code>T={double,float}</code>
+<code>ResourceApplyGradientDescent</code>        | <code>T={double,float}</code>
+<code>ResourceApplyMomentum</code>               | <code>T={double,float}</code>
+<code>ResourceApplyRMSProp</code>                | <code>T={double,float}</code>
+<code>ResourceGather</code>                      | <code>Tindices={int32,int64}</code><br><code>dtype={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ResourceStridedSliceAssign</code>          | <code>Index={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Reverse</code>                             | <code>T={bool,complex64,double,float,int32,int64}</code>
+<code>ReverseSequence</code>                     | <code>Tlen={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ReverseV2</code>                           | <code>T={bool,complex64,double,float,int32,int64}</code><br><code>Tidx={int32,int64}</code>
+<code>RightShift</code>                          | <code>T={int32,int64,uint32,uint64}</code>
+<code>Rint</code>                                | <code>T={double,float}</code>
+<code>Round</code>                               | <code>T={complex64,double,float,int32,int64}</code>
+<code>Rsqrt</code>                               | <code>T={complex64,double,float}</code>
+<code>RsqrtGrad</code>                           | <code>T={complex64,double,float}</code>
+<code>ScatterNd</code>                           | <code>Tindices={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Select</code>                              | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Selu</code>                                | <code>T={double,float}</code>
+<code>SeluGrad</code>                            | <code>T={double,float}</code>
+<code>Shape</code>                               | <code>out_type={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>ShapeN</code>                              | <code>out_type={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Sigmoid</code>                             | <code>T={complex64,double,float}</code>
+<code>SigmoidGrad</code>                         | <code>T={complex64,double,float}</code>
+<code>Sign</code>                                | <code>T={complex64,double,float,int32,int64}</code>
+<code>Sin</code>                                 | <code>T={complex64,double,float}</code>
+<code>Sinh</code>                                | <code>T={complex64,double,float}</code>
+<code>Size</code>                                | <code>out_type={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Slice</code>                               | <code>Index={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Snapshot</code>                            | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Softmax</code>                             | <code>T={double,float}</code>
+<code>SoftmaxCrossEntropyWithLogits</code>       | <code>T={double,float}</code>
+<code>Softplus</code>                            | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>SoftplusGrad</code>                        | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>Softsign</code>                            | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>SoftsignGrad</code>                        | <code>T={double,float,int32,int64,uint32,uint64}</code>
+<code>SpaceToBatch</code>                        | <code>Tpaddings={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>SpaceToBatchND</code>                      | <code>Tblock_shape={int32,int64}</code><br><code>Tpaddings={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>SpaceToDepth</code>                        | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>SparseMatMul</code>                        | <code>Tb={float}</code><br><code>Ta={float}</code>
+<code>SparseSoftmaxCrossEntropyWithLogits</code> | <code>Tlabels={int32,int64}</code><br><code>T={double,float}</code>
+<code>Split</code>                               | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>SplitV</code>                              | <code>Tlen={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Sqrt</code>                                | <code>T={complex64,double,float}</code>
+<code>SqrtGrad</code>                            | <code>T={complex64,double,float}</code>
+<code>Square</code>                              | <code>T={complex64,double,float,int32,int64}</code>
+<code>SquaredDifference</code>                   | <code>T={complex64,double,float,int32,int64}</code>
+<code>Squeeze</code>                             | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StackCloseV2</code>                        |
+<code>StackPopV2</code>                          | <code>elem_type={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StackPushV2</code>                         | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StackV2</code>                             | <code>elem_type={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StatelessRandomNormal</code>               | <code>Tseed={int32}</code><br><code>T={int32,int64}</code><br><code>dtype={float}</code>
+<code>StatelessRandomUniform</code>              | <code>Tseed={int32}</code><br><code>T={int32,int64}</code><br><code>dtype={float}</code>
+<code>StopGradient</code>                        | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StridedSlice</code>                        | <code>Index={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>StridedSliceGrad</code>                    | <code>Index={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Sub</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>Sum</code>                                 | <code>Tidx={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>SymbolicGradient</code>                    | <code>Tout={bool,complex64,double,float,int32,int64,uint32,uint64}</code><br><code>Tin={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Tan</code>                                 | <code>T={complex64,double,float,int32,int64}</code>
+<code>Tanh</code>                                | <code>T={complex64,double,float}</code>
+<code>TanhGrad</code>                            | <code>T={complex64,double,float}</code>
+<code>TensorArrayCloseV3</code>                  |
+<code>TensorArrayConcatV3</code>                 | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArrayGatherV3</code>                 | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArrayGradV3</code>                   |
+<code>TensorArrayReadV3</code>                   | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArrayScatterV3</code>                | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArraySizeV3</code>                   |
+<code>TensorArraySplitV3</code>                  | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArrayV3</code>                       | <code>dtype={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TensorArrayWriteV3</code>                  | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Tile</code>                                | <code>Tmultiples={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>Transpose</code>                           | <code>Tperm={int32,int64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>TruncateDiv</code>                         | <code>T={complex64,double,float,int32,int64}</code>
+<code>TruncateMod</code>                         | <code>T={double,float,int32,int64}</code>
+<code>TruncatedNormal</code>                     | <code>T={int32,int64}</code><br><code>dtype={double,float}</code>
+<code>Unpack</code>                              | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>UnsortedSegmentSum</code>                  | <code>Tnumsegments={int32,int64}</code><br><code>Tindices={int32,int64}</code><br><code>T={complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>VarIsInitializedOp</code>                  |
+<code>VariableShape</code>                       | <code>out_type={int32,int64}</code>
+<code>XlaWhile</code>                            | <code>T={bool,complex64,double,float,int32,int64,resource,uint32,uint64}</code>
+<code>ZerosLike</code>                           | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>_Arg</code>                                | <code>T={bool,complex64,double,float,int32,int64,resource,uint32,uint64}</code>
+<code>_ArrayToList</code>                        | <code>out_types={bool,complex64,double,float,int32,int64,uint32,uint64}</code><br><code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>_ListToArray</code>                        | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code><br><code>Tin={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>_Retval</code>                             | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>_XLARecv</code>                            | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code>
+<code>_XLASend</code>                            | <code>T={bool,complex64,double,float,int32,int64,uint32,uint64}</code></p>
+<p>To regenerate this table, run:</p>
+<p><code>shell
+bazel run -c opt -- tensorflow/compiler/tf2xla:tf2xla_supported_ops --device=XLA_CPU_JIT</code></p>

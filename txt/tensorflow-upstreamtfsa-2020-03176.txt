@@ -1,0 +1,43 @@
+<h2>TFSA-2020-031: Write to immutable memory region</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-26268</p>
+<h3>Impact</h3>
+<p>The <code>tf.raw_ops.ImmutableConst</code> operation returns a constant tensor created from
+a memory mapped file which is assumed immutable. However, if the type of the
+tensor is not an integral type, the operation crashes the Python interpreter as
+it tries to write to the memory area:</p>
+<p>```python</p>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>import tensorflow as tf
+with open('/tmp/test.txt','w') as f: f.write('a'*128)
+tf.raw_ops.ImmutableConst(dtype=tf.string,shape=2,
+                              memory_region_name='/tmp/test.txt')
+```</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>If the file is too small, TensorFlow properly returns an error as the memory
+area has fewer bytes than what is needed for the tensor it creates. However, as
+soon as there are enough bytes, the above snippet causes a segmentation fault.</p>
+<p>This is because the alocator used to return the buffer data is not marked as
+returning an opaque handle since the <a href="https://github.com/tensorflow/tensorflow/blob/c1e1fc899ad5f8c725dcbb6470069890b5060bc7/tensorflow/core/framework/typed_allocator.h#L78-L85">needed virtual
+method</a>
+is <a href="https://github.com/tensorflow/tensorflow/blob/acdf3c04fcfa767ae8d109b9e1f727ef050dba4d/tensorflow/core/kernels/immutable_constant_op.cc">not
+overriden</a>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c1e1fc899ad5f8c725dcbb6470069890b5060bc7">c1e1fc899ad5f8c725dcbb6470069890b5060bc7</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<p>Since this issue also impacts TF versions before 2.4, we will patch all releases
+between 1.15 and 2.3 inclusive.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

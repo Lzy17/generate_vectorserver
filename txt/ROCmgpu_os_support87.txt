@@ -1,0 +1,54 @@
+<h1>GPU and OS Support (Linux)</h1>
+<p>(supported_distributions)=</p>
+<h2>Supported Distributions</h2>
+<p>AMD ROCm™ Platform supports the following Linux distributions.</p>
+<p>| Distribution       |Processor Architectures| Validated Kernel   |
+|--------------------|-----------------------|--------------------|
+| RHEL 9.1           | x86-64                | 5.14               |
+| RHEL 8.6 to 8.7    | x86-64                | 4.18               |
+| SLES 15 SP4        | x86-64                |                    |
+| Ubuntu 20.04.5 LTS | x86-64                | 5.15               |
+| Ubuntu 22.04.1 LTS | x86-64                | 5.15, OEM 5.17     |</p>
+<h2>Virtualization Support</h2>
+<p>ROCm supports virtualization for select GPUs only as shown below.</p>
+<p>| Hypervisor     | Version  | GPU   | Validated Guest OS (validated kernel)                                            |
+|----------------|----------|-------|----------------------------------------------------------------------------------|
+| VMWare         | ESXi 8   | MI250 | Ubuntu 20.04 (<code>5.15.0-56-generic</code>)                                               |
+| VMWare         | ESXi 8   | MI210 | Ubuntu 20.04 (<code>5.15.0-56-generic</code>), SLES 15 SP4 (<code>5.14.21-150400.24.18-default</code>) |
+| VMWare         | ESXi 7   | MI210 | Ubuntu 20.04 (<code>5.15.0-56-generic</code>), SLES 15 SP4 (<code>5.14.21-150400.24.18-default</code>) |</p>
+<p>(supported_gpus)=</p>
+<h2>GPU Support Table</h2>
+<p>::::{tab-set}</p>
+<p>:::{tab-item} AMD Instinct™
+:sync: instinct</p>
+<p>Use Driver Shipped with ROCm</p>
+<p>| Product Name | Architecture | <a href="https://www.llvm.org/docs/AMDGPUUsage.html#processors">LLVM Target</a> |Support |
+|:------------:|:------------:|:--------------------------------------------------------------------:|:-------:|
+| AMD Instinct™ MI250X | CDNA2  | gfx90a | ✅ |
+| AMD Instinct™ MI250  | CDNA2  | gfx90a | ✅ |
+| AMD Instinct™ MI210  | CDNA2  | gfx90a | ✅ |
+| AMD Instinct™ MI100  | CDNA   | gfx908 | ✅ |
+| AMD Instinct™ MI50   | GCN5.1 | gfx906 | ✅ |
+| AMD Instinct™ MI25   | GCN5.0 | gfx900 | ❌ |</p>
+<p>:::</p>
+<p>:::{tab-item} Radeon Pro™
+:sync: radeonpro</p>
+<p><a href="https://www.amd.com/en/support/linux-drivers">Use Radeon Pro Driver</a></p>
+<p>| Name | Architecture |<a href="https://www.llvm.org/docs/AMDGPUUsage.html#processors">LLVM Target</a> | Support|
+|:----:|:------------:|:--------------------------------------------------------------------:|:-------:|
+| AMD Radeon™ Pro W6800   | RDNA2  | gfx1030 | ✅ |
+| AMD Radeon™ Pro V620    | RDNA2  | gfx1030 | ✅ |
+| AMD Radeon™ Pro VII     | GCN5.1 | gfx906  | ✅ |</p>
+<p>:::</p>
+<p>::::</p>
+<h3>Support Status</h3>
+<ul>
+<li>✅: <strong>Supported</strong> - AMD enables these GPUs in our software distributions for
+  the corresponding ROCm product.</li>
+<li>⚠️: <strong>Deprecated</strong> - Support will be removed in a future release.</li>
+<li>❌: <strong>Unsupported</strong> - This configuration is not enabled in our software
+  distributions.</li>
+</ul>
+<h2>CPU Support</h2>
+<p>ROCm requires CPUs that support PCIe™ Atomics. Modern CPUs after the release of
+1st generation AMD Zen CPU and Intel™ Haswell support PCIe Atomics.</p>

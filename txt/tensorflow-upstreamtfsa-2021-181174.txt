@@ -1,0 +1,23 @@
+<h2>TFSA-2021-181: Null pointer exception in <code>DeserializeSparse</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41215</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/ops/sparse_ops.cc#L152-L168">shape inference code for <code>DeserializeSparse</code></a> can trigger a null pointer dereference:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>dataset = tf.data.Dataset.range(3)</p>
+<p>@tf.function
+def test():
+  y = tf.raw_ops.DeserializeSparse(
+    serialized_sparse=tf.data.experimental.to_variant(dataset),
+    dtype=tf.int32)</p>
+<p>test()
+```</p>
+<p>This is because the shape inference function assumes that the <code>serialize_sparse</code> tensor is a tensor with positive rank (and having <code>3</code> as the last dimension).  However, in the example above, the argument is a scalar (i.e., rank 0).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/d3738dd70f1c9ceb547258cbb82d853da8771850">d3738dd70f1c9ceb547258cbb82d853da8771850</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

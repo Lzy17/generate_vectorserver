@@ -1,0 +1,26 @@
+<h2>TFSA-2021-077: Division by zero in TFLite's implementation of <code>TransposeConv</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29588</p>
+<h3>Impact</h3>
+<p>The optimized implementation of the <code>TransposeConv</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/0d45ea1ca641b21b73bcf9c00e0179cda284e7e7/tensorflow/lite/kernels/internal/optimized/optimized_ops.h#L5221-L5222">vulnerable to
+a division by zero
+error</a>:</p>
+<p><code>cc
+int height_col = (height + pad_t + pad_b - filter_h) / stride_h + 1;
+int width_col = (width + pad_l + pad_r - filter_w) / stride_w + 1;</code></p>
+<p>An attacker can craft a model such that <code>stride_{h,w}</code> values are 0. Code
+calling this function must validate these arguments.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/801c1c6be5324219689c98e1bd3e0ca365ee834d">801c1c6be5324219689c98e1bd3e0ca365ee834d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,190 @@
+<h1>Converter Python API guide</h1>
+<p>This page describes how to convert TensorFlow models into the TensorFlow Lite
+format using the
+<a href="https://www.tensorflow.org/api_docs/python/tf/compat/v1/lite/TFLiteConverter"><code>tf.compat.v1.lite.TFLiteConverter</code></a>
+Python API. It provides the following class methods based on the original format
+of the model:</p>
+<ul>
+<li><code>tf.compat.v1.lite.TFLiteConverter.from_saved_model()</code>: Converts a
+    <a href="https://www.tensorflow.org/guide/saved_model">SavedModel</a>.</li>
+<li><code>tf.compat.v1.lite.TFLiteConverter.from_keras_model_file()</code>: Converts a
+    <a href="https://www.tensorflow.org/guide/keras/overview">Keras</a> model file.</li>
+<li><code>tf.compat.v1.lite.TFLiteConverter.from_session()</code>: Converts a GraphDef from
+    a session.</li>
+<li><code>tf.compat.v1.lite.TFLiteConverter.from_frozen_graph()</code>: Converts a Frozen
+    GraphDef from a file. If you have checkpoints, then first convert it to a
+    Frozen GraphDef file and then use this API as shown <a href="#checkpoints">here</a>.</li>
+</ul>
+<p>In the following sections, we discuss <a href="#basic">basic examples</a> and
+<a href="#complex">complex examples</a>.</p>
+<h2>Basic examples <a name="basic"></a></h2>
+<p>The following section shows examples of how to convert a basic model from each
+of the supported model formats into a TensorFlow Lite model.</p>
+<h3>Convert a SavedModel <a name="basic_savedmodel"></a></h3>
+<p>The following example shows how to convert a
+<a href="https://www.tensorflow.org/guide/saved_model">SavedModel</a> into a TensorFlow
+Lite model.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.compat.v1.lite.TFLiteConverter.from_saved_model(saved_model_dir)
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h3>Convert a Keras model file <a name="basic_keras_file"></a></h3>
+<p>The following example shows how to convert a
+<a href="https://www.tensorflow.org/guide/keras/overview">Keras</a> model file into a
+TensorFlow Lite model.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.compat.v1.lite.TFLiteConverter.from_keras_model_file('keras_model.h5')
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<p>The Keras file contains both the model and the weights. A comprehensive example
+is given below.</p>
+<p>```python
+import numpy as np
+import tensorflow as tf</p>
+<h1>Generate tf.keras model.</h1>
+<p>model = tf.keras.models.Sequential()
+model.add(tf.keras.layers.Dense(2, input_shape=(3,)))
+model.add(tf.keras.layers.RepeatVector(3))
+model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(3)))
+model.compile(loss=tf.keras.losses.MSE,
+              optimizer=tf.keras.optimizers.RMSprop(lr=0.0001),
+              metrics=[tf.keras.metrics.categorical_accuracy],
+              sample_weight_mode='temporal')</p>
+<p>x = np.random.random((1, 3))
+y = np.random.random((1, 3, 3))
+model.train_on_batch(x, y)
+model.predict(x)</p>
+<h1>Save tf.keras model in H5 format.</h1>
+<p>keras_file = 'keras_model.h5'
+tf.keras.models.save_model(model, keras_file)</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.compat.v1.lite.TFLiteConverter.from_keras_model_file(keras_file)
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h3>Convert a GraphDef from a session <a name="basic_graphdef_sess"></a></h3>
+<p>The following example shows how to convert a GraphDef from a <code>tf.Session</code> object
+into a TensorFlow Lite model .</p>
+<p>```python
+import tensorflow as tf</p>
+<p>img = tf.placeholder(name='img', dtype=tf.float32, shape=(1, 64, 64, 3))
+var = tf.get_variable('weights', dtype=tf.float32, shape=(1, 64, 64, 3))
+val = img + var
+out = tf.identity(val, name='out')</p>
+<p>with tf.Session() as sess:
+  sess.run(tf.global_variables_initializer())</p>
+<p># Convert the model.
+  converter = tf.compat.v1.lite.TFLiteConverter.from_session(sess, [img], [out])
+  tflite_model = converter.convert()</p>
+<p># Save the model.
+  with open('model.tflite', 'wb') as f:
+    f.write(tflite_model)
+```</p>
+<h3>Convert a Frozen GraphDef from file <a name="basic_graphdef_file"></a></h3>
+<p>The following example shows how to convert a Frozen GraphDef (or a frozen
+graph), usually generated using the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/tools/freeze_graph.py">freeze_graph.py</a>
+script, into a TensorFlow Lite model.</p>
+<p>The example uses
+<a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_1.0_224_frozen.tgz">Mobilenet_1.0_224</a>.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
+    graph_def_file='/path/to/mobilenet_v1_1.0_224/frozen_graph.pb',
+                    # both <code>.pb</code> and <code>.pbtxt</code> files are accepted.
+    input_arrays=['input'],
+    input_shapes={'input' : [1, 224, 224,3]},
+    output_arrays=['MobilenetV1/Predictions/Softmax']
+)
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h4>Convert checkpoints <a name="checkpoints"></a></h4>
+<ol>
+<li>
+<p>Convert checkpoints to a Frozen GraphDef as follows
+    (<em><a href="https://laid.delanover.com/how-to-freeze-a-graph-in-tensorflow/">reference</a></em>):</p>
+<ul>
+<li>Install <a href="https://docs.bazel.build/versions/master/install.html">bazel</a></li>
+<li>Clone the TensorFlow repository: <code>git clone
+    https://github.com/tensorflow/tensorflow.git</code></li>
+<li>Build freeze graph tool: <code>bazel build
+    tensorflow/python/tools:freeze_graph</code><ul>
+<li>The directory from which you run this should contain a file named
+    'WORKSPACE'.</li>
+<li>If you're running on Ubuntu 16.04 OS and face issues, update the
+    command to <code>bazel build -c opt --copt=-msse4.1 --copt=-msse4.2
+    tensorflow/python/tools:freeze_graph</code></li>
+</ul>
+</li>
+<li>Run freeze graph tool: <code>bazel run tensorflow/python/tools:freeze_graph
+    --input_graph=/path/to/graph.pbtxt --input_binary=false
+    --input_checkpoint=/path/to/model.ckpt-00010
+    --output_graph=/path/to/frozen_graph.pb
+    --output_node_names=name1,name2.....</code><ul>
+<li>If you have an input <code>*.pb</code> file instead of <code>*.pbtxt</code>, then replace
+    <code>--input_graph=/path/to/graph.pbtxt --input_binary=false</code> with
+    <code>--input_graph=/path/to/graph.pb</code></li>
+<li>You can find the output names by exploring the graph using
+    <a href="https://github.com/lutzroeder/netron">Netron</a> or
+    <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/graph_transforms#inspecting-graphs">summarize graph tool</a>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Now <a href="#basic_graphdef_file">convert the Frozen GraphDef file</a> to a TensorFlow
+    Lite model as shown in the example above.</p>
+</li>
+</ol>
+<h2>Complex examples <a name="complex"></a></h2>
+<p>For models where the default value of the attributes is not sufficient, the
+attribute's values should be set before calling <code>convert()</code>. Run
+<code>help(tf.compat.v1.lite.TFLiteConverter)</code> in the Python terminal for detailed
+documentation on the attributes.</p>
+<h3>Convert a quantize aware trained model <a name="complex_quant"></a></h3>
+<p>The following example shows how to convert a quantize aware trained model into a
+TensorFlow Lite model.</p>
+<p>The example uses
+<a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_1.0_224_frozen.tgz">Mobilenet_1.0_224</a>.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
+    graph_def_file='/path/to/mobilenet_v1_1.0_224/frozen_graph.pb',
+    input_arrays=['input'],
+    input_shapes={'input' : [1, 224, 224,3]},
+    output_arrays=['MobilenetV1/Predictions/Softmax'],
+)
+converter.quantized_input_stats = {'input' : (0., 1.)}  # mean, std_dev (input range is [-1, 1])
+converter.inference_type = tf.int8 # this is the recommended type.</p>
+<h1>converter.inference_input_type=tf.uint8 # optional</h1>
+<h1>converter.inference_output_type=tf.uint8 # optional</h1>
+<p>tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('quantized_model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h2>Convert models from TensorFlow 1.12 <a name="pre_tensorflow_1.12"></a></h2>
+<p>Reference the following table to convert TensorFlow models to TensorFlow Lite in
+and before TensorFlow 1.12. Run <code>help()</code> to get details of each API.</p>
+<p>TensorFlow Version | Python API
+------------------ | ---------------------------------
+1.12               | <code>tf.contrib.lite.TFLiteConverter</code>
+1.9-1.11           | <code>tf.contrib.lite.TocoConverter</code>
+1.7-1.8            | <code>tf.contrib.lite.toco_convert</code></p>

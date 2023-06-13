@@ -1,0 +1,21 @@
+<h2>TFSA-2022-017: Assertion failure based denial of service via faulty bin count operations</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21737</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/bincount_op.cc">implementation of <code>*Bincount</code> operations</a> allows malicious users to cause denial of service by passing in arguments which would trigger a <code>CHECK</code>-fail:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.DenseBincount(
+  input=[[0], [1], [2]],
+  size=[1],
+  weights=[3,2,1],
+  binary_output=False)
+```</p>
+<p>There are several conditions that the input arguments must satisfy. Some are not caught during shape inference and others are not caught during kernel implementation. This results in <code>CHECK</code> failures later when the output tensors get allocated.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/7019ce4f68925fd01cdafde26f8d8c938f47e6f9">7019ce4f68925fd01cdafde26f8d8c938f47e6f9</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Faysal Hossain Shezan from University of Virginia.</p>

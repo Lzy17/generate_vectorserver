@@ -1,0 +1,21 @@
+<h2>TFSA-2021-172: <code>SparseFillEmptyRows</code> heap OOB</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41224</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/e71b86d47f8bc1816bf54d7bddc4170e47670b97/tensorflow/core/kernels/sparse_fill_empty_rows_op.cc#L194-L241">implementation</a> of <code>SparseFillEmptyRows</code> can be made to trigger a heap OOB access:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>data=tf.raw_ops.SparseFillEmptyRows(
+  indices=[[0,0],[0,0],[0,0]],
+  values=['sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss'],
+  dense_shape=[5,3],
+  default_value='o')
+```</p>
+<p>This occurs whenever the size of <code>indices</code> does not match the size of <code>values</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/67bfd9feeecfb3c61d80f0e46d89c170fbee682b">67bfd9feeecfb3c61d80f0e46d89c170fbee682b</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

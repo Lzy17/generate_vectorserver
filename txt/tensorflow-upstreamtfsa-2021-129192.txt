@@ -1,0 +1,34 @@
+<h2>TFSA-2021-129: Heap OOB in <code>ResourceScatterUpdate</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37655</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a read from outside of bounds of heap allocated data by
+sending invalid arguments to <code>tf.raw_ops.ResourceScatterUpdate</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>v = tf.Variable([b'vvv'])
+tf.raw_ops.ResourceScatterUpdate(
+  resource=v.handle,
+  indices=[0],
+  updates=['1', '2', '3', '4', '5'])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/f24faa153ad31a4b51578f8181d3aaab77a1ddeb/tensorflow/core/kernels/resource_variable_ops.cc#L919-L923">implementation</a>
+has an incomplete validation of the relationship between the shapes of <code>indices</code>
+and <code>updates</code>: instead of checking that the shape of <code>indices</code> is a prefix of
+the shape of <code>updates</code> (so that broadcasting can happen), code only checks that
+the number of elements in these two tensors are in a divisibility relationship.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/01cff3f986259d661103412a20745928c727326f">01cff3f986259d661103412a20745928c727326f</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

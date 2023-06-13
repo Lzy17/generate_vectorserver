@@ -1,0 +1,20 @@
+<h2>TFSA-2023-016: Seg fault in <code>tf.raw_ops.Print</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25660</p>
+<h3>Impact</h3>
+<p>When the parameter <code>summarize</code> of <code>tf.raw_ops.Print</code> is zero, the new method <code>SummarizeArray&lt;bool&gt;</code> will reference to a nullptr, leading to a seg fault.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.Print(input =  tf.constant([1, 1, 1, 1],dtype=tf.int32),
+                            data =  [[False, False, False, False], [False], [False, False, False]],
+                            message =  'tmp/I',
+                            first_n = 100,
+                            summarize = 0)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/6d423b8bcc9aa9f5554dc988c1c16d038b508df1">6d423b8bcc9aa9f5554dc988c1c16d038b508df1</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team</p>

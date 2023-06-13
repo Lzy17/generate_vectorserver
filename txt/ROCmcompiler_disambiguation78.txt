@@ -1,0 +1,12 @@
+<h1>ROCm Compilers Disambiguation</h1>
+<p>ROCm ships multiple compilers of varying origins and purposes. This article
+disambiguates compiler naming used throughout the documentation.</p>
+<h2>Compiler Terms</h2>
+<p>| Term | Description |
+| - | - |
+| <code>amdclang++</code> | Clang/LLVM-based compiler that is part of <code>rocm-llvm</code> package. The source code is available at <a href="https://github.com/RadeonOpenCompute/llvm-project" target="_blank">https://github.com/RadeonOpenCompute/llvm-project</a>. |
+| AOCC | Closed-source clang-based compiler that includes additional CPU optimizations. Offered as part of ROCm via the <code>rocm-llvm-alt</code> package. See for details, <a href="https://developer.amd.com/amd-aocc/" target="_blank">https://developer.amd.com/amd-aocc/</a>. |
+| HIP-Clang | Informal term for the <code>amdclang++</code> compiler |
+| HIPify | Tools including <code>hipify-clang</code> and <code>hipify-perl</code>, used to automatically translate CUDA source code into portable HIP C++. The source code is available at <a href="https://github.com/ROCm-Developer-Tools/HIPIFY" target="_blank">https://github.com/ROCm-Developer-Tools/HIPIFY</a> |
+| <code>hipcc</code> | HIP compiler driver. A utility that invokes <code>clang</code> or <code>nvcc</code> depending on the target and passes the appropriate include and library options for the target compiler and HIP infrastructure. The source code is available at <a href="https://github.com/ROCm-Developer-Tools/HIPCC" target="_blank">https://github.com/ROCm-Developer-Tools/HIPCC</a>. |
+| ROCmCC | Clang/LLVM-based compiler. ROCmCC in itself is not a binary but refers to the overall compiler. |</p>

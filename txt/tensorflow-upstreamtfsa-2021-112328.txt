@@ -1,0 +1,34 @@
+<h2>TFSA-2021-112: Null pointer dereference in <code>RaggedTensorToTensor</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37638</p>
+<h3>Impact</h3>
+<p>Sending invalid argument for <code>row_partition_types</code> of
+<code>tf.raw_ops.RaggedTensorToTensor</code> API results in a null pointer dereference and
+undefined behavior:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.RaggedTensorToTensor(
+  shape=1,
+  values=10,
+  default_value=21,
+  row_partition_tensors=tf.constant([0,0,0,0]),
+  row_partition_types=[])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/47a06f40411a69c99f381495f490536972152ac0/tensorflow/core/kernels/ragged_tensor_to_tensor_op.cc#L328">implementation</a>
+accesses the first element of a user supplied list of values without validating
+that the provided list is not empty.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/301ae88b331d37a2a16159b65b255f4f9eb39314">301ae88b331d37a2a16159b65b255f4f9eb39314</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

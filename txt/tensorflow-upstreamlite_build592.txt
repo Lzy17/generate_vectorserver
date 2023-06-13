@@ -1,0 +1,180 @@
+<h1>Build TensorFlow Lite for Android</h1>
+<p>This document describes how to build TensorFlow Lite Android library on your
+own. Normally, you do not need to locally build TensorFlow Lite Android library.
+If you just want to use it, see the
+<a href="../android/quickstart.md">Android quickstart</a> for more details on how to use
+them in your Android projects.</p>
+<h2>Use Nightly Snapshots</h2>
+<p>To use nightly snapshots, add the following repo to your root Gradle build
+config.</p>
+<p><code>build
+allprojects {
+    repositories {      // should be already there
+        mavenCentral()  // should be already there
+        maven {         // add this repo to use snapshots
+          name 'ossrh-snapshot'
+          url 'https://oss.sonatype.org/content/repositories/snapshots'
+        }
+    }
+}</code></p>
+<h2>Build TensorFlow Lite locally</h2>
+<p>In some cases, you might wish to use a local build of TensorFlow Lite. For
+example, you may be building a custom binary that includes
+<a href="https://www.tensorflow.org/lite/guide/ops_select">operations selected from TensorFlow</a>,
+or you may wish to make local changes to TensorFlow Lite.</p>
+<h3>Set up build environment using Docker</h3>
+<ul>
+<li>Download the Docker file. By downloading the Docker file, you agree that the
+    following terms of service govern your use thereof:</li>
+</ul>
+<p><em>By clicking to accept, you hereby agree that all use of the Android Studio and
+Android Native Development Kit will be governed by the Android Software
+Development Kit License Agreement available at
+https://developer.android.com/studio/terms (such URL may be updated or changed
+by Google from time to time).</em></p>
+<!-- mdformat off(devsite fails if there are line-breaks in templates) -->
+<p>{% dynamic if 'tflite-android-tos' in user.acknowledged_walls and request.tld != 'cn' %}
+You can download the Docker file
+<a href="https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/lite/tools/tflite-android.Dockerfile">here</a>
+{% dynamic else %} You must acknowledge the terms of service to download the
+file.
+<button class="button-blue devsite-acknowledgement-link" data-globally-unique-wall-id="tflite-android-tos">Acknowledge</button>
+{% dynamic endif %}</p>
+<!-- mdformat on -->
+
+<ul>
+<li>You can optionally change the Android SDK or NDK version. Put the downloaded
+    Docker file in an empty folder and build your docker image by running:</li>
+</ul>
+<p><code>shell
+docker build . -t tflite-builder -f tflite-android.Dockerfile</code></p>
+<ul>
+<li>Start the docker container interactively by mounting your current folder to
+    /host_dir inside the container (note that /tensorflow_src is the TensorFlow
+    repository inside the container):</li>
+</ul>
+<p><code>shell
+docker run -it -v $PWD:/host_dir tflite-builder bash</code></p>
+<p>If you use PowerShell on Windows, replace "$PWD" with "pwd".</p>
+<p>If you would like to use a TensorFlow repository on the host, mount that host
+directory instead (-v hostDir:/host_dir).</p>
+<ul>
+<li>Once you are inside the container, you can run the following to download
+    additional Android tools and libraries (note that you may need to accept the
+    license):</li>
+</ul>
+<p><code>shell
+sdkmanager \
+  "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+  "platform-tools" \
+  "platforms;android-${ANDROID_API_LEVEL}"</code></p>
+<p>Now you should proceed to the <a href="#configure_workspace_and_bazelrc">Configure WORKSPACE and .bazelrc</a> section to configure the build settings.</p>
+<p>After you finish building the libraries, you can copy them to /host_dir
+inside the container so that you can access them on the host.</p>
+<h3>Set up build environment without Docker</h3>
+<h4>Install Bazel and Android Prerequisites</h4>
+<p>Bazel is the primary build system for TensorFlow. To build with it, you must
+have it and the Android NDK and SDK installed on your system.</p>
+<ol>
+<li>Install the latest version of the <a href="https://bazel.build/versions/master/docs/install.html">Bazel build system</a>.</li>
+<li>The Android NDK is required to build the native (C/C++) TensorFlow Lite
+    code. The current recommended version is 21e, which may be found
+    <a href="https://developer.android.com/ndk/downloads/older_releases.html#ndk-21e-downloads">here</a>.</li>
+<li>The Android SDK and build tools may be obtained
+    <a href="https://developer.android.com/tools/revisions/build-tools.html">here</a>, or
+    alternatively as part of
+    <a href="https://developer.android.com/studio/index.html">Android Studio</a>. Build
+    tools API &gt;= 23 is the recommended version for building TensorFlow Lite.</li>
+</ol>
+<h3>Configure WORKSPACE and .bazelrc</h3>
+<p>This is a one-time configuration step that is required to build the TF Lite
+libraries. Run the <code>./configure</code> script in the root TensorFlow checkout
+directory, and answer "Yes" when the script asks to interactively configure the <code>./WORKSPACE</code>
+for Android builds. The script will attempt to configure settings using the
+following environment variables:</p>
+<ul>
+<li><code>ANDROID_SDK_HOME</code></li>
+<li><code>ANDROID_SDK_API_LEVEL</code></li>
+<li><code>ANDROID_NDK_HOME</code></li>
+<li><code>ANDROID_NDK_API_LEVEL</code></li>
+</ul>
+<p>If these variables aren't set, they must be provided interactively in the script
+prompt. Successful configuration should yield entries similar to the following
+in the <code>.tf_configure.bazelrc</code> file in the root folder:</p>
+<p><code>shell
+build --action_env ANDROID_NDK_HOME="/usr/local/android/android-ndk-r21e"
+build --action_env ANDROID_NDK_API_LEVEL="21"
+build --action_env ANDROID_BUILD_TOOLS_VERSION="28.0.3"
+build --action_env ANDROID_SDK_API_LEVEL="23"
+build --action_env ANDROID_SDK_HOME="/usr/local/android/android-sdk-linux"</code></p>
+<h3>Build and install</h3>
+<p>Once Bazel is properly configured, you can build the TensorFlow Lite AAR from
+the root checkout directory as follows:</p>
+<p><code>sh
+bazel build -c opt --fat_apk_cpu=x86,x86_64,arm64-v8a,armeabi-v7a \
+  --host_crosstool_top=@bazel_tools//tools/cpp:toolchain \
+  --define=android_dexmerger_tool=d8_dexmerger \
+  --define=android_incremental_dexing_tool=d8_dexbuilder \
+  //tensorflow/lite/java:tensorflow-lite</code></p>
+<p>This will generate an AAR file in <code>bazel-bin/tensorflow/lite/java/</code>. Note
+that this builds a "fat" AAR with several different architectures; if you don't
+need all of them, use the subset appropriate for your deployment environment.</p>
+<p>You can build smaller AAR files targeting only a set of models as follows:</p>
+<p><code>sh
+bash tensorflow/lite/tools/build_aar.sh \
+  --input_models=model1,model2 \
+  --target_archs=x86,x86_64,arm64-v8a,armeabi-v7a</code></p>
+<p>Above script will generate the <code>tensorflow-lite.aar</code> file and optionally the
+<code>tensorflow-lite-select-tf-ops.aar</code> file if one of the models is using
+Tensorflow ops. For more details, please see the
+<a href="../guide/reduce_binary_size.md">Reduce TensorFlow Lite binary size</a> section.</p>
+<h4>Add AAR directly to project</h4>
+<p>Move the <code>tensorflow-lite.aar</code> file into a directory called <code>libs</code> in your
+project. Modify your app's <code>build.gradle</code> file to reference the new directory
+and replace the existing TensorFlow Lite dependency with the new local library,
+e.g.:</p>
+<p>```
+allprojects {
+    repositories {
+        mavenCentral()
+        maven {  // Only for snapshot artifacts
+            name 'ossrh-snapshot'
+            url 'https://oss.sonatype.org/content/repositories/snapshots'
+        }
+        flatDir {
+            dirs 'libs'
+        }
+    }
+}</p>
+<p>dependencies {
+    compile(name:'tensorflow-lite', ext:'aar')
+}
+```</p>
+<h4>Install AAR to local Maven repository</h4>
+<p>Execute the following command from your root checkout directory:</p>
+<p><code>sh
+mvn install:install-file \
+  -Dfile=bazel-bin/tensorflow/lite/java/tensorflow-lite.aar \
+  -DgroupId=org.tensorflow \
+  -DartifactId=tensorflow-lite -Dversion=0.1.100 -Dpackaging=aar</code></p>
+<p>In your app's <code>build.gradle</code>, ensure you have the <code>mavenLocal()</code> dependency and
+replace the standard TensorFlow Lite dependency with the one that has support
+for select TensorFlow ops:</p>
+<p>```
+allprojects {
+    repositories {
+        mavenCentral()
+        maven {  // Only for snapshot artifacts
+            name 'ossrh-snapshot'
+            url 'https://oss.sonatype.org/content/repositories/snapshots'
+        }
+        mavenLocal()
+    }
+}</p>
+<p>dependencies {
+    implementation 'org.tensorflow:tensorflow-lite:0.1.100'
+}
+```</p>
+<p>Note that the <code>0.1.100</code> version here is purely for the sake of
+testing/development. With the local AAR installed, you can use the standard
+<a href="../guide/inference.md">TensorFlow Lite Java inference APIs</a> in your app code.</p>

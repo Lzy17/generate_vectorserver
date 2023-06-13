@@ -1,0 +1,196 @@
+<h1>Convert TensorFlow models</h1>
+<p>This page describes how to convert a TensorFlow model
+to a TensorFlow Lite model (an optimized
+<a href="https://google.github.io/flatbuffers/">FlatBuffer</a> format identified by the
+<code>.tflite</code> file extension) using the TensorFlow Lite converter.</p>
+<p>Note: This guide assumes you've both
+<a href="https://www.tensorflow.org/install/pip#tensorflow-2-packages-are-available">installed TensorFlow 2.x</a>
+and trained models in TensorFlow 2.x.
+If your model is trained in TensorFlow 1.x, considering
+<a href="https://www.tensorflow.org/guide/migrate/tflite">migrating to TensorFlow 2.x</a>.
+To identify the installed TensorFlow version, run
+<code>print(tf.__version__)</code>.</p>
+<h2>Conversion workflow</h2>
+<p>The diagram below illustrations the high-level workflow for converting
+your model:</p>
+<p><img alt="TFLite converter workflow" src="../../images/convert/convert.png" /></p>
+<p><strong>Figure 1.</strong> Converter workflow.</p>
+<p>You can convert your model using one of the following options:</p>
+<ol>
+<li><a href="#python_api">Python API</a> (<strong><em>recommended</em></strong>):
+    This allows you to integrate the conversion into your development pipeline,
+    apply optimizations, add metadata and many other tasks that simplify
+    the conversion process.</li>
+<li><a href="#cmdline">Command line</a>: This only supports basic model conversion.</li>
+</ol>
+<p>Note: In case you encounter any issues during model conversion, create a
+<a href="https://github.com/tensorflow/tensorflow/issues/new?template=60-tflite-converter-issue.md">GitHub issue</a>.</p>
+<h2>Python API <a name="python_api"></a></h2>
+<p><em>Helper code: To learn more about the TensorFlow Lite converter
+API, run <code>print(help(tf.lite.TFLiteConverter))</code>.</em></p>
+<p>Convert a TensorFlow model using
+<a href="https://www.tensorflow.org/api_docs/python/tf/lite/TFLiteConverter"><code>tf.lite.TFLiteConverter</code></a>.
+A TensorFlow model is stored using the SavedModel format and is
+generated either using the high-level <code>tf.keras.*</code> APIs (a Keras model) or
+the low-level <code>tf.*</code> APIs (from which you generate concrete functions). As a
+result, you have the following three options (examples are in the next few
+sections):</p>
+<ul>
+<li><code>tf.lite.TFLiteConverter.from_saved_model()</code> (<strong>recommended</strong>): Converts
+      a <a href="https://www.tensorflow.org/guide/saved_model">SavedModel</a>.</li>
+<li><code>tf.lite.TFLiteConverter.from_keras_model()</code>: Converts a
+      <a href="https://www.tensorflow.org/guide/keras/overview">Keras</a> model.</li>
+<li><code>tf.lite.TFLiteConverter.from_concrete_functions()</code>: Converts
+      <a href="https://www.tensorflow.org/guide/intro_to_graphs">concrete functions</a>.</li>
+</ul>
+<h3>Convert a SavedModel (recommended) <a name="saved_model"></a></h3>
+<p>The following example shows how to convert a
+<a href="https://www.tensorflow.org/guide/saved_model">SavedModel</a> into a TensorFlow
+Lite model.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Convert the model</h1>
+<p>converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir) # path to the SavedModel directory
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h3>Convert a Keras model <a name="keras"></a></h3>
+<p>The following example shows how to convert a
+<a href="https://www.tensorflow.org/guide/keras/overview">Keras</a> model into a TensorFlow
+Lite model.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Create a model using high-level tf.keras.* APIs</h1>
+<p>model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(units=1, input_shape=[1]),
+    tf.keras.layers.Dense(units=16, activation='relu'),
+    tf.keras.layers.Dense(units=1)
+])
+model.compile(optimizer='sgd', loss='mean_squared_error') # compile the model
+model.fit(x=[-1, 0, 1], y=[-3, -1, 1], epochs=5) # train the model</p>
+<h1>(to generate a SavedModel) tf.saved_model.save(model, "saved_model_keras_dir")</h1>
+<h1>Convert the model.</h1>
+<p>converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h3>Convert concrete functions <a name="concrete_function"></a></h3>
+<p>The following example shows how to convert
+<a href="https://www.tensorflow.org/guide/intro_to_graphs">concrete functions</a> into a
+TensorFlow Lite model.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Create a model using low-level tf.* APIs</h1>
+<p>class Squared(tf.Module):
+  @tf.function(input_signature=[tf.TensorSpec(shape=[None], dtype=tf.float32)])
+  def <strong>call</strong>(self, x):
+    return tf.square(x)
+model = Squared()</p>
+<h1>(ro run your model) result = Squared(5.0) # This prints "25.0"</h1>
+<h1>(to generate a SavedModel) tf.saved_model.save(model, "saved_model_tf_dir")</h1>
+<p>concrete_func = model.<strong>call</strong>.get_concrete_function()</p>
+<h1>Convert the model.</h1>
+<p>converter = tf.lite.TFLiteConverter.from_concrete_functions([concrete_func],
+                                                            model)
+tflite_model = converter.convert()</p>
+<h1>Save the model.</h1>
+<p>with open('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+```</p>
+<h3>Other features</h3>
+<ul>
+<li>
+<p>Apply <a href="../../performance/model_optimization.md">optimizations</a>. A common
+    optimization used is
+    <a href="../../performance/post_training_quantization.md">post training quantization</a>,
+    which can further reduce your model latency and size with minimal loss in
+    accuracy.</p>
+</li>
+<li>
+<p>Add <a href="metadata.md">metadata</a>, which makes it easier to create platform
+    specific wrapper code when deploying models on devices.</p>
+</li>
+</ul>
+<h3>Conversion errors</h3>
+<p>The following are common conversion errors and their solutions:</p>
+<ul>
+<li>
+<p>Error: <code>Some ops are not supported by the native TFLite runtime, you can
+    enable TF kernels fallback using TF Select. See instructions:
+    https://www.tensorflow.org/lite/guide/ops_select. TF Select ops: ..., ..,
+    ...</code></p>
+<p>Solution: The error occurs as your model has TF ops that don't have a
+corresponding TFLite implementation. You can resolve this by
+<a href="../../guide/ops_select.md">using the TF op in the TFLite model</a>
+(recommended).
+If you want to generate a model with TFLite ops only, you can either add a
+request for the missing TFLite op in
+<a href="https://github.com/tensorflow/tensorflow/issues/21526">Github issue #21526</a>
+(leave a comment if your request hasn’t already been mentioned) or
+<a href="../../guide/ops_custom#create_and_register_the_operator">create the TFLite op</a>
+yourself.</p>
+</li>
+<li>
+<p>Error: <code>.. is neither a custom op nor a flex op</code></p>
+<p>Solution: If this TF op is:</p>
+<ul>
+<li>
+<p>Supported in TF: The error occurs because the TF op is missing from the
+    <a href="../../guide/op_select_allowlist.md">allowlist</a> (an exhaustive list of
+    TF ops supported by TFLite). You can resolve this as follows:</p>
+<ol>
+<li><a href="../../guide/op_select_allowlist.md#add_tensorflow_core_operators_to_the_allowed_list">Add missing ops to the allowlist</a>.</li>
+<li><a href="../../guide/ops_select.md">Convert the TF model to a TFLite model and run inference</a>.</li>
+</ol>
+</li>
+<li>
+<p>Unsupported in TF: The error occurs because TFLite is unaware of the
+    custom TF operator defined by you. You can resolve this as follows:</p>
+<ol>
+<li><a href="https://www.tensorflow.org/guide/create_op">Create the TF op</a>.</li>
+<li><a href="../../guide/op_select_allowlist.md#users_defined_operators">Convert the TF model to a TFLite model</a>.</li>
+<li><a href="../../guide/ops_custom.md#create_and_register_the_operator">Create the TFLite op</a>
+    and run inference by linking it to the TFLite runtime.</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<h2>Command Line Tool <a name="cmdline"></a></h2>
+<p><strong>Note:</strong> It is highly recommended that you use the <a href="#python_api">Python API</a>
+listed above instead, if possible.</p>
+<p>If you've
+<a href="https://www.tensorflow.org/install/pip">installed TensorFlow 2.x from pip</a>, use
+the <code>tflite_convert</code> command. To view all the available flags, use the
+following command:</p>
+<p>```sh
+$ tflite_convert --help</p>
+<p><code>--output_file</code>. Type: string. Full path of the output file.
+<code>--saved_model_dir</code>. Type: string. Full path to the SavedModel directory.
+<code>--keras_model_file</code>. Type: string. Full path to the Keras H5 model file.
+<code>--enable_v1_converter</code>. Type: bool. (default False) Enables the converter and flags used in TF 1.x instead of TF 2.x.</p>
+<p>You are required to provide the <code>--output_file</code> flag and either the <code>--saved_model_dir</code> or <code>--keras_model_file</code> flag.
+```</p>
+<p>If you have the
+<a href="https://www.tensorflow.org/install/source">TensorFlow 2.x source</a>
+donwloaded and want to run the converter from that source without building and
+installing the package,
+you can replace '<code>tflite_convert</code>' with
+'<code>bazel run tensorflow/lite/python:tflite_convert --</code>' in the command.</p>
+<h3>Converting a SavedModel <a name="cmdline_saved_model"></a></h3>
+<p><code>sh
+tflite_convert \
+  --saved_model_dir=/tmp/mobilenet_saved_model \
+  --output_file=/tmp/mobilenet.tflite</code></p>
+<h3>Converting a Keras H5 model <a name="cmdline_keras_model"></a></h3>
+<p><code>sh
+tflite_convert \
+  --keras_model_file=/tmp/mobilenet_keras_model.h5 \
+  --output_file=/tmp/mobilenet.tflite</code></p>
+<h2>Next Steps</h2>
+<p>Use the <a href="../../guide/inference.md">TensorFlow Lite interpreter</a> to run inference
+on a client device (e.g. mobile, embedded).</p>

@@ -1,0 +1,11 @@
+<h2>TFSA-2022-048: Memory leak in decoding PNG images</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23585</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/kernels/image/decode_image_op.cc#L322-L416">decoding PNG images</a> TensorFlow can produce a memory leak if the image is invalid.</p>
+<p>After calling <code>png::CommonInitDecode(..., &amp;decode)</code>, the <code>decode</code> value contains allocated buffers which can only be freed by calling <code>png::CommonFreeDecode(&amp;decode)</code>. However, several error case in the function implementation invoke the <code>OP_REQUIRES</code> macro which immediately terminates the execution of the function, without allowing for the memory free to occur.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ab51e5b813573dc9f51efa335aebcf2994125ee9">ab51e5b813573dc9f51efa335aebcf2994125ee9</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

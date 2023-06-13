@@ -1,0 +1,20 @@
+<h2>TFSA-2020-033: CHECK-fail in LSTM with zero-length input</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-26270</p>
+<h3>Impact</h3>
+<p>Running an LSTM/GRU model where the LSTM/GRU layer receives an input with
+zero-length results in a <code>CHECK</code> failure when using the CUDA backend.</p>
+<p>This can result in a query-of-death vulnerability, via denial of service, if
+users can control the input to the layer.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/14755416e364f17fb1870882fa778c7fec7f16e3">14755416e364f17fb1870882fa778c7fec7f16e3</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<p>Since this issue also impacts TF versions before 2.4, we will patch all releases
+between 1.15 and 2.3 inclusive.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>

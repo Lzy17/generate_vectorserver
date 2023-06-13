@@ -1,0 +1,253 @@
+<h1>Integrate image classifiers</h1>
+<p>Image classification is a common use of machine learning to identify what an
+image represents. For example, we might want to know what type of animal appears
+in a given picture. The task of predicting what an image represents is called
+<em>image classification</em>. An image classifier is trained to recognize various
+classes of images. For example, a model might be trained to recognize photos
+representing three different types of animals: rabbits, hamsters, and dogs. See
+the
+<a href="https://www.tensorflow.org/lite/examples/image_classification/overview">image classification overview</a>
+for more information about image classifiers.</p>
+<p>Use the Task Library <code>ImageClassifier</code> API to deploy your custom image
+classifiers or pretrained ones into your mobile apps.</p>
+<h2>Key features of the ImageClassifier API</h2>
+<ul>
+<li>
+<p>Input image processing, including rotation, resizing, and color space
+    conversion.</p>
+</li>
+<li>
+<p>Region of interest of the input image.</p>
+</li>
+<li>
+<p>Label map locale.</p>
+</li>
+<li>
+<p>Score threshold to filter results.</p>
+</li>
+<li>
+<p>Top-k classification results.</p>
+</li>
+<li>
+<p>Label allowlist and denylist.</p>
+</li>
+</ul>
+<h2>Supported image classifier models</h2>
+<p>The following models are guaranteed to be compatible with the <code>ImageClassifier</code>
+API.</p>
+<ul>
+<li>
+<p>Models created by
+    <a href="https://www.tensorflow.org/lite/models/modify/model_maker/image_classification">TensorFlow Lite Model Maker for Image Classification</a>.</p>
+</li>
+<li>
+<p>The
+    <a href="https://tfhub.dev/tensorflow/collections/lite/task-library/image-classifier/1">pretrained image classification models on TensorFlow Hub</a>.</p>
+</li>
+<li>
+<p>Models created by
+    <a href="https://cloud.google.com/vision/automl/docs/edge-quickstart">AutoML Vision Edge Image Classification</a>.</p>
+</li>
+<li>
+<p>Custom models that meet the
+    <a href="#model-compatibility-requirements">model compatibility requirements</a>.</p>
+</li>
+</ul>
+<h2>Run inference in Java</h2>
+<p>See the
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/image_classification/android/README.md">Image Classification reference app</a>
+for an example of how to use <code>ImageClassifier</code> in an Android app.</p>
+<h3>Step 1: Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> model file to the assets directory of the Android module
+where the model will be run. Specify that the file should not be compressed, and
+add the TensorFlow Lite library to the module’s <code>build.gradle</code> file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import the Task Vision Library dependency (NNAPI is included)
+implementation 'org.tensorflow:tensorflow-lite-task-vision'
+// Import the GPU delegate plugin Library for GPU inference
+implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin'
+</code></pre>
+<p>}
+```</p>
+<h3>Step 2: Using the model</h3>
+<p>```java
+// Initialization
+ImageClassifierOptions options =
+    ImageClassifierOptions.builder()
+        .setBaseOptions(BaseOptions.builder().useGpu().build())
+        .setMaxResults(1)
+        .build();
+ImageClassifier imageClassifier =
+    ImageClassifier.createFromFileAndOptions(
+        context, modelFile, options);</p>
+<p>// Run inference
+List<Classifications> results = imageClassifier.classify(image);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/java/src/java/org/tensorflow/lite/task/vision/classifier/ImageClassifier.java">source code and javadoc</a>
+for more options to configure <code>ImageClassifier</code>.</p>
+<h2>Run inference in iOS</h2>
+<h3>Step 1: Install the dependencies</h3>
+<p>The Task Library supports installation using CocoaPods. Make sure that CocoaPods
+is installed on your system. Please see the
+<a href="https://guides.cocoapods.org/using/getting-started.html#getting-started">CocoaPods installation guide</a>
+for instructions.</p>
+<p>Please see the
+<a href="https://guides.cocoapods.org/using/using-cocoapods.html">CocoaPods guide</a> for
+details on adding pods to an Xcode project.</p>
+<p>Add the <code>TensorFlowLiteTaskVision</code> pod in the Podfile.</p>
+<p><code>target 'MyAppWithTaskAPI' do
+  use_frameworks!
+  pod 'TensorFlowLiteTaskVision'
+end</code></p>
+<p>Make sure that the <code>.tflite</code> model you will be using for inference is present in
+your app bundle.</p>
+<h3>Step 2: Using the model</h3>
+<h4>Swift</h4>
+<p>```swift
+// Imports
+import TensorFlowLiteTaskVision</p>
+<p>// Initialization
+guard let modelPath = Bundle.main.path(forResource: "birds_V1",
+                                            ofType: "tflite") else { return }</p>
+<p>let options = ImageClassifierOptions(modelPath: modelPath)</p>
+<p>// Configure any additional options:
+// options.classificationOptions.maxResults = 3</p>
+<p>let classifier = try ImageClassifier.classifier(options: options)</p>
+<p>// Convert the input image to MLImage.
+// There are other sources for MLImage. For more details, please see:
+// https://developers.google.com/ml-kit/reference/ios/mlimage/api/reference/Classes/GMLImage
+guard let image = UIImage (named: "sparrow.jpg"), let mlImage = MLImage(image: image) else { return }</p>
+<p>// Run inference
+let classificationResults = try classifier.classify(mlImage: mlImage)
+```</p>
+<h4>Objective C</h4>
+<p>```objc
+// Imports</p>
+<h1>import <TensorFlowLiteTaskVision/TensorFlowLiteTaskVision.h></h1>
+<p>// Initialization
+NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"birds_V1" ofType:@"tflite"];</p>
+<p>TFLImageClassifierOptions *options =
+    [[TFLImageClassifierOptions alloc] initWithModelPath:modelPath];</p>
+<p>// Configure any additional options:
+// options.classificationOptions.maxResults = 3;</p>
+<p>TFLImageClassifier *classifier = [TFLImageClassifier imageClassifierWithOptions:options
+                                                                          error:nil];</p>
+<p>// Convert the input image to MLImage.
+UIImage *image = [UIImage imageNamed:@"sparrow.jpg"];</p>
+<p>// There are other sources for GMLImage. For more details, please see:
+// https://developers.google.com/ml-kit/reference/ios/mlimage/api/reference/Classes/GMLImage
+GMLImage *gmlImage = [[GMLImage alloc] initWithImage:image];</p>
+<p>// Run inference
+TFLClassificationResult *classificationResult =
+    [classifier classifyWithGMLImage:gmlImage error:nil];
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/ios/task/vision/sources/TFLImageClassifier.h">source code</a>
+for more options to configure <code>TFLImageClassifier</code>.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install the pip package</h3>
+<p><code>pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python</p>
+<h1>Imports</h1>
+<p>from tflite_support.task import vision
+from tflite_support.task import core
+from tflite_support.task import processor</p>
+<h1>Initialization</h1>
+<p>base_options = core.BaseOptions(file_name=model_path)
+classification_options = processor.ClassificationOptions(max_results=2)
+options = vision.ImageClassifierOptions(base_options=base_options, classification_options=classification_options)
+classifier = vision.ImageClassifier.create_from_options(options)</p>
+<h1>Alternatively, you can create an image classifier in the following manner:</h1>
+<h1>classifier = vision.ImageClassifier.create_from_file(model_path)</h1>
+<h1>Run inference</h1>
+<p>image = vision.TensorImage.create_from_file(image_path)
+classification_result = classifier.classify(image)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/vision/image_classifier.py">source code</a>
+for more options to configure <code>ImageClassifier</code>.</p>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+ImageClassifierOptions options;
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_path);
+std::unique_ptr<ImageClassifier> image_classifier = ImageClassifier::CreateFromOptions(options).value();</p>
+<p>// Create input frame_buffer from your inputs, <code>image_data</code> and <code>image_dimension</code>.
+// See more information here: tensorflow_lite_support/cc/task/vision/utils/frame_buffer_common_utils.h</p>
+<p>std::unique_ptr<FrameBuffer> frame_buffer = CreateFromRgbRawBuffer(
+      image_data, image_dimension);</p>
+<p>// Run inference
+const ClassificationResult result = image_classifier-&gt;Classify(*frame_buffer).value();
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/vision/image_classifier.h">source code</a>
+for more options to configure <code>ImageClassifier</code>.</p>
+<h2>Example results</h2>
+<p>Here is an example of the classification results of a
+<a href="https://tfhub.dev/google/lite-model/aiy/vision/classifier/birds_V1/3">bird classifier</a>.</p>
+<p><img src="images/sparrow.jpg" alt="sparrow" width="50%"></p>
+<p><code>Results:
+  Rank #0:
+   index       : 671
+   score       : 0.91406
+   class name  : /m/01bwb9
+   display name: Passer domesticus
+  Rank #1:
+   index       : 670
+   score       : 0.00391
+   class name  : /m/01bwbt
+   display name: Passer montanus
+  Rank #2:
+   index       : 495
+   score       : 0.00391
+   class name  : /m/0bwm6m
+   display name: Passer italiae</code></p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/examples/task/vision/desktop#image-classifier">CLI demo tool for ImageClassifier</a>
+with your own model and test data.</p>
+<h2>Model compatibility requirements</h2>
+<p>The <code>ImageClassifier</code> API expects a TFLite model with mandatory
+<a href="https://www.tensorflow.org/lite/models/convert/metadata">TFLite Model Metadata</a>.
+See examples of creating metadata for image classifiers using the
+<a href="../../models/convert/metadata_writer_tutorial.ipynb#image_classifiers">TensorFlow Lite Metadata Writer API</a>.</p>
+<p>The compatible image classifier models should meet the following requirements:</p>
+<ul>
+<li>
+<p>Input image tensor (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>image input of size <code>[batch x height x width x channels]</code>.</li>
+<li>batch inference is not supported (<code>batch</code> is required to be 1).</li>
+<li>only RGB inputs are supported (<code>channels</code> is required to be 3).</li>
+<li>if type is kTfLiteFloat32, NormalizationOptions are required to be
+    attached to the metadata for input normalization.</li>
+</ul>
+</li>
+<li>
+<p>Output score tensor (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>with <code>N</code> classes and either 2 or 4 dimensions, i.e. <code>[1 x N]</code> or <code>[1 x 1
+    x 1 x N]</code></li>
+<li>optional (but recommended) label map(s) as AssociatedFile-s with type
+    TENSOR_AXIS_LABELS, containing one label per line. See the
+    <a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/metadata/python/tests/testdata/image_classifier/labels.txt">example label file</a>.
+    The first such AssociatedFile (if any) is used to fill the <code>label</code> field
+    (named as <code>class_name</code> in C++) of the results. The <code>display_name</code> field
+    is filled from the AssociatedFile (if any) whose locale matches the
+    <code>display_names_locale</code> field of the <code>ImageClassifierOptions</code> used at
+    creation time ("en" by default, i.e. English). If none of these are
+    available, only the <code>index</code> field of the results will be filled.</li>
+</ul>
+</li>
+</ul>

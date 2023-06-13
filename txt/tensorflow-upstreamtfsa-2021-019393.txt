@@ -1,0 +1,62 @@
+<h2>TFSA-2021-019: Heap buffer overflow caused by rounding</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29529</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a heap buffer overflow in
+<code>tf.raw_ops.QuantizedResizeBilinear</code> by manipulating input values so that float
+rounding results in off-by-one error in accessing image elements:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>l = [256, 328, 361, 17, 361, 361, 361, 361, 361, 361, 361, 361, 361, 361, 384]
+images = tf.constant(l, shape=[1, 1, 15, 1], dtype=tf.qint32)
+size = tf.constant([12, 6], shape=[2], dtype=tf.int32)
+min = tf.constant(80.22522735595703)
+max = tf.constant(80.39215850830078)</p>
+<p>tf.raw_ops.QuantizedResizeBilinear(images=images, size=size, min=min, max=max,
+                                   align_corners=True, half_pixel_centers=True)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/44b7f486c0143f68b56c34e2d01e146ee445134a/tensorflow/core/kernels/quantized_resize_bilinear_op.cc#L62-L66">implementation</a>
+computes two integers (representing the upper and lower bounds for
+interpolation) by ceiling and flooring a floating point value:</p>
+<p><code>cc
+const float in_f = std::floor(in);
+interpolation-&gt;lower[i] = std::max(static_cast&lt;int64&gt;(in_f), static_cast&lt;int64&gt;(0));
+interpolation-&gt;upper[i] = std::min(static_cast&lt;int64&gt;(std::ceil(in)), in_size - 1);</code></p>
+<p>For some values of <code>in</code>, <code>interpolation-&gt;upper[i]</code> might be smaller than
+<code>interpolation-&gt;lower[i]</code>. This is an issue if <code>interpolation-&gt;upper[i]</code> is
+capped at <code>in_size-1</code> as it means that <code>interpolation-&gt;lower[i]</code> points outside
+of the image. Then, <a href="https://github.com/tensorflow/tensorflow/blob/44b7f486c0143f68b56c34e2d01e146ee445134a/tensorflow/core/kernels/quantized_resize_bilinear_op.cc#L245-L264">in the interpolation
+code</a>,
+this would result in heap buffer overflow:</p>
+<p><code>cc
+template &lt;int RESOLUTION, typename T, typename T_SCALE, typename T_CALC&gt;
+inline void OutputLerpForChannels(const InterpolationCache&lt;T_SCALE&gt;&amp; xs,
+                                  const int64 x, const T_SCALE ys_ilerp,
+                                  const int channels, const float min,
+                                  const float max, const T* ys_input_lower_ptr,
+                                  const T* ys_input_upper_ptr,
+                                  T* output_y_ptr) {
+  const int64 xs_lower = xs.lower[x];
+  ...
+  for (int c = 0; c &lt; channels; ++c) {
+    const T top_left = ys_input_lower_ptr[xs_lower + c];
+    ...
+  }
+}</code></p>
+<p>For the other cases where <code>interpolation-&gt;upper[i]</code> is smaller than
+<code>interpolation-&gt;lower[i]</code>, we can set them to be equal without affecting the
+output.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/f851613f8f0fb0c838d160ced13c134f778e3ce7">f851613f8f0fb0c838d160ced13c134f778e3ce7</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

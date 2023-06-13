@@ -1,0 +1,10 @@
+<h2>TFSA-2022-044: <code>CHECK</code>-failures during Grappler's <code>SafeToRemoveIdentity</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23579</p>
+<h3>Impact</h3>
+<p>The Grappler optimizer in TensorFlow can be used to cause a denial of service by altering a <code>SavedModel</code> such that <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/optimizers/dependency_optimizer.cc#L59-L98"><code>SafeToRemoveIdentity</code></a> would trigger <code>CHECK</code> failures.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/92dba16749fae36c246bec3f9ba474d9ddeb7662">92dba16749fae36c246bec3f9ba474d9ddeb7662</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,19 @@
+<h2>TFSA-2022-154: Segfault in <code>tf.raw_ops.TensorListConcat</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41891</p>
+<h3>Impact</h3>
+<p>If <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/list_kernels.h"><code>tf.raw_ops.TensorListConcat</code></a> is given <code>element_shape=[]</code>, it results segmentation fault which can be used to trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+tf.raw_ops.TensorListConcat(
+    input_handle=tf.data.experimental.to_variant(tf.data.Dataset.from_tensor_slices([1, 2, 3])),
+    element_dtype=tf.dtypes.float32,
+    element_shape=[]
+)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/fc33f3dc4c14051a83eec6535b608abe1d355fde">fc33f3dc4c14051a83eec6535b608abe1d355fde</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Tong Liu, ShanghaiTech University</p>

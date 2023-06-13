@@ -1,0 +1,47 @@
+<h2>TFSA-2021-020: <code>CHECK</code>-fail in <code>tf.raw_ops.EncodePng</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29531</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a <code>CHECK</code> fail in PNG encoding by providing an empty
+input tensor as the pixel data:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>image = tf.zeros([0, 0, 3])
+image = tf.cast(image, dtype=tf.uint8)
+tf.raw_ops.EncodePng(image=image)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/e312e0791ce486a80c9d23110841525c6f7c3289/tensorflow/core/kernels/image/encode_png_op.cc#L57-L60">implementation</a>
+only validates that the total number of pixels in the image does not overflow.
+Thus, an attacker can send an empty matrix for encoding. However, if the tensor
+is empty, then the associated buffer is <code>nullptr</code>. Hence, when <a href="https://github.com/tensorflow/tensorflow/blob/e312e0791ce486a80c9d23110841525c6f7c3289/tensorflow/core/kernels/image/encode_png_op.cc#L79-L93">calling
+<code>png::WriteImageToBuffer</code></a>,
+the first argument (i.e., <code>image.flat&lt;T&gt;().data()</code>) is <code>NULL</code>. This then
+triggers the <code>CHECK_NOTNULL</code> in the <a href="https://github.com/tensorflow/tensorflow/blob/e312e0791ce486a80c9d23110841525c6f7c3289/tensorflow/core/lib/png/png_io.cc#L345-L349">first line of
+<code>png::WriteImageToBuffer</code></a>.</p>
+<p><code>cc
+template &lt;typename T&gt;
+bool WriteImageToBuffer(
+    const void* image, int width, int height, int row_bytes, int num_channels,
+    int channel_bits, int compression, T* png_string,
+    const std::vector&lt;std::pair&lt;std::string, std::string&gt; &gt;* metadata) {
+  CHECK_NOTNULL(image);
+  ...
+}</code></p>
+<p>Since <code>image</code> is null, this results in <code>abort</code> being called after printing the
+stacktrace. Effectively, this allows an attacker to mount a denial of service
+attack.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/26eb323554ffccd173e8a79a8c05c15b685ae4d1">26eb323554ffccd173e8a79a8c05c15b685ae4d1</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

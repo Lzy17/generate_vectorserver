@@ -1,0 +1,2 @@
+<h1>What is this?</h1>
+<p>This folder hosts a minimal package for coverage plug-ins. Currently, the only plug-in is a JIT plug-in that helps coverage mark functions and methods passed through <code>torch.jit.script</code> and <code>torch.jit.script_method</code> as covered code.</p>

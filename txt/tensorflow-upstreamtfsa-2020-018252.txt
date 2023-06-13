@@ -1,0 +1,33 @@
+<h2>TFSA-2020-018: Heap buffer overflow due to invalid indices in SparseCountSparseOutput</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15198</p>
+<h3>Impact</h3>
+<p>The <code>SparseCountSparseOutput</code> implementation does not validate that the input
+arguments form a valid sparse tensor. In particular, there is no validation that
+the <code>indices</code> tensor has the same shape as the <code>values</code> one. The values in these
+tensors are always <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/count_ops.cc#L193-L195">accessed in
+parallel</a>:
+<code>cc
+    for (int idx = 0; idx &lt; num_values; ++idx) {
+      int batch = is_1d ? 0 : indices_values(idx, 0);
+      const auto&amp; value = values_values(idx);
+      // ...
+    }</code></p>
+<p>Thus, a shape mismatch can result in accesses outside the bounds of heap
+allocated buffers.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/3cbb917b4714766030b28eba9fb41bb97ce9ee02">3cbb917b4714766030b28eba9fb41bb97ce9ee02</a>
+and will release a patch release.</p>
+<p>We recommend users to upgrade to TensorFlow 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-015.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

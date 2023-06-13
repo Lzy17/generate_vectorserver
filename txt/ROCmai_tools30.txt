@@ -1,0 +1,22 @@
+<h1>AI Libraries</h1>
+<p>::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>MIOpen &lt;miopen:index&gt;</code>
+AMD's library for high performance machine learning primitives.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;miopen:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>Composable Kernel &lt;composable-kernel:index&gt;</code>
+Composable Kernel: Performance Portable Programming Model for Machine Learning Tensor Operators</p>
+<ul>
+<li>{doc}<code>Documentation &lt;composable-kernel:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>MIGraphX &lt;migraphx:index&gt;</code>
+AMD MIGraphX is AMD's graph inference engine that accelerates machine learning model inference.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;migraphx:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

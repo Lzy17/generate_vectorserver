@@ -1,0 +1,33 @@
+<h2>TFSA-2021-047: Heap OOB access in unicode ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29559</p>
+<h3>Impact</h3>
+<p>An attacker can access data outside of bounds of heap allocated array in
+<code>tf.raw_ops.UnicodeEncode</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_values = tf.constant([58], shape=[1], dtype=tf.int32)
+input_splits = tf.constant([[81, 101, 0]], shape=[3], dtype=tf.int32)
+output_encoding = "UTF-8"</p>
+<p>tf.raw_ops.UnicodeEncode(
+    input_values=input_values, input_splits=input_splits,
+    output_encoding=output_encoding)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/472c1f12ad9063405737679d4f6bd43094e1d36d/tensorflow/core/kernels/unicode_ops.cc">implementation</a>
+assumes that the <code>input_value</code>/<code>input_splits</code> pair specify a valid sparse
+tensor.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/51300ba1cc2f487aefec6e6631fef03b0e08b298">51300ba1cc2f487aefec6e6631fef03b0e08b298</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

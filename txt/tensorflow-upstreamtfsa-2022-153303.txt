@@ -1,0 +1,17 @@
+<h2>TFSA-2022-153: <code>CHECK</code> fail in <code>BCast</code> overflow</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41890</p>
+<h3>Impact</h3>
+<p>If <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/bcast.h"><code>BCast::ToShape</code></a> is given input larger than an <code>int32</code>, it will crash, despite being supposed to handle up to an <code>int64</code>. An example can be seen in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/util/bcast.h"><code>tf.experimental.numpy.outer</code></a> by passing in large input to the input <code>b</code>.
+```python
+import tensorflow as tf</p>
+<p>value = tf.constant(shape=[2, 1024, 1024, 1024], value=False)</p>
+<p>tf.experimental.numpy.outer(a=6,b=value)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8310bf8dd188ff780e7fc53245058215a05bdbe5">8310bf8dd188ff780e7fc53245058215a05bdbe5</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Pattarakrit Rattankul.</p>

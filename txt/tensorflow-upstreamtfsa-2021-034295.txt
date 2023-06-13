@@ -1,0 +1,52 @@
+<h2>TFSA-2021-034: Division by 0 in <code>QuantizedBiasAdd</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29546</p>
+<h3>Impact</h3>
+<p>An attacker can trigger an integer division by zero undefined behavior in
+<code>tf.raw_ops.QuantizedBiasAdd</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.quint8)
+bias = tf.constant([], shape=[0], dtype=tf.quint8)
+min_input = tf.constant(-10.0, dtype=tf.float32)
+max_input = tf.constant(-10.0, dtype=tf.float32)
+min_bias = tf.constant(-10.0, dtype=tf.float32)
+max_bias = tf.constant(-10.0, dtype=tf.float32)</p>
+<p>tf.raw_ops.QuantizedBiasAdd(input=input_tensor, bias=bias, min_input=min_input,
+                            max_input=max_input, min_bias=min_bias,
+                            max_bias=max_bias, out_type=tf.qint32)
+```</p>
+<p>This is because the <a href="https://github.com/tensorflow/tensorflow/blob/61bca8bd5ba8a68b2d97435ddfafcdf2b85672cd/tensorflow/core/kernels/quantization_utils.h#L812-L849">implementation of the Eigen
+kernel</a>
+does a division by the number of elements of the smaller input (based on shape)
+without checking that this is not zero:</p>
+<p><code>cc
+template &lt;typename T1, typename T2, typename T3&gt;
+void QuantizedAddUsingEigen(const Eigen::ThreadPoolDevice&amp; device,
+                            const Tensor&amp; input, float input_min,
+                            float input_max, const Tensor&amp; smaller_input,
+                            float smaller_input_min, float smaller_input_max,
+                            Tensor* output, float* output_min,
+                            float* output_max) {
+  ...
+  const int64 input_element_count = input.NumElements();
+  const int64 smaller_input_element_count = smaller_input.NumElements();
+  ...
+  bcast[0] = input_element_count / smaller_input_element_count;
+  ...
+}</code></p>
+<p>This integral division by 0 is undefined behavior.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/67784700869470d65d5f2ef20aeb5e97c31673cb">67784700869470d65d5f2ef20aeb5e97c31673cb</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

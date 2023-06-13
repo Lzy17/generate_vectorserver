@@ -1,0 +1,7 @@
+<p>This is the implementation reference for the CUDA PyTorch JIT Fuser</p>
+<ul>
+<li><a href="https://github.com/pytorch/pytorch">PyTorch GitHub Page</a></li>
+<li><a href="https://github.com/pytorch/pytorch/tree/master/torch/csrc/jit/codegen/cuda">Fuser Source Tree</a></li>
+<li>Main documentation indexes: <a href="namespaces.html">Namespaces</a> and <a href="annotated.html">Classes</a></li>
+</ul>
+<p><img alt="Fuser Architecture Overview" src="images/ir_architecture.png" /></p>

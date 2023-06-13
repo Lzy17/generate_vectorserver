@@ -1,0 +1,55 @@
+<h2>TFSA-2021-039: OOB read in <code>MatrixTriangularSolve</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29551</p>
+<h3>Impact</h3>
+<p>The implementation of
+<a href="https://github.com/tensorflow/tensorflow/blob/8cae746d8449c7dda5298327353d68613f16e798/tensorflow/core/kernels/linalg/matrix_triangular_solve_op_impl.h#L160-L240"><code>MatrixTriangularSolve</code></a>
+fails to terminate kernel execution if one validation condition fails:</p>
+<p>```cc
+void ValidateInputTensors(OpKernelContext* ctx, const Tensor&amp; in0,
+                            const Tensor&amp; in1) override {
+  OP_REQUIRES(
+      ctx, in0.dims() &gt;= 2,
+      errors::InvalidArgument("In[0] ndims must be &gt;= 2: ", in0.dims()));</p>
+<p>OP_REQUIRES(
+      ctx, in1.dims() &gt;= 2,
+      errors::InvalidArgument("In[0] ndims must be &gt;= 2: ", in1.dims()));
+}</p>
+<p>void Compute(OpKernelContext* ctx) override {
+  const Tensor&amp; in0 = ctx-&gt;input(0);
+  const Tensor&amp; in1 = ctx-&gt;input(1);</p>
+<p>ValidateInputTensors(ctx, in0, in1);</p>
+<p>MatMulBCast bcast(in0.shape().dim_sizes(), in1.shape().dim_sizes());
+  ...
+}
+```</p>
+<p>Since <code>OP_REQUIRES</code> only sets <code>ctx-&gt;status()</code> to a non-OK value and calls
+<code>return</code>, this allows malicious attackers to trigger an out of bounds read:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>matrix_array = np.array([])
+matrix_tensor = tf.convert_to_tensor(np.reshape(matrix_array,(1,0)),dtype=tf.float32)
+rhs_array = np.array([])
+rhs_tensor = tf.convert_to_tensor(np.reshape(rhs_array,(0,1)),dtype=tf.float32)</p>
+<p>tf.raw_ops.MatrixTriangularSolve(matrix=matrix_tensor,rhs=rhs_tensor,lower=False,adjoint=False)
+```</p>
+<p>As the two input tensors are empty, the <code>OP_REQUIRES</code> in <code>ValidateInputTensors</code>
+should fire and interrupt execution. However, given the implementation of
+<code>OP_REQUIRES</code>, after the <code>in0.dims() &gt;= 2</code> fails, execution moves to the
+initialization of the <code>bcast</code> object. This initialization is done with invalid
+data and results in heap OOB read.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/480641e3599775a8895254ffbc0fc45621334f68">480641e3599775a8895254ffbc0fc45621334f68</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ye Zhang and Yakun Zhang of Baidu
+X-Team.</p>

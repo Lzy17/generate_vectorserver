@@ -1,0 +1,62 @@
+<h2>TFSA-2021-038: Division by 0 in <code>FractionalAvgPool</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29550</p>
+<h3>Impact</h3>
+<p>An attacker can cause a runtime division by zero error and denial of service in
+<code>tf.raw_ops.FractionalAvgPool</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>value = tf.constant([60], shape=[1, 1, 1, 1], dtype=tf.int32)
+pooling_ratio = [1.0, 1.0000014345305555, 1.0, 1.0]
+pseudo_random = False
+overlapping = False
+deterministic = False
+seed = 0
+seed2 = 0</p>
+<p>tf.raw_ops.FractionalAvgPool(
+  value=value, pooling_ratio=pooling_ratio, pseudo_random=pseudo_random,
+  overlapping=overlapping, deterministic=deterministic, seed=seed, seed2=seed2)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/acc8ee69f5f46f92a3f1f11230f49c6ac266f10c/tensorflow/core/kernels/fractional_avg_pool_op.cc#L85-L89">implementation</a>
+computes a divisor quantity by dividing two user controlled values:</p>
+<p><code>cc
+for (int i = 0; i &lt; tensor_in_and_out_dims; ++i) {
+  output_size[i] = static_cast&lt;int&gt;(std::floor(input_size[i] / pooling_ratio_[i]));
+  DCHECK_GT(output_size[i], 0);
+}</code></p>
+<p>The user controls the values of <code>input_size[i]</code> and <code>pooling_ratio_[i]</code> (via the
+<code>value.shape()</code> and <code>pooling_ratio</code> arguments). If the value in <code>input_size[i]</code>
+is smaller than the <code>pooling_ratio_[i]</code>, then the floor operation results in
+<code>output_size[i]</code> being 0. The <code>DCHECK_GT</code> line is a no-op outside of debug mode,
+so in released versions of TF this does not trigger.</p>
+<p>Later, these computed values <a href="https://github.com/tensorflow/tensorflow/blob/acc8ee69f5f46f92a3f1f11230f49c6ac266f10c/tensorflow/core/kernels/fractional_avg_pool_op.cc#L96-L99">are used as
+arguments</a>
+to
+<a href="https://github.com/tensorflow/tensorflow/blob/acc8ee69f5f46f92a3f1f11230f49c6ac266f10c/tensorflow/core/kernels/fractional_pool_common.cc#L100-L108"><code>GeneratePoolingSequence</code></a>.
+There, the first computation is a division in a modulo operation:</p>
+<p><code>cc
+std::vector&lt;int64&gt; GeneratePoolingSequence(int input_length, int output_length,
+                                           GuardedPhiloxRandom* generator,
+                                           bool pseudo_random) {
+  ...
+  if (input_length % output_length == 0) {
+    diff = std::vector&lt;int64&gt;(output_length, input_length / output_length);
+  }
+  ...
+}</code></p>
+<p>Since <code>output_length</code> can be 0, this results in runtime crashing.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/548b5eaf23685d86f722233d8fbc21d0a4aecb96">548b5eaf23685d86f722233d8fbc21d0a4aecb96</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

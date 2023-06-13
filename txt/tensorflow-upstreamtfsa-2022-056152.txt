@@ -1,0 +1,21 @@
+<h2>TFSA-2022-056: Crash due to erroneous <code>StatusOr</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23590</p>
+<h3>Impact</h3>
+<p>A <code>GraphDef</code> from a TensorFlow <code>SavedModel</code> can be maliciously altered to cause a TensorFlow process to crash due to encountering <a href="https://github.com/tensorflow/tensorflow/blob/274df9b02330b790aa8de1cee164b70f72b9b244/tensorflow/core/graph/graph.cc#L560-L567">a <code>StatusOr</code> value that is an error and forcibly extracting the value from it</a>:</p>
+<p><code>cc
+  if (op_reg_data-&gt;type_ctor != nullptr) {
+    VLOG(3) &lt;&lt; "AddNode: found type constructor for " &lt;&lt; node_def.name();
+    const auto ctor_type =
+        full_type::SpecializeType(AttrSlice(node_def), op_reg_data-&gt;op_def);
+    const FullTypeDef ctor_typedef = ctor_type.ValueOrDie();
+    if (ctor_typedef.type_id() != TFT_UNSET) {
+      *(node_def.mutable_experimental_type()) = ctor_typedef;
+    }
+  }</code></p>
+<p>If <code>ctor_type</code> is an error status, <code>ValueOrDie</code> results in a crash.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/955059813cc325dc1db5e2daa6221271406d4439">955059813cc325dc1db5e2daa6221271406d4439</a>.</p>
+<p>We have patched the issue in multiple GitHub commits and these will be included in TensorFlow 2.8.0 and TensorFlow 2.7.1, as both are affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,23 @@
+<h2>TFSA-2021-074: Division by zero in optimized pooling implementations in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29586</p>
+<h3>Impact</h3>
+<p>Optimized pooling implementations in TFLite fail to check that the stride
+arguments are not 0 before calling
+<a href="https://github.com/tensorflow/tensorflow/blob/3f24ccd932546416ec906a02ddd183b48a1d2c83/tensorflow/lite/kernels/pooling.cc#L90"><code>ComputePaddingHeightWidth</code></a>.</p>
+<p>Since users can craft special models which will have
+<code>params-&gt;stride_{height,width}</code> be zero, this will result in a division by zero.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/5f7975d09eac0f10ed8a17dbb6f5964977725adc">5f7975d09eac0f10ed8a17dbb6f5964977725adc</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

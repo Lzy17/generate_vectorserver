@@ -1,0 +1,69 @@
+<h1>AutoGraph reference</h1>
+<p><a href="index.md">Index</a></p>
+<h2>Generated code</h2>
+<p>For each converted function, AutoGraph creates a new function. The
+loading mechanism is an implementation detail and may change, but the
+generated function is generally a regular
+<a href="https://docs.python.org/3/reference/compound_stmts.html#function">Python function</a>.
+This function is typically executed internally by <code>@tf.function</code> to construct a
+TensorFlow graph.</p>
+<h3>Transformations made to the generated code</h3>
+<p>The generated code is a transformation of the input code. The transformations
+are listed below. Any other elements are left unchanged.</p>
+<p>Summary of transformations:</p>
+<ul>
+<li>function calls are replaced with a wrapper:</li>
+<li><code>foo(args)</code> -&gt; <code>ag__.converted_call(foo, args)</code></li>
+<li><code>if</code>, <code>while</code> and <code>for</code> statements are replaced with function calls:</li>
+<li><code>if</code> -&gt; <code>ag__.if_stmt</code></li>
+<li><code>while</code> -&gt; <code>ag__.while_stmt</code></li>
+<li><code>for</code> -&gt; <code>ag__.for_stmt</code></li>
+<li><code>break</code>, <code>return</code>, and <code>continue</code> statements are replaced with equivalent
+   <code>if</code> statements.</li>
+<li><code>and</code>, <code>or</code> and <code>not</code> operators are replaced with function calls:</li>
+<li><code>and</code> -&gt; <code>ag__.and_</code></li>
+<li><code>or</code> -&gt; <code>ag__.or_</code></li>
+<li><code>not</code> -&gt; <code>ag__.not_</code></li>
+</ul>
+<p>The functions replacing control flow statements are very similar in form with
+the corresponding control flow ops in TensorFlow.</p>
+<h3>AutoGraph generates normal Python code</h3>
+<p>You can interact normally with the generated code. For example, you can use
+the <code>inspect.getsourcefile</code> and <code>inspect.getsource</code>:</p>
+<p>```
+def f(a):
+  ...</p>
+<p>converted_f = tf.autograph.to_graph(f)
+print(inspect.getsourcefile(converted_f))
+<code></code>
+/tmp/tmpm562wlj7.py
+```</p>
+<p>When using <code>@tf.function</code>, you can repeat the same steps using the function's
+<code>python_function</code> attribute:</p>
+<p>```
+@tf.function
+def f(a):
+  ...</p>
+<p>converted_f = tf.autograph.to_graph(f.python_function)
+print(inspect.getsourcefile(converted_f))
+<code></code>
+/tmp/tmpm562wlj7.py
+```</p>
+<p><code>tf.autograph.to_code(f)</code> is a shortcut to obtain the generated code, and it's
+equivalent with calling <code>inspect.getsource(tf.autograph.to_graph(f))</code>.</p>
+<h4>Recording diagnostic information: <code>tf.autograph.set_verbosity</code></h4>
+<p>AutoGraph can log additional debug information. This is mostly used for filing
+bugs, but can also be used to get an indication of whether a function is
+converted successfully or not.</p>
+<p>You can enable logging by calling <code>tf.autograph.set_verbosity(level)</code>. The
+<code>level</code> argument varies from 0 to 10:</p>
+<ul>
+<li>0 - no logging</li>
+<li>3 - includes the generated code</li>
+<li>4 and above - extremely verbose logging</li>
+</ul>
+<p>Caution: The information being logged includes source code as well as
+data. Before sharing AutoGraph logs, make sure they don't contain any sensitive
+information.</p>
+<p>Alternatively, you can control the verbosity level using the environment
+variable <code>AUTOGRAPH_VERBOSITY</code>.</p>

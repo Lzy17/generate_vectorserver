@@ -1,0 +1,14 @@
+<h2>TFSA-2022-042: Abort caused by allocating a vector that is too large</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23580</p>
+<h3>Impact</h3>
+<p>During shape inference, TensorFlow can <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/shape_inference.cc#L788-L790">allocate a large vector</a> based on a value from a tensor controlled by the user:</p>
+<p><code>cc
+  const auto num_dims = Value(shape_dim);
+  std::vector&lt;DimensionHandle&gt; dims;
+  dims.reserve(num_dims);</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/1361fb7e29449629e1df94d44e0427ebec8c83c7">1361fb7e29449629e1df94d44e0427ebec8c83c7</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

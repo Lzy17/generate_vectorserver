@@ -1,0 +1,131 @@
+<h1>Caffe2 v0.7.0 Release Notes</h1>
+<h2>Installation</h2>
+<p>This build is confirmed for:</p>
+<ul>
+<li>Ubuntu 14.04</li>
+<li>Ubuntu 16.06</li>
+</ul>
+<h3>Required Dependencies</h3>
+<p><code>bash
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+      build-essential \
+      cmake \
+      git \
+      libgoogle-glog-dev \
+      libprotobuf-dev \
+      protobuf-compiler \
+      python-dev \
+      python-pip
+sudo pip install numpy protobuf</code></p>
+<h3>Optional GPU Support</h3>
+<p>If you plan to use GPU instead of CPU only, then you should install NVIDIA CUDA and cuDNN, a GPU-accelerated library of primitives for deep neural networks.
+<a href="http://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu-installation">NVIDIA's detailed instructions</a> or if you're feeling lucky try the quick install set of commands below.</p>
+<p><strong>Update your graphics card drivers first!</strong> Otherwise you may suffer from a wide range of difficult to diagnose errors.</p>
+<p><strong>For Ubuntu 14.04</strong></p>
+<p><code>bash
+sudo apt-get update &amp;&amp; sudo apt-get install wget -y --no-install-recommends
+wget "http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_8.0.61-1_amd64.deb"
+sudo dpkg -i cuda-repo-ubuntu1404_8.0.61-1_amd64.deb
+sudo apt-get update
+sudo apt-get install cuda</code></p>
+<p><strong>For Ubuntu 16.04</strong></p>
+<p><code>bash
+sudo apt-get update &amp;&amp; sudo apt-get install wget -y --no-install-recommends
+wget "http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_8.0.61-1_amd64.deb"
+sudo dpkg -i cuda-repo-ubuntu1604_8.0.61-1_amd64.deb
+sudo apt-get update
+sudo apt-get install cuda</code></p>
+<h4>Install cuDNN (all Ubuntu versions)</h4>
+<p><code>CUDNN_URL="http://developer.download.nvidia.com/compute/redist/cudnn/v5.1/cudnn-8.0-linux-x64-v5.1.tgz"
+wget ${CUDNN_URL}
+sudo tar -xzf cudnn-8.0-linux-x64-v5.1.tgz -C /usr/local
+rm cudnn-8.0-linux-x64-v5.1.tgz &amp;&amp; sudo ldconfig</code></p>
+<h3>Optional Dependencies</h3>
+<blockquote>
+<p>Note <code>libgflags2</code> is for Ubuntu 14.04. <code>libgflags-dev</code> is for Ubuntu 16.04.</p>
+</blockquote>
+<p>```bash</p>
+<h1>for Ubuntu 14.04</h1>
+<p>sudo apt-get install -y --no-install-recommends libgflags2
+```</p>
+<p>```bash</p>
+<h1>for Ubuntu 16.04</h1>
+<p>sudo apt-get install -y --no-install-recommends libgflags-dev
+```</p>
+<p>```bash</p>
+<h1>for both Ubuntu 14.04 and 16.04</h1>
+<p>sudo apt-get install -y --no-install-recommends \
+      libgtest-dev \
+      libiomp-dev \
+      libleveldb-dev \
+      liblmdb-dev \
+      libopencv-dev \
+      libopenmpi-dev \
+      libsnappy-dev \
+      openmpi-bin \
+      openmpi-doc \
+      python-pydot
+sudo pip install \
+      flask \
+      graphviz \
+      hypothesis \
+      jupyter \
+      matplotlib \
+      pydot python-nvd3 \
+      pyyaml \
+      requests \
+      scikit-image \
+      scipy \
+      setuptools \
+      tornado
+```</p>
+<h3>Clone &amp; Build</h3>
+<p><code>bash
+git clone --recursive https://github.com/caffe2/caffe2.git &amp;&amp; cd caffe2
+make &amp;&amp; cd build &amp;&amp; sudo make install
+python -c 'from caffe2.python import core' 2&gt;/dev/null &amp;&amp; echo "Success" || echo "Failure"</code></p>
+<p>Run this command below to test if your GPU build was a success. You will get a test output either way, but it will warn you at the top of the output if CPU was used instead along with other errors like missing libraries.</p>
+<p><code>bash
+python -m caffe2.python.operator_test.relu_op_test</code></p>
+<h3>Environment Variables</h3>
+<p>These environment variables may assist you depending on your current configuration. When using the install instructions above on the AWS Deep Learning AMI you don't need to set these variables. However, our Docker scripts built on Ubuntu-14.04 or NVIDIA's CUDA images seem to benefit from having these set. If you ran into problems with the build tests above then these are good things to check. Echo them first and see what you have and possibly append or replace with these directories. Also visit the troubleshooting section below.</p>
+<p>```bash
+echo $PYTHONPATH</p>
+<h1>export PYTHONPATH=/usr/local:$PYTHONPATH</h1>
+<h1>export PYTHONPATH=$PYTHONPATH:/home/ubuntu/caffe2/build</h1>
+<p>echo $LD_LIBRARY_PATH</p>
+<h1>export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH</h1>
+<p>```</p>
+<h3>Setting Up Tutorials &amp; Jupyter Server</h3>
+<p>If you're running this all on a cloud computer, you probably won't have a UI or way to view the IPython notebooks by default. Typically, you would launch them locally with <code>ipython notebook</code> and you would see a localhost:8888 webpage pop up with the directory of notebooks running. The following example will show you how to launch the Jupyter server and connect to remotely via an SSH tunnel.</p>
+<p>First configure your cloud server to accept port 8889, or whatever you want, but change the port in the following commands. On AWS you accomplish this by adding a rule to your server's security group allowing a TCP inbound on port 8889. Otherwise you would adjust iptables for this.</p>
+<p>Next you launch the Jupyter server.</p>
+<p><code>jupyter notebook --no-browser --port=8889</code></p>
+<p>Then create the SSH tunnel. This will pass the cloud server's Jupyter instance to your localhost 8888 port for you to use locally. The example below is templated after how you would connect AWS, where <code>your-public-cert.pem</code> is your own public certificate and <code>ubuntu@super-rad-GPU-instance.compute-1.amazonaws.com</code> is your login to your cloud server. You can easily grab this on AWS by going to Instances &gt; Connect and copy the part after <code>ssh</code> and swap that out in the command below.</p>
+<p><code>ssh -N -f -L localhost:8888:localhost:8889 -i "your-public-cert.pem" ubuntu@super-rad-GPU-instance.compute-1.amazonaws.com</code></p>
+<h3>Troubleshooting</h3>
+<p>|Python errors||
+|----|-----|
+|Python version | <a href="https://www.python.org/">Python</a> is core to run Caffe2. We currently require <a href="https://www.python.org/download/releases/2.7/">Python2.7</a>. <em>Ubuntu 14.04 and greater have Python built in by default</em>, and that can be used to run Caffe2. To check your version: <code>python --version</code>|
+|Solution | If you want the developer version of python, you could install the <code>dev</code> package for Python: <code>sudo apt-get install python-dev</code>|
+|Python environment | You may have another version of Python installed or need to support Python version 3 for other projects.|
+|Solution | Try virtualenv or Anaconda. The <a href="https://www.continuum.io/downloads">Anaconda</a> platform provides a single script to install many of the necessary packages for Caffe2, including Python. Using Anaconda is outside the scope of these instructions, but if you are interested, it may work well for you.|
+|pip version | If you plan to use Python with Caffe2 then you need pip.|
+|Solution | <code>sudo apt-get install python-pip</code> and also try using pip2 instead of pip.|
+|"AttributeError: 'module' object has no attribute 'MakeArgument'" | Occurs when calling <code>core.CreateOperator</code>|
+|Solution | Check your install directory (<code>/usr/local/</code>), and remove the folder <code>/caffe2/python/utils</code>|</p>
+<p>|Building from source||
+|----|-----|
+|OS version | Caffe2 requires Ubuntu 14.04 or greater.|
+|git | While you can download the Caffe2 source code and submodules directly from GitHub as a zip, using git makes it much easier.|
+|Solution | <code>sudo apt-get install git</code>|
+|protobuf | You may experience an error related to protobuf during the make step.|
+|Solution | Make sure you've installed protobuf in <strong>both</strong> of these two ways: <code>sudo apt-get install libprotobuf-dev protobuf-compiler &amp;&amp; sudo pip install protobuf</code>|
+|libgflags2 error | This optional dependency is for Ubuntu 14.04.|
+|Solution | Use <code>apt-get install libgflags-dev</code> for Ubuntu 16.04.|</p>
+<p>|GPU Support||
+|----|-----|
+|GPU errors | Unsupported GPU or wrong version|
+|Solution | You need to know the specific <code>deb</code> for your version of Linux. <code>sudo dpkg -i| |cuda-repo-&lt;distro&gt;_&lt;version&gt;_&lt;architecture&gt;.deb</code> Refer to NVIDIA's <a href="http://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu-installation">installation guide</a>.|
+|Build issues | Be warned that installing CUDA and cuDNN will increase the size of your build by about 4GB, so plan to have at least 12GB for your Ubuntu disk size.|</p>

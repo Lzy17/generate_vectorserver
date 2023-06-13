@@ -1,0 +1,109 @@
+<h1>HLO Text Syntax</h1>
+<p>```yacc
+hlo_module
+  : 'HloModule' name computations
+  ;</p>
+<p>/<em> If no computation is marked as ENTRY, the last computation will be the entry
+computation of the module.</em>/
+computations
+  : computation
+  | computation computations
+  ;</p>
+<p>computation
+  : 'ENTRY' name param_list_to_shape instruction_list
+  | name param_list_to_shape instruction_list
+  | 'ENTRY' name instruction_list
+  | name instruction_list
+  ;</p>
+<p>/<em> If no instruction is marked as ROOT, the last instruction will be the root of
+its computation. </em>/
+instruction_list
+  : '{' instruction_list1 '}'
+  ;
+instruction_list1
+  : instruction
+  | instruction_list1 instruction
+  ;
+instruction
+  : 'ROOT' name '=' shape opcode operands extra_attributes
+  | name '=' shape opcode operands extra_attributes
+  ;</p>
+<p>operands
+  : '(' operands1 ')'
+  ;
+operands1
+  : /<em>empty</em>/
+  | operand
+  | operands1 ',' operand
+  ;
+operand
+  : shape name
+  | name
+  ;</p>
+<p>attributes
+  : /<em>empty</em>/
+  | ',' attribute
+  | ',' attribute attributes
+  ;
+attribute
+  : attribute_name attribute_value
+  ;
+attribute_value
+  : kInt
+  | kName
+  | [0-9bf]{2,}<em>[0-9io]{2,}-&gt;[0-9bf]{2,}                /<em>dim_labels_pattern</em>/
+  | [0-9]+(x[0-9]+)+                                    /<em>dxd_pattern</em>/
+  | [0-9]+</em>[0-9]+(<em>[0-9]+)?(x[0-9]+</em>[0-9]+(_[0-9]+)?)<em>  /</em>pad_pattern*/
+  | '{' sub_attributes '}'
+  ;</p>
+<p>param_list_to_shape
+  : param_list '-&gt;' shape
+  ;</p>
+<p>param_list
+  : '(' param_list1 ')'
+  ;
+param_list1
+  : /<em>empty</em>/
+  | param
+  | param_list1 ',' param
+  ;
+param
+  : name shape
+  ;</p>
+<p>shape
+  : shape_val_
+  | '(' tuple_elements ')'
+  ;
+tuple_elements
+  : /<em>empty</em>/
+  | shape (',' shape)*
+  ;</p>
+<p>name
+  : identifier ':'
+  | '%' identifier
+  | identifier
+  ;</p>
+<p>identifier
+  : [a-zA-Z_][a-zA-Z0-9_.-]*
+  ;</p>
+<p>/<em> literal is in the right hand side of a constant instruction. </em>/
+literal
+  : tuple
+  | non_tuple
+  ;
+tuple
+  : shape '(' literal_list ')'
+  ;
+literal_list
+  : /<em>empty</em>/
+  : literal
+  | literal_list ',' literal
+  ;
+non_tuple
+  : rank01
+  | rank2345
+  ;
+rank2345
+  : nested_array
+  ;
+```</p>

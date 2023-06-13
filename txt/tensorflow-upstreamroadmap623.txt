@@ -1,0 +1,137 @@
+<h1>TensorFlow Lite Roadmap</h1>
+<p><strong>Updated: May, 2021</strong></p>
+<p>The following represents a high level overview of our roadmap. You should be
+aware that this roadmap may change at any time and the order below does not
+reflect any type of priority.</p>
+<p>We break our roadmap into four key segments: usability, performance,
+optimization and portability. We strongly encourage you to comment on our
+roadmap and provide us feedback in the
+<a href="https://groups.google.com/a/tensorflow.org/g/tflite">TensorFlow Lite discussion group</a>.</p>
+<h2>Usability</h2>
+<ul>
+<li><strong>Expanded ops coverage</strong><ul>
+<li>Add targeted ops based on user feedback.</li>
+<li>Add targeted op sets for specific domains and areas including Random
+    ops, base Keras layer ops, hash tables, select training ops.</li>
+</ul>
+</li>
+<li><strong>More assistive tooling</strong><ul>
+<li>Provide TensorFlow graph annotations and compatibility tools to validate
+    TFLite and hardware accelerator compatibility during-training and
+    after-conversion.</li>
+<li>Allow targeting and optimizing for specific accelerators during
+    conversion.</li>
+</ul>
+</li>
+<li><strong>On-device training</strong><ul>
+<li>Support on-device training for personalization and transfer learning,
+    including a Colab demonstrating end-to-end usage.</li>
+<li>Support variable/resource types (both for inference and training)</li>
+<li>Support converting and executing graphs with multiple function (or
+    signature) entry-points.</li>
+</ul>
+</li>
+<li><strong>Enhanced Android Studio integration</strong><ul>
+<li>Drag and drop TFLite models into Android Studio to generate model
+    interfaces.</li>
+<li>Improve Android Studio profiling support, including memory profiling.</li>
+</ul>
+</li>
+<li><strong>Model Maker</strong><ul>
+<li>Support newer tasks, including object detection, recommendation, and
+    audio classification, covering a wide collection of common usage.</li>
+<li>Support more data sets to make transfer learning easier.</li>
+</ul>
+</li>
+<li><strong>Task Library</strong><ul>
+<li>Support more model types (e.g. audio, NLP) with associated pre and post
+    processing capabilities.</li>
+<li>Update more reference examples with Task APIs.</li>
+<li>Support out-of-the-box acceleration for all tasks.</li>
+</ul>
+</li>
+<li><strong>More SOTA models and examples</strong><ul>
+<li>Add more examples (e.g. audio, NLP, structure-data related) to
+    demonstrate model usage as well as new features and APIs, covering
+    different platforms.</li>
+<li>Create shareable backbone models for on-device to reduce training and
+    deployment costs.</li>
+</ul>
+</li>
+<li><strong>Seamless deployment across multiple platforms</strong><ul>
+<li>Run TensorFlow Lite models on the web.</li>
+</ul>
+</li>
+<li><strong>Improved cross-platform support</strong><ul>
+<li>Extend and improve APIs for Java on Android, Swift on iOS, Python on
+    RPi.</li>
+<li>Enhance CMake support (e.g., broader accelerator support).</li>
+</ul>
+</li>
+<li><strong>Better frontend support</strong><ul>
+<li>Improve compatibility with various authoring frontends, including Keras,
+    tf.numpy.</li>
+</ul>
+</li>
+</ul>
+<h2>Performance</h2>
+<ul>
+<li><strong>Better tooling</strong><ul>
+<li>Public dashboard for tracking performance gains with each release.</li>
+<li>Tooling for better understanding graph compatibility with target
+    accelerators.</li>
+</ul>
+</li>
+<li><strong>Improved CPU performance</strong><ul>
+<li>XNNPack enabled by default for faster floating point inference.</li>
+<li>End-to-end half precision (float16) support with optimized kernels.</li>
+</ul>
+</li>
+<li><strong>Updated NN API support</strong><ul>
+<li>Full support for newer Android version NN API features, ops, and types.</li>
+</ul>
+</li>
+<li><strong>GPU optimizations</strong><ul>
+<li>Improved startup time with delegate serialization support.</li>
+<li>Hardware buffer interop for zero-copy inference.</li>
+<li>Wider availability of on device acceleration.</li>
+<li>Better op coverage.</li>
+</ul>
+</li>
+</ul>
+<h2>Optimization</h2>
+<ul>
+<li>
+<p><strong>Quantization</strong></p>
+<ul>
+<li>Selective post-training quantization to exclude certain layers from
+    quantization.</li>
+<li>Quantization debugger to inspect quantization error losses per each
+    layer.</li>
+<li>Applying quantization-aware training on more model coverage e.g.
+    TensorFlow Model Garden.</li>
+<li>Quality and performance improvements for post-training dynamic-range
+    quantization.</li>
+<li>Tensor Compression API to allow compression algorithms such as SVD.</li>
+</ul>
+</li>
+<li>
+<p><strong>Pruning / sparsity</strong></p>
+<ul>
+<li>Combine configurable training-time (pruning + quantization-aware
+    training) APIs.</li>
+<li>Increase sparity application on TF Model Garden models.</li>
+<li>Sparse model execution support in TensorFlow Lite.</li>
+</ul>
+</li>
+</ul>
+<h2>Portability</h2>
+<ul>
+<li><strong>Microcontroller Support</strong><ul>
+<li>Add support for a range of 32-bit MCU architecture use cases for speech
+    and image classification.</li>
+<li>Audio Frontend: In-graph audio pre-processing and acceleration support</li>
+<li>Sample code and models for vision and audio data.</li>
+</ul>
+</li>
+</ul>

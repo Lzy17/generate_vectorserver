@@ -1,0 +1,22 @@
+<h2>TFSA-2022-052: Null pointer dereference in Grappler's <code>IsConstant</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23589</p>
+<h3>Impact</h3>
+<p>Under certain scenarios, Grappler component of TensorFlow can trigger a null pointer dereference. There are 2 places where this can occur, for the same malicious alteration of a <code>SavedModel</code> file (fixing the first one would trigger the same dereference in the second place):</p>
+<p>First, during <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/optimizers/constant_folding.cc#L3466-L3497">constant folding</a>, the <code>GraphDef</code> might not have the required nodes for the binary operation:</p>
+<p><code>cc
+  NodeDef* mul_left_child = node_map_-&gt;GetNode(node-&gt;input(0));
+  NodeDef* mul_right_child = node_map_-&gt;GetNode(node-&gt;input(1));
+  // One child must be constant, and the second must be Conv op.
+  const bool left_child_is_constant = IsReallyConstant(*mul_left_child);
+  const bool right_child_is_constant = IsReallyConstant(*mul_right_child);</code></p>
+<p>If a node is missing, the correposning <code>mul_*child</code> would be null, and the dereference in the subsequent line would be incorrect.</p>
+<p>We have a similar issue during <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/mutable_graph_view.cc#L59-L74"><code>IsIdentityConsumingSwitch</code></a>:</p>
+<p><code>cc
+  NodeDef* input_node = graph.GetNode(tensor_id.node());
+  return IsSwitch(*input_node);</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/0a365c029e437be0349c31f8d4c9926b69fa3fa1">0a365c029e437be0349c31f8d4c9926b69fa3fa1</a> and <a href="https://github.com/tensorflow/tensorflow/commit/045deec1cbdebb27d817008ad5df94d96a08b1bf">045deec1cbdebb27d817008ad5df94d96a08b1bf</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

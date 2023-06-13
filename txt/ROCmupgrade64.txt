@@ -1,0 +1,4 @@
+<h1>Upgrading with the Installer Script (Linux)</h1>
+<p>The upgrade procedure with the installer script is exactly the same as
+installing for 1st time use. Refer to the {doc}<code>install</code>
+section on the exact procedure to follow.</p>

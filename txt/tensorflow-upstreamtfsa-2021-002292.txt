@@ -1,0 +1,47 @@
+<h2>TFSA-2021-002: Heap out of bounds write in <code>RaggedBinCount</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29514</p>
+<h3>Impact</h3>
+<p>If the <code>splits</code> argument of <code>RaggedBincount</code> does not specify a valid
+<a href="https://www.tensorflow.org/api_docs/python/tf/sparse/SparseTensor"><code>SparseTensor</code></a>,
+then an attacker can trigger a heap buffer overflow:</p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.RaggedBincount(splits=[7,8], values= [5, 16, 51, 76, 29, 27, 54, 95],\
+                          size= 59, weights= [0, 0, 0, 0, 0, 0, 0, 0],\
+                          binary_output=False)</code></p>
+<p>This will cause a read from outside the bounds of the <code>splits</code> tensor buffer in
+the <a href="https://github.com/tensorflow/tensorflow/blob/8b677d79167799f71c42fd3fa074476e0295413a/tensorflow/core/kernels/bincount_op.cc#L430-L446">implementation of the <code>RaggedBincount</code>
+op</a>:</p>
+<p><code>cc
+    for (int idx = 0; idx &lt; num_values; ++idx) {
+      while (idx &gt;= splits(batch_idx)) {
+        batch_idx++;
+      }
+      ...
+      if (bin &lt; size) {
+        if (binary_output_) {
+          out(batch_idx - 1, bin) = T(1);
+        } else {
+          T value = (weights_size &gt; 0) ? weights(idx) : T(1);
+          out(batch_idx - 1, bin) += value;
+        }
+      }
+    }</code></p>
+<p>Before the <code>for</code> loop, <code>batch_idx</code> is set to 0. The attacker sets <code>splits(0)</code> to
+be 7, hence the <code>while</code> loop does not execute and <code>batch_idx</code> remains 0. This
+then results in writing to <code>out(-1, bin)</code>, which is before the heap allocated
+buffer for the output tensor.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/eebb96c2830d48597d055d247c0e9aebaea94cd5">eebb96c2830d48597d055d247c0e9aebaea94cd5</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2 and TensorFlow 2.3.3, as these are also affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

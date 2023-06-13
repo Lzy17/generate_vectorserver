@@ -1,0 +1,34 @@
+<h2>TFSA-2021-125: Heap buffer overflow in <code>FractionalAvgPoolGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37651</p>
+<h3>Impact</h3>
+<p>The implementation for <code>tf.raw_ops.FractionalAvgPoolGrad</code> can be tricked into
+accessing data outside of bounds of heap allocated buffers:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.FractionalAvgPoolGrad(
+  orig_input_tensor_shape=[0,1,2,3],
+  out_backprop = np.array([[[[541],[541]],[[541],[541]]]]),
+  row_pooling_sequence=[0, 0, 0, 0, 0],
+  col_pooling_sequence=[-2, 0, 0, 2, 0],
+  overlapping=True)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/f24faa153ad31a4b51578f8181d3aaab77a1ddeb/tensorflow/core/kernels/fractional_avg_pool_op.cc#L205">implementation</a>
+does not validate that the input tensor is non-empty. Thus, code constructs an
+empty <code>EigenDoubleMatrixMap</code> and then accesses this buffer with indices that are
+outside of the empty area.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/0f931751fb20f565c4e94aa6df58d54a003cdb30">0f931751fb20f565c4e94aa6df58d54a003cdb30</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

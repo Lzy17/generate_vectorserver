@@ -1,0 +1,21 @@
+<h2>TFSA-2021-194: Overflow/crash in <code>tf.range</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41202</p>
+<h3>Impact</h3>
+<p>While calculating the size of the output within the <code>tf.range</code> kernel, there is a conditional statement of type <code>int64 = condition ? int64 : double</code>. Due to C++ implicit conversion rules, both branches of the condition will be cast to <code>double</code> and the result would be truncated before the assignment. This result in overflows:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.sparse.eye(num_rows=9223372036854775807, num_columns=None)
+```</p>
+<p>Similarly, <code>tf.range</code> would result in crashes due to overflows if the start or end point are too large.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.range(start=-1e+38, limit=1)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/6d94002a09711d297dbba90390d5482b76113899">6d94002a09711d297dbba90390d5482b76113899</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/51359">#51359</a>) and <a href="https://github.com/tensorflow/tensorflow/commit/1b0e0ec27e7895b9985076eab32445026ae5ca94">1b0e0ec27e7895b9985076eab32445026ae5ca94</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/51711">#51711</a>).</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via <a href="https://github.com/tensorflow/tensorflow/issues/46912">GitHub issue</a>, <a href="https://github.com/tensorflow/tensorflow/issues/46899">GitHub issue</a> and <a href="https://github.com/tensorflow/tensorflow/issues/46889">GitHub issue</a>.</p>

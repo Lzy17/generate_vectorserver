@@ -1,0 +1,1125 @@
+<h1>JIT Technical Overview</h1>
+<p>The JIT can run and optimize PyTorch programs separate from the Python interpreter. This overview is organized into sections that go over different independent components:</p>
+<ol>
+<li>Core Program Representation -  The JIT executes TorchScript, a subset of Python. This section describes how TorchScript programs are represented in the JIT, and serves as the interchange format between components of the JIT.</li>
+<li>Generating Programs - TorchScript programs can be created either through tracing Python code or through directly writing TorchScript. This section describes how Models are created from these frontends.</li>
+<li>Executing Programs - Once created, TorchScript models are optimized and run. Since this is a just-in-time compiler, programs are optimized as they are executed, so this section describes both how programs are optimized and how they get run.</li>
+<li>Saving Programs - TorchScript is often created in Python and then used from C++. This section describes how the save and load process works.</li>
+<li>Python Bindings - TorchScript code is normally created and used from Python, so this section describes how the Python components interact with the code in this directory.</li>
+</ol>
+<p>For concepts that are actual classes in the JIT, we use capitalized words in code font, e.g. <code>Graph</code> or <code>Value</code>.</p>
+<p>Sections start with a reference to the source file where the code related to the section resides.</p>
+<h2>Table of Contents</h2>
+<!-- toc -->
+
+<ul>
+<li><a href="#core-program-representation">Core Program Representation</a></li>
+<li><a href="#modules">Modules</a></li>
+<li><a href="#parameters">Parameters</a></li>
+<li><a href="#method">Method</a></li>
+<li><a href="#functionschema">FunctionSchema</a></li>
+<li><a href="#graph">Graph</a></li>
+<li><a href="#node">Node</a></li>
+<li><a href="#block">Block</a><ul>
+<li><a href="#if">If</a></li>
+<li><a href="#loops">Loops</a></li>
+<li><a href="#with">With</a></li>
+</ul>
+</li>
+<li><a href="#value">Value</a></li>
+<li><a href="#type">Type</a></li>
+<li><a href="#generating-programs">Generating Programs</a></li>
+<li><a href="#tracer">Tracer</a></li>
+<li><a href="#script">Script</a></li>
+<li><a href="#tree">Tree</a></li>
+<li><a href="#tree-views">Tree Views</a></li>
+<li><a href="#frontendpy">frontend.py</a></li>
+<li><a href="#lexer">Lexer</a></li>
+<li><a href="#tokens">Tokens</a></li>
+<li><a href="#parser">Parser</a></li>
+<li><a href="#ir-emitter">IR Emitter</a></li>
+<li><a href="#sugaredvalue">SugaredValue</a></li>
+<li><a href="#resolver">Resolver</a></li>
+<li><a href="#environment">Environment</a></li>
+<li><a href="#conversion-to-ssa">Conversion To SSA</a></li>
+<li><a href="#exit-transform">Exit Transform</a></li>
+<li><a href="#python-compiler-interaction">Python-Compiler Interaction</a></li>
+<li><a href="#executing-programs">Executing Programs</a></li>
+<li><a href="#evaluation-semantics">Evaluation Semantics</a></li>
+<li><a href="#ivalue">IValue</a></li>
+<li><a href="#operation">Operation</a></li>
+<li><a href="#operator">Operator</a></li>
+<li><a href="#interpreter">Interpreter</a></li>
+<li><a href="#graph-executor">Graph Executor</a><ul>
+<li><a href="#specialization">Specialization</a></li>
+<li><a href="#pre-derivative-optimization">Pre-derivative Optimization</a></li>
+<li><a href="#required-passes">Required Passes</a></li>
+<li><a href="#derivative-preserving-optimization">Derivative Preserving Optimization</a></li>
+<li><a href="#post-derivative-optimization">Post-derivative optimization</a></li>
+<li><a href="#derivate-splitting">Derivate Splitting</a></li>
+<li><a href="#fusers">Fusers</a></li>
+<li><a href="#disabling-optimizations">Disabling Optimizations</a></li>
+</ul>
+</li>
+<li><a href="#jit-logging">JIT Logging</a></li>
+<li><a href="#jit-optimization-limiter">JIT Optimization Limiter</a></li>
+<li><a href="#differentiablegraphop">DifferentiableGraphOp</a></li>
+<li><a href="#handling-mutability">Handling Mutability</a><ul>
+<li><a href="#aliasing-and-mutation-in-the-pytorch-api">Aliasing and mutation in the PyTorch API</a></li>
+<li><a href="#aliasing-and-mutation-annotations-in-functionschema">Aliasing and mutation annotations in FunctionSchema</a></li>
+<li><a href="#alias-analysis-in-the-ir">Alias Analysis in the IR</a></li>
+<li><a href="#writing-optimization-passes-with-aliasdb">Writing optimization passes with <code>AliasDb</code></a></li>
+</ul>
+</li>
+<li><a href="#profiling-programs">Profiling Programs</a></li>
+<li><a href="#saving-programs">Saving Programs</a></li>
+<li><a href="#testing-programs">Testing Programs</a></li>
+<li><a href="#testing-autodiff">Testing Autodiff</a></li>
+<li><a href="#python-printer">Python Printer</a></li>
+<li><a href="#python-bindings">Python Bindings</a></li>
+</ul>
+<!-- tocstop -->
+
+<h1>Core Program Representation</h1>
+<h2>Modules</h2>
+<p><a href="api/module.h">api/module.h</a></p>
+<p>At the top level, all TorchScript programs are represented as a Module. Modules contain:</p>
+<ul>
+<li>named Parameters - <code>Tensors</code> used in training such as <code>weight</code> or <code>bias</code></li>
+<li>named Buffers - <code>Tensors</code> that are part of the training state of a module but do not appear in module.parameters() and do not participate in gradient descent.</li>
+<li>named sub-Modules - used for code organization.</li>
+<li>named Attributes - all other attributes that are not in the above three categories. Typically used for configuration and are not saved/restored in the modules <code>state_dict</code>.</li>
+<li>named Methods - functions that can be run on the module such as <code>forward</code></li>
+</ul>
+<p>This mirrors the <code>nn.Module</code> objects used in Python. All TorchScript code is a member of some module. This includes pure functions such as those created by annotating a Python function with <code>@torch.jit.script</code>, which are represented internally as a Module that has a single method <code>forward</code> that contains the implementation of the function.</p>
+<h2>Parameters</h2>
+<p><a href="api/module.h">api/module.h</a></p>
+<p>Modules contain Parameter objects, which simply hold a "slot" where a <code>Tensor</code> can be placed. These <code>Tensors</code> are accessible by the Methods of the Module or the parent Module.</p>
+<h2>Method</h2>
+<p><a href="api/module.h">api/module.h</a></p>
+<p>A Method is a piece of TorchScript code that takes a number of arguments and produces an output value. Methods have several subcomponents. A FunctionSchema describes the types and names of the input arguments and return value. A list of <code>member_inputs</code> describes which Parameters are accessed by the method (this is blank for pure functions). A <code>Graph</code> object describes the actual code inside the method. The Method also maintains a GraphExecutor which is used to actually execute the <code>Graph</code> that defines the method.</p>
+<p>The <code>Graph</code> inside the Method is a pure function. The Parameters used by the Method are added as additional inputs to this graph before it is run. This allows the GraphExecutor to treat method inputs and method parameters the same for the purposes of optimization and execution, simplifying the process for executing programs.</p>
+<p>Methods also contain helper functions for inserting calls to the Method from other Method objects.</p>
+<h2>FunctionSchema</h2>
+<p><a href="../../../aten/src/ATen/core/function_schema.h">aten/src/ATen/core/function_schema.h</a></p>
+<p>Each Method has a FunctionSchema that describes the Types of the arguments and return values of a function. Operators (builtin primitives that are called by the Interpreter) also have FunctionSchema. FunctionSchema are analogous to a function <em>declaration</em> in C++. They describe how to call the function but do not provide an implementation.</p>
+<h2>Graph</h2>
+<p><a href="ir/ir.h">ir.h</a></p>
+<p>Graphs are the root of the intermediate representation (IR) used to define the implementation of TorchScript functions. If you are familiar with <a href="llvm.org">LLVM</a>, they are analogous to an <code>llvm::Function</code> object. A <code>Graph</code> is composed of <code>Nodes</code>, <code>Blocks</code>, and <code>Values</code>. <code>Nodes</code> are instructions (e.g. do a matrix multiply). <code>Nodes</code> are organized into <code>Blocks</code> of sequentially executed <code>Nodes</code>. Each <code>Node</code> produces a list of output <code>Values</code>, and also consumes a list of input <code>Values</code>. As an example, a user may write the following TorchScript code:</p>
+<p><code>python
+@torch.jit.script
+def f(a, b):
+  c = a + b
+  d = c * c
+  e = torch.tanh(d * c)
+  return d + (e + e)</code></p>
+<p>The frontend, described later in this document will turn into a <code>Graph</code>:
+<code>graph(%0 : Double(2),
+      %1 : Double(2)):
+  %2 : int = prim::Constant[value=1]()
+  %3 : Double(2) = aten::add(%0, %1, %2)
+  %4 : Double(2) = aten::mul(%3, %3)
+  %5 : Double(2) = aten::mul(%4, %3)
+  %6 : Double(2) = aten::tanh(%5)
+  %7 : Double(2) = aten::add(%6, %6, %2)
+  %8 : Double(2) = aten::add(%5, %7, %2)
+  return (%8)</code></p>
+<p>This is the canonical textual representation of the IR. You should be able to easily find (almost all) of the elements we discussed above.
+- <code>graph</code> is the <code>Graph</code>
+- <code>%x</code> are <code>Value</code>s
+- <code>%x : Double(2)</code> is a type annotation of <code>Value</code> <code>%x</code> (see below for a list of supported types).
+- <code>%x : T1, %y : T2 = namespace::name(%z, %w)</code> is a <code>Node</code> which represents the <code>namespace::name</code> operator (this name is usually referred to as the <code>Node</code>s <em>kind</em>). It takes <code>%z</code> and <code>%w</code> <code>Value</code>s as inputs, and returns two outputs (<code>%x</code>, <code>%y</code>) of types <code>T1</code> and <code>T2</code> respectively.</p>
+<p>Finally, nodes can have extra pieces of information assigned to them, which are called <em>attributes</em>. You can see that it's used in the <code>prim::Constant</code> node, which returns the <code>value</code> attribute when it's called. There's a fixed list of types you can attach:
+- <code>int64_t</code>
+- <code>double</code>
+- <code>Tensor</code>
+- <code>Graph</code> (useful for e.g. slicing subgraphs that are meant to be fused)
+- <code>std::string</code>
+- and lists of them (not nested)</p>
+<p>Graphs in the JIT are in single-static assignment (SSA) form, meaning that each <code>Value</code> has precisely one defining <code>Node</code> that can be looked up directly from the <code>Value</code> (<code>Node* n = v.node()</code>).</p>
+<p><strong>Ownership Model</strong> <code>Blocks</code>, <code>Nodes</code>, and <code>Values</code> are <em>owned</em> by the <code>Graph</code> they appear in and may only appear in a single <code>Graph</code>. This is enforced by assertions. Creation and deletion of <code>Nodes</code> is done via <code>Graph</code> objects (e.g. <code>Graph::create</code>). Creation and Deletion of <code>Blocks</code> and <code>Values</code> is done via <code>Node</code> objects (e.g. <code>Node::addOutput</code>, <code>Node::addBlock</code>). The code also enforces certain consistency properties. For instance, <code>Node::destroy</code> removes a <code>Node</code>, but it is only valid to call this function if the <code>Values</code> produced by this <code>Node</code> are no longer used, which can be accomplished using other functions such as <code>Value::replaceAllUsesWith</code>.</p>
+<p>Because <code>Graph</code> owns all its <code>Nodes</code>, <code>Values</code>, and <code>Blocks</code>, these values are always passed around by raw pointer. Generally developers should not write code that holds <code>Value</code>, <code>Node</code>, or <code>Block</code> objects indefinitely without also holding a <code>shared_ptr</code> to their owning <code>Graph</code>.</p>
+<h2>Node</h2>
+<p><a href="ir/ir.h">ir.h</a></p>
+<p>A <code>Node</code> represents a single built-in operator such as a matrix multiply or a convolution. <code>NodeKind Node::kind()</code> identifies the operator the <code>Node</code> represents. Different operators (e.g. conv vs matrix-multiply) are represented by different kinds rather than via subclassing of <code>Node</code>, as one would find in LLVM. A <code>NodeKind</code> is a <code>Symbol</code> object, which is just an <a href="https://en.wikipedia.org/wiki/String_interning">interned string</a> inside some namespace. Symbols can be created from strings, e.g. through <code>Symbol::fromQualString("aten::add")</code>, so there is not a closed set of <code>NodeKind</code> values that a <code>Node</code> might have. This design was chosen to allow the open registration of new operators and user-defined operators.</p>
+<blockquote>
+<p><em>Code in the JIT should always assume the universe of valid <code>Node</code> kinds is open and subject to be expanded.</em></p>
+</blockquote>
+<p>This reflects the reality of the PyTorch operator library where there are already several hundred valid operators.</p>
+<p>Nodes produce output <code>Values</code> and take input <code>Values</code> as arguments. For instance, a matrix-multiply will take two input <code>Tensors</code> and produce one output <code>Tensor</code>. <code>Nodes</code> can produce multiple outputs. For instance <code>prim::TupleUnpack</code> splits a tuple into its components, so it has a number of outputs equal to the number of members of the tuple. Though <code>Nodes</code> may have multiple outputs, the number of outputs is <em>statically known</em> for each <code>Node</code>. Operations which may produce a dynamic amount of results, e.g. splitting a <code>Tensor</code> into chunks of size 2, will be represented as an operator that results a list object.</p>
+<p>Because <code>Nodes</code> are not subclassed per-operator, it is very easy to construct invalid <code>Nodes</code>, e.g. by forgetting an input or an output, or by passing <code>Values</code> of the wrong Type. To help avoid this, <code>Graph</code> provides the method <code>Graph::insert</code> for constructing <code>Nodes</code> that guarantees <code>Nodes</code> have the correct setup. This method uses the database of registered Operators and their FunctionSchema to construct <code>Nodes</code> using that schema.</p>
+<p>PyTorch IR supports function overloading, which means that a single NodeKind may correspond to multiple operators. For example, the kind <code>aten::add</code> has the following overloads (<code>Scalar</code> means <code>float</code> or <code>int</code> in this case):
+- <code>aten::add(Tensor self, Tensor other) -&gt; Tensor</code>
+- <code>aten::add(Tensor self, Scalar other) -&gt; Tensor</code>
+- <code>aten::add(int self, int other) -&gt; int</code>
+- <code>aten::add(float self, float other) -&gt; float</code></p>
+<p>For <code>Nodes</code> representing built-in Operators, the method <code>Node::schema</code> can also look up the FunctionSchema registered for that Operator.</p>
+<p>Each overload corresponds to a different <code>FunctionSchema</code> object. A <code>Node</code> can be queried for its schema using the <code>schema()</code> method (it will check the argument types, and will try to match one of the options for its <code>kind()</code>).</p>
+<p>Note that the chosen overload is not shown in any way in the textual output. If you're unsure which function a node resolves to, you might need to check the type annotations of its input values.</p>
+<p>Each node also has a set of attributes which are named integers, strings, floats, <code>Tensors</code>, subgraphs, or lists of these types. These are used by special primitive operators to encode additional data in the <code>Node</code>. For instance <code>prim::Constant</code> defines a compile-time constant value. For <code>Tensor</code> constants, it will have a single <code>Tensor</code> attribute with the name <code>attr::value</code> which contains the value of the constant.</p>
+<p>Attributes are <em>rarely used</em>. Operators like convolution or matrix-multiply have no attributes and take their arguments through the input list. This includes things that might be typically thought of as constants, like the stride of the convolution. In PyTorch, any of this information is potentially a dynamic property of the program so <code>Nodes</code> are always encoded in a way that allows these values to be dynamically determined. However, we recognize that many inputs are almost always constants, so we make it easy to quickly check if an input is constant and get its value with <code>c10::optional&lt;IValue&gt; Node::get(Symbol name)</code>, which returns an <code>IValue</code> (a concrete value for the input) in the case the node is constant and <code>nullopt</code> otherwise.</p>
+<h2>Block</h2>
+<p><a href="ir/ir.h">ir.h</a></p>
+<p>Nodes are organized into sequentially executed lists inside a <code>Block</code>. A <code>Node</code> is a member of precisely one <code>Block</code>. The <code>Graph</code> itself has a top-level <code>Graph::block()</code>, and control-flow nodes (<code>prim::If</code> and <code>prim::Loop</code>) also have sub-blocks. While it is possible to design a <code>Graph</code> representation that does not have a sequential order for nodes (i.e. a sea-of-nodes representation), we find it is much easier to debug and understand <code>Blocks</code> when there is a specific canonical order for all of the nodes. This does not preclude optimization passes from changing the order when it would improve performance, and the interpreter is allowed to execute <code>Nodes</code> out-of-order if the re-ordering preserves the semantics (much like an out-of-order processor does). Having the ordering ensures that graphs can always be easily printed, and that we can easily step through the execution of a graph.</p>
+<p>Values are Block-scoped. A <code>Value</code> is in scope for the remainder of the <code>Block</code> it is defined in, including in the sub-blocks of any <code>Node</code> defined after it. <code>Values</code> go out of scope at the end of the block in which they are defined.</p>
+<p>When <code>Nodes</code> are inserted into a <code>Graph</code>, they are inserted at a special "insertion point" that is part of the state of the <code>Graph</code>. On construction, this will go to the end of the <code>Graph</code>.</p>
+<p>Each <code>Block</code> has two dummy nodes that are not included in the list of nodes in the <code>Block</code>. The <code>prim::Param</code> node represents the inputs to the <code>Block</code> and does not have a <code>prev()</code> or <code>next()</code> <code>Node</code>. The <code>prim::Return</code> <code>Node</code> represents the outputs of a <code>Block</code>.
+The list of <code>Nodes</code> in a <code>Block</code> is implemented as a circular linked list with the <code>prim::Return</code> <code>Node</code> serving as the beginning/end sentinel. Inserting and deleting at arbitrary places is efficient. Developers may also encounter implementations inside of IR objects that use this fact (e.g. appending to a <code>Block</code> is equivalent to putting the node before the <code>prim::Return</code> Node).</p>
+<p>Iterators for the <code>Block::nodes()</code> list are invalided when the current <code>Node</code> they point to is moved or deleted. Otherwise iterators remain valid.</p>
+<p>Blocks also contain a list of input and output values. The meaning of these values depends on where the <code>Block</code> is used. For the Graph's top-level <code>Block</code>, these are inputs and outputs to the <code>Graph</code>, and line up with the FunctionSchema associated with the Method that owns the <code>Graph</code>.</p>
+<p><strong>Control-flow</strong> is represented using sub-Blocks rather than a control-flow graph representation. A <code>prim::If</code> has one <code>Block</code> for the true branch and one <code>Block</code> for the else. A <code>prim:Loop</code> has a block for the loop body (there is no condition block, instead the end of the loop body computes whether to re-enter the loop body). This representation ensures we have structured control-flow. This limitation makes a lot of optimizations easier and is true for the vast majority of networks. A <code>Node</code> can look up what <code>Block</code> it is in, and a <code>Block</code> and can look up its parent (either the <code>Node</code> that has it as a sub-Block, or <code>nullptr</code> for the main Block).</p>
+<h3>If</h3>
+<p>If-statement (<code>prim::If</code>) <code>Blocks</code> have no inputs, and the outputs are the new values of variables in the outer block whose values were altered in the if-statement.
+Example IR for an if-statement looks like:
+<code>%y_1, ..., %y_r = prim::If(%condition)
+  block0():  # TRUE BRANCH, never takes arguments, has to return r outputs
+    %t_1, ..., %t_k = some::node(%a_value_from_outer_block)
+    -&gt; (%t_1, ..., %t_r)
+  block1():  # FALSE BRANCH, never takes arguments, has to return r outputs
+    %f_1, ..., %f_m = some::node(%a_value_from_outer_block)
+    -&gt; (%f_1, ..., %f_r)</code></p>
+<p>Values corresponding to <code>%y_1, ..., %y_r</code> will become either <code>%t_1, ..., %t_r</code>, or <code>%f_1, ..., %f_r</code> depending on the value of <code>%condition</code> at runtime.</p>
+<p>Here's an example translation of a Python program and its corresponding IR:</p>
+<p><code>python
+def f(a, b, c):
+    d = a + b
+    if c:
+        e = d + d
+    else:
+        e = b + d
+    return e</code></p>
+<p><code>graph(%a : Dynamic,
+      %b : Dynamic,
+      %c : Dynamic):
+  %2 : int = prim::Constant[value=1]()
+  %3 : Dynamic = aten::add(%a, %b, %2)
+  %5 : Dynamic = prim::If(%c)
+    block0():
+      %6 : int = prim::Constant[value=1]()
+      %7 : Dynamic = aten::add(%3, %3, %6)
+      -&gt; (%7)
+    }
+    block1():
+      %8 : int = prim::Constant[value=1]()
+      %9 : Dynamic = aten::add(%b, %3, %8)
+      -&gt; (%9)
+  return (%5)</code></p>
+<p>The outputs of the if-statement serve a role similar to that of a Φ (Phi) function node in traditional <a href="https://en.wikipedia.org/wiki/Static_single_assignment_form">SSA</a> control-flow graphs.</p>
+<h3>Loops</h3>
+<p>Loops are implemented with <code>prim::Loop</code> which covers both <code>while</code> and <code>for</code> loops. A valid instantiation of this node always looks like this:
+<code>%y_1, ..., %y_r = prim::Loop(%max_trip_count, %initial_condition, %x_1, ..., %x_r)
+  block0(%i, %a_1, ..., %a_r):
+    %b_1, ..., %b_m = some::node(%a_value_from_outer_block, %a_1)
+    %iter_condition = some::other_node(%a_2)
+    -&gt; (%iter_condition, %b_1, ..., %b_r)</code></p>
+<p>The simplest way to explain the semantics is to consider this Python-like pseudo-code:
+```python
+y_1, ..., y_r = x_1, ..., x_r
+condition = initial_condition
+i = 0
+while condition and i &lt; max_trip_count:
+    a_1, ..., a_r = y_1, ..., y_r</p>
+<pre><code>############################################################
+# Actual body of the loop
+b_1, ..., b_m = some::node(a_value_from_outside_of_the_loop, a_1)
+iter_condition = some::node(a_2)
+############################################################
+
+y_1, ..., y_r = b_1, ..., b_r
+condition = iter_condition
+i += 1
+</code></pre>
+<p>```</p>
+<blockquote>
+<p>Note that translations of <code>for</code> loops simply pass in a constant <code>true</code> for both <code>%initial_condition</code> and <code>%iter_condition</code>. Translations of <code>while</code> loops set <code>%max_trip_count</code> to the largest value of <code>int64_t</code> and do not use <code>%i</code>. Those patterns are recognized by our interpreter and optimized accordingly (e.g. <code>while</code> loops don't maintain the loop counter).</p>
+</blockquote>
+<p>For example, this program:</p>
+<p><code>python
+def f(x):
+    z = x
+    for i in range(x.size(0)):
+        z = z * z
+    return z</code></p>
+<p>can be translated as:</p>
+<p><code>graph(%z.1 : Dynamic):
+  %3 : bool = prim::Constant[value=1]()
+  %1 : int = prim::Constant[value=0]()
+  %2 : int = aten::size(%z.1, %1)
+  %z : Dynamic = prim::Loop(%2, %3, %z.1)
+    block0(%i : int, %5 : Dynamic):
+      %z.2 : Dynamic = aten::mul(%5, %5)
+      -&gt; (%3, %z.2)
+  return (%z)</code></p>
+<h3>With</h3>
+<p>With-statements are represented in two different ways. For most of the compilation and optimization process, they are represented as a pair of <code>prim::Enter</code> and <code>prim::Exit</code> nodes that wrap the nodes corresponding to the body of the with-statement. However, with-statements are temporarily represented for the duration of the <a href="frontend/exit_transforms.cpp"><code>exit_transform</code> pass</a> using a block-based representation in which a <code>prim::With</code> node is inserted after the <code>prim::Exit</code> node, all of the nodes between the <code>prim::Exit</code> and <code>prim::Enter</code> are moved into the first block of the <code>prim::With</code>, and the <code>prim::Exit</code> is moved into the second block of the <code>prim::With</code>. For example, this program:</p>
+<p><code>with c as increment:
+  y = x + increment</code></p>
+<p>can be translated as:</p>
+<p><code>%2 : int = prim::Constant[value=1]()
+%increment.1 : int = prim::Enter(%c.1)
+%y.1 : Tensor = aten::add(%x.1, %increment.1, %2)
+%11 : Tensor = prim::Exit(%c.1)</code></p>
+<p>and will temporarily be transformed to:</p>
+<p><code>%increment.1 : int = prim::Enter(%c.1)
+= prim::With()
+  block0():
+    %y.1 : Tensor = aten::add(%x.1, %increment.1, %4)
+    -&gt; ()
+  block1():
+    %11 : Tensor = prim::Exit(%c.1)
+    -&gt; ()</code></p>
+<p>for the duration of the <code>exit_transform</code> pass.</p>
+<h2>Value</h2>
+<p><a href="ir/ir.h">ir.h</a></p>
+<p>A <code>Value</code> represents data flowing through the operations in the program, e.g. the output of a matrix-multiply op. <code>Value</code> objects are always defined by a single <code>Node</code> (<code>v.node()</code>) due to single-static assignment form. For inputs to a Block/Graph, this node is a special <code>prim::Param</code> node that does not appear anywhere in the block's list of nodes. <code>Value</code> objects also have a Type (e.g. is it a Tensor? a list? a tuple?) that provides a static guarantee that its value will be of that Type.</p>
+<p>A <code>Value</code> object has methods that return its definition (<code>v.node()</code>) and to all of its uses (<code>v.uses()</code>). Each Use has a pointer to the <code>Node</code> whose input list includes the value. Be careful when iterating over <code>v.uses()</code> while changing how <code>v</code> is used because each change to <code>v</code> will invalidate the <code>v.uses()</code> iterator.</p>
+<p>Values are abstract representations of data in the program. When executing, the actual <code>Tensors</code>, list, tuples, etc. are stored in <code>IValues</code> (<em>interpreter</em> values), which are tagged unions of all possible value types in TorchScript. In retrospect the name <code>Value</code> is a bit confusing because it seems like it should be the tagged union, but it originally came from analogy to <code>llvm::Value</code>, which serves the same purpose as <code>jit::Value</code>.</p>
+<h2>Type</h2>
+<p><a href="/aten/src/ATen/core/jit_type.h">aten/src/ATen/core/jit_type.h</a></p>
+<p>TorchScript, unlike Python, is statically typed, so every <code>Value</code> has a Type associated with it, and every FunctionSchema has a list of argument types and a return type for a function. Type is the base class of a hierarchy of C++ objects that represent the built-in types of TorchScript. Types provide methods such as <code>Type::isSubtypeOf</code> that describe the typing relationships. Common type are:</p>
+<ul>
+<li>TensorType - a <code>Tensor</code> with optionally refined information. It may know its device, type, requires_grad state, and number of dimensions.
+  If it does know the number of dimensions it may know the size of a particular dimension.</li>
+<li>Tuples - e.g. <code>Tuple[Tensor, Int]</code>. Each member of the tuple is statically typed and the length of the tuple is statically known.</li>
+<li>List[T] - e.g. <code>List[Tensor]</code>. Mutable lists of a particular type.</li>
+<li>Optional[T] - e.g. <code>Optional[Tensor]</code>. Either a value of type T or None.</li>
+<li>Dict[K, V] - e.g. <code>Dict[String, Tensor]</code>. Dictionaries.</li>
+</ul>
+<p>If type S is a subtype of P, then we can substitute an <code>IValue</code> that has type S anywhere something of type P is expected. This means that all subtyping relationships also require the representation of the <code>IValue</code> for subtypes to be compatible with the representation for the base type.</p>
+<h1>Generating Programs</h1>
+<p>JIT programs are created using either the tracing frontend (<code>torch.jit.trace</code>) or the scripting frontend (<code>torch.jit.script</code>). In both cases, the result of these frontends is a complete Module that contains all the code in Methods, and all the model weights in the Parameters of the Module. However, each frontend goes through a different pathway for generating those Modules.</p>
+<h2>Tracer</h2>
+<p><a href="frontend/tracer.h">tracer.h</a>
+<a href="frontend/tracer_state.h">tracer_state.h</a></p>
+<p>The tracer produces graphs by recording what actual operations are done on <code>Tensors</code>.
+The entry point from Python into C++ for tracing using <code>torch.jit.trace</code> is <code>_create_method_from_trace</code>.</p>
+<p>A thread local instance of the TracingState object maintains a mapping between actual data being computed during the trace (e.g. Tensors) stored in <code>IValues</code>, and the abstract <code>Value</code> in the <code>Graph</code> that would compute each value. The functions <code>void setValueTrace(const IValue&amp;, Value*)</code> and <code>Value* getValueTrace(const IValue&amp;)</code> are used by the tracer to maintain this mapping.</p>
+<p>An initial <code>IValue</code> to <code>Value</code> mapping is set up between the inputs to the function being traced and symbolic <code>Value</code> inputs to the <code>Graph</code> being constructed. If we are tracing a <code>torch.nn.Module</code>, the tracer also adds Parameters and sub-Modules to the Module being constructed that correspond to the Python <code>torch.nn.Module</code> being traced.  Mappings for these values are also added so that uses of the Parameters in the trace will create uses of the Parameters in the <code>Graph</code>.</p>
+<p>As the trace runs, individual operators create <code>Nodes</code> in the <code>Graph</code> being traced to record what happens. This code is currently generated per operator in <a href="/tools/autograd/gen_variable_type.py">tools/autograd/gen_variable_type.py</a>. It results in code that looks like the following:</p>
+<p>```cpp
+torch::jit::Node<em> node = nullptr;
+std::shared_ptr<jit::tracer::TracingState> tracer_state;
+if (jit::tracer::isTracing()) {
+        tracer_state = jit::tracer::getTracingState();
+        at::Symbol op_name;
+        op_name = jit::Symbol::fromQualString("aten::<strong>ilshift</strong>");
+        node = tracer_state-&gt;graph-&gt;create(op_name, /</em>num_outputs=*/0);
+        jit::tracer::recordSourceLocation(node);
+        jit::tracer::addInputs(node, "self", self);
+        jit::tracer::addInputs(node, "other", other);
+        tracer_state-&gt;graph-&gt;insertNode(node);</p>
+<pre><code>    jit::tracer::setTracingState(nullptr);
+</code></pre>
+<p>}
+TypeDefault::<strong>ilshift</strong>(self, other);
+if (tracer_state) {
+        jit::tracer::setTracingState(std::move(tracer_state));
+        jit::tracer::addOutput(node, self);
+}
+```</p>
+<p>The functions <code>addInputs</code> and <code>addOutput</code> are overloaded to handle the different data types that operators use.</p>
+<p>set/getValueTrace only works on <code>Tensors</code> and <code>Futures</code>. Other types are not natively traced. Instead aggregates like tuples or lists are often flattened into <code>Tensors</code> at the end of a trace and explicitly constructed from individual <code>Tensors</code> at the beginning of this trace.</p>
+<p>The tracer has special behavior when tracing calls to other TorchScript functions. This behavior is implemented in the GraphExecutor right before a <code>Graph</code> is about to be run. If tracing is enabled while running the graph, the GraphExecutor will disable tracing, run the graph as normal, and then inline the <code>Graph</code> into the trace. It then hooks up the <code>IValues</code> computed by running the <code>Graph</code> to out <code>Values</code> in the inlined graph.</p>
+<blockquote>
+<p><em>When a trace calls a TorchScript function, that function is preserved as is, meaning that control-flow is preserved.</em> This makes it possible to work around tracing issues by generating the subset of the program that cannot be traced using the script frontend and having the trace invoke it.</p>
+</blockquote>
+<p>The resulting <code>Graph</code> created by tracing is installed as the 'forward' method of the Module being created. A Module is produced regardless of whether the thing being traced was a function or a <code>torch.nn.Module</code>. In the function case, the Module produced will simply have a single <code>forward</code> function, no Parameters, and no sub-Modules.</p>
+<h2>Script</h2>
+<p>The script frontend directly converts Python syntax into Modules. Like many compilers this happens in two phases. First, we generate an abstract syntax tree (AST), which is constructed out of Tree objects. The IR emitter then does semantic analysis on the Tree and lowers it into a Module. We can generate Trees in two ways: (1) using frontend.py, which takes the Python AST and transliterates it into Tree objects, or (2) via the Lexer and Parser which parse Python syntax directly. The Lexer+Parser path may seem redundant but it is crucially important. We need to define builtin functions (<a href="frontend/builtin_functions.cpp">frontend/builtin_functions.cpp</a>) when Python is not linked because we allow users to generate TorchScript programs directly from strings containing Python source code (<a href="/torch/csrc/api/include/torch/jit.h">api/include/torch/jit.h</a>) without linking a full Python implementation (e.g. CPython). We also use this Python syntax as the serialization format for TorchScript, since it allows us to make changes to our IR without breaking backward compatibility. Furthermore, the Lexer is reused to implement the FunctionSchema parser, which turns FunctionSchema declarations from strings into FunctionSchema objects.</p>
+<p>The following sections look into each the stages in the script frontend in detail.</p>
+<h2>Tree</h2>
+<p><a href="frontend/tree.h">frontend/tree.h</a></p>
+<p>Our frontends produce ASTs in the form of Tree objects. Trees are similar to <a href="https://en.wikipedia.org/wiki/S-expression">s-expressions</a>. Leafs (i.e. Atoms) are always strings. Compound trees have a <code>kind</code> (e.g <code>TK_CONST</code> or <code>TK_IDENT</code> defined in <a href="frontend/lexer.h">lexer.h</a>) and a list of sub-trees.  For instance, the Tree for <code>z.sigmoid() - (x + y)</code> is:</p>
+<p><code>(-
+        (+
+          (variable (ident x))
+          (variable (ident y)))
+        (apply
+          (.
+                (variable (ident z))
+                (ident sigmoid))
+          (list)
+          (list))))</code></p>
+<p>This is printed in s-expression style with <code>(kind ...)</code> representing compound trees and <code>string_value</code> representing strings.</p>
+<p>We provide utilities to construct, traverse, and print ASTs without a lot of complicated visitor infrastructure and inheritance.</p>
+<p>Each Tree also has a mandatory SourceRange object that describes the range of text that it came from. These will be used for error reporting in the rest of the code.</p>
+<h2>Tree Views</h2>
+<p><a href="frontend/tree_views.h">frontend/tree_views.h</a></p>
+<p>Trees are easy to construct, visualize and traverse, but extracting information from a large compound tree like that of a function definition is unwieldy since it requires numeric indexing. Tree <em>Views</em> are a small layer on top of a tree that make it possible to create and de-structure trees of particular kinds. For example, here is the tree view for the apply node which provides named accessors for its subtrees: the function being called, the inputs, and the attributes (i.e. kwargs):</p>
+<p><code>cpp
+struct Apply : public Expr {
+  Expr callee() const {
+    return Expr(subtree(0));
+  }
+  List&lt;Expr&gt; inputs() const {
+    return List&lt;Expr&gt;(subtree(1));
+  }
+  List&lt;Attribute&gt; attributes() const {
+    return List&lt;Attribute&gt;(subtree(2));
+  ...
+};</code></p>
+<p>The typical way to traverse a tree is to <code>switch</code> on the kind and then construct the appropriate Tree view:</p>
+<p>```cpp
+switch (tree.kind()) {
+  case TK_VAR:
+          auto var = Var(tree); // construct tree view
+        return environment_stack-&gt;getSugaredVar(var.name());
+  case '.': {
+        auto select = Select(tree); // construct tree view
+        auto sv = emitSugaredExpr(select.value(), 1);
+        return sv-&gt;attr(select.range(), method, select.selector().name());
+  }
+  case TK_APPLY: {
+        auto apply = Apply(tree); // construct tree view
+        return emitApplyExpr(apply, n_binders);
+  } break;</p>
+<p>```</p>
+<h2>frontend.py</h2>
+<p><a href="../../jit/frontend.py">torch/jit/frontend.py</a></p>
+<p>One way we construct Tree objects is directly from Python ASTs. This logic is contained inside frontend.py and is intentionally very minimal.</p>
+<blockquote>
+<p><em>We endeavor to keep most of the JIT code written in C++, because most of the JIT functionality still needs to work without Python installed.</em></p>
+</blockquote>
+<p>This code simply constructs the Tree, filtering out the AST nodes of Python that we do not support.</p>
+<h2>Lexer</h2>
+<p><a href="frontend/lexer.h">frontend/lexer.h</a></p>
+<p>When loading TorchScript code directly from a string, we using a standard Lexer+Parser combo. The Lexer takes an initial string and then exposes a stateful interface for walking the Tokens of the string, providing a standard set of functions:</p>
+<ul>
+<li><code>next()</code> advances the lexer, returning the current token</li>
+<li><code>cur()</code> provides the current token</li>
+<li><code>lookahead()</code> provides the token coming after the current token</li>
+<li><code>nextIf(int token_kind)</code> advances the token if it matches token kind.</li>
+</ul>
+<p>Similar to Python, the Lexer handles the white-space sensitive nature of Python blocks. The Tokens <code>TK_INDENT</code>, <code>TK_DEDENT</code>, and <code>TK_NEWLINE</code> are injected into the token stream when code first becomes indented, when it dedents, and at the end of a statement. For instance for this stream:</p>
+<p><code>cpp
+if
+  .
+  .</code></p>
+<p>We would get a token stream <code>TK_IF TK_NEWLINE TK_INDENT . TK_NEWLINE . TK_NEWLINE TK_DEDENT</code>. Unmatched opening brackets disable the injection of these tokens. The result is that the Parser can simply treat <code>TK_INDENT</code>, <code>TK_DEDENT</code> and <code>TK_NEWLINE</code> like C's <code>{</code>, <code>}</code>, and <code>;</code>.</p>
+<h2>Tokens</h2>
+<p><a href="frontend/lexer.h">frontend/lexer.h</a></p>
+<p>Tokens are either keywords (<code>def</code>), operators (<code>+</code>), literals (<code>3.4</code>), or identifiers (<code>foo</code>). A <code>token_kind</code> integer identifies what it is and is the exact same type as the <code>kind</code> of a Tree. For single-character Tokens (e.g. <code>+</code>), the kind is the same as the character, enable statements like:</p>
+<p><code>cpp
+if (lexer.nextIf('+')) {
+        // handle + ...
+}</code></p>
+<p>Multi-character token kinds are defined in a list, <code>TC_FORALL_TOKEN_KINDS</code>. Tokens also have a <code>text()</code> field that records the actual string producing the token and is used by identifiers and literals to construct the actual values (e.g. the numeric value of a floating point literal).</p>
+<h2>Parser</h2>
+<p><a href="frontend/parser.h">frontend/parser.h</a></p>
+<p>The Parser uses the Lexer to build the AST for function definitions. <code>parseFunction</code> is the entrypoint for parsing a single <code>def ...</code> and will return a <code>Def</code> tree view.</p>
+<p>The Parser is written as a <a href="https://eli.thegreenplace.net/2010/01/02/top-down-operator-precedence-parsing">top-down precedence parser</a>, or "Pratt" parser.  They are simpler and easier to understand than typical parser generators, while still being flexible enough to parse programming languages. For the most part parsing is done by recursive decent. To resolve operator precedence issues, the function to parse an expression is augmented with a precedent <em>p</em> such that calling the function means <em>parse an expression whose operators all have precedence higher than p</em>.</p>
+<h2>IR Emitter</h2>
+<p><a href="frontend/ir_emitter.h">frontend/ir_emitter.h</a></p>
+<p>The file ir_emitter.cpp translates Trees into Modules. The main entrypoint is <code>defineMethodsInModule</code> which takes a list of Def Tree Views representing function definitions and adds them as Methods to the module. During the lowering processing <em>semantic checking</em> occurs. The IR emitter checks that all used variables are defined (sometimes called scope checking), and that all values have compatible types (type-checking). During this process it also emits the graph nodes corresponding to each statement in the Tree and generates a FunctionSchema for the whole definition.</p>
+<p>A few helper objects exist in the lowering process.  SugaredValues are special values that represent objects that can appear during compilation but that are not first class values. For instance, in TorchScript methods <code>self</code> refers to the module, and <code>self.weight</code> refers to a Parameter of the module. Neither are first-class Types and have no corresponding <code>Value</code> in a graph. Resolver objects are <code>std::functions</code> that resolve externally-defined variables to SugaredValues. For instance, the identifier <code>torch</code> which contains most of our built-in ops is looked up through Resolver objects which interact with the Python state of the program.</p>
+<p>The Environment tracks the mapping between variable names and the SugaredValues they refer to.</p>
+<h2>SugaredValue</h2>
+<p><a href="frontend/sugared_value.h">frontend/sugared_value.h</a></p>
+<p>SugaredValues are how the IR emitter represents non-first class values during <code>Graph</code> creation. These values are things like the Module or a Python function call that do not have corresponding <code>Value</code> objects in the <code>Graph</code>. The IR emitter <em>desugars</em> the SugaredValue objects to instructions in the graph based on how they are used.  The SugaredValue class has a number of abstract methods on it such as <code>attr</code> or <code>call</code>. Consider the expression <code>self.foo</code>. For methods, <code>self</code> will resolve to a special SugaredValue subclass,  ModuleValue. When the emitter sees <code>self.foo</code>, it will then call the ModuleValue function <code>sv.attr("foo")</code>, asking the ModuleValue how it should desugar itself when the attribute <code>"foo"</code> accessed. If <code>foo</code> is a parameter, it would then ensure that the parameter was added to the Method being compiled, and return a <code>SimpleValue</code> sugared value that contains the <code>Value</code> object representing the parameter as an input. If <code>foo</code> were a sub-Module then it would return another SugaredModule. The method <code>call</code> is invoked when the emitter sees the value used as a function call.</p>
+<p>SugaredValues are also how we interact with Python runtime during the compilation process. For instance, <code>math.pi</code> is resolved to 3.1415... by first resolving <code>math</code> to a SugaredValue representing accesses to Python modules (PythonModuleValue) whose <code>attr</code> function turns Python numbers into  <code>prim::Constant</code> <code>Nodes</code> in the graph.</p>
+<p>Finally, normal <code>Values</code> are also represented by the SimpleValue SugaredValue in places where it is valid that either a SugaredValue or a normal <code>Value</code> will appear.</p>
+<h2>Resolver</h2>
+<p><a href="frontend/resolver.h">frontend/resolver.h</a></p>
+<p>Any undefined variable during compilation is resolved with a call to an externally-provided Resolver. When called from Python (e.g <code>torch.jit.script</code>) this resolver interacts with the Python runtime via pybind11 to resolve symbols like <code>torch</code> and <code>math</code> to their Python equivalents.</p>
+<p><em>The combination of SugaredValue and Resolver decouples the implementation of the IR emitter from the pybind11 Python bindings that enable its interaction with the Python state.</em></p>
+<p>This makes it possible to use most of the IR emitter functionality when Python is not present.</p>
+<h2>Environment</h2>
+<p><a href="frontend/ir_emitter.cpp">frontend/ir_emitter.cpp</a></p>
+<p>The Environment object tracks the assignment of variable names during compilation. It is local to the IR emitter file. A stack of environments exist, with a new environment being created for sub-blocks introduced by control flow. The Environment keeps two tables, one for values which are not first class in the type system (SugaredValues) and a type table for values which are. When first class values are set, we emit a prim::Store, and when they are referenced we emit a prim::Load. SugaredValues are not re-assignable.</p>
+<h2>Conversion To SSA</h2>
+<p><a href="frontend/convert_to_ssa.cpp">frontend/convert_to_ssa.cpp</a></p>
+<p>As explained in the <a href="#block">Block</a> section, the IR is represented in structured control flow composed of ifs &amp; loops. This makes it easier to optimize and lower to other compilers which do not support unstructured control flow. We lower Python control flow (break, continue, return) to this simplified form. We do closing over any variables in the environment, so we are able to convert all writes and reads from the environment directly to SSA form.</p>
+<p>Conversion to SSA works in multiple parts.
+- First, we add loads and stores to control flow operators (ifs &amp; loops).
+- Then we erase break &amp; continue statements from the graph and replace them with <code>prim::LoopContinuation(%loop_continue_condition, %loop_carried_vars)</code>. Break statements have the continue condition set to false, and continue statements inline the loop condition. %loop_carried_vars are the loop carried variables of the inner most loop that contains the break or continue statement, are added by inserting prim::Load calls at the location of the statement.
+- Then we inline the loop condition into the graph loops.
+- Next we erase loads and stores, removing all stores and replacing all loads
+with whatever the in-scope value of the variable name is.
+- Finally, we remove <code>prim::LoopContinuation</code>s and <code>prim::ReturnStmt</code>s in the exit_transform pass.</p>
+<h2>Exit Transform</h2>
+<p><a href="frontend/exit_transforms.cpp">frontend/exit_transforms.cpp</a></p>
+<p>This pass takes in a graph where LoopContinuation &amp; ReturnStmts exist in the graph and erases them, correctly setting block outputs. <code>prim::LoopContinuation(*vals)</code> means that the values are targeting the most recent loop block. <code>prim::ReturnStmt(*vals)</code> means that the values are targeting the most recent <code>Closure</code> or <code>Graph</code> <code>Block</code>.</p>
+<p>If a block has an exit node, no further instructions will be executed until the exit target has been reached. If we encounter a node that contains nested blocks that may have hit an exit node, such as an if statement that exits in one block and does not exit in the other, we use a boolean value to indicate if the exit has been hit or not. Then, we conditionalize further execution.</p>
+<p>Python example:</p>
+<p><code>python
+while i &lt; 5:
+  if i == 3:
+    i += 1
+    continue
+  i += 2</code></p>
+<p>-&gt; transforms to</p>
+<p><code>python
+continue_loop = i &lt; 5
+while continue_loop:
+  if i == 3:
+    i = i + 1
+    continue_loop = i &lt; 5
+    did_exit = True
+  if did_exit:
+    pass
+  else:
+    i = i + 2
+    continue_loop = i &lt; 5</code></p>
+<p>The pass also keeps track of nodes or blocks that will always throw Exceptions so that we do not unnecessarily conditionalize execution. In the following example, we can treat the if statement as always Returning and remove the <code>print</code> statement.</p>
+<p><code>python
+if i &lt; 0:
+  raise Exception("Negative input")
+else:
+  return math.sqrt(i)
+print(i)  # unreachable code</code></p>
+<p>In the above example, the if statement will have one output: <code>math.sqrt(i)</code> on the false branch, and <code>prim::Uninitialized</code> in the true branch. <code>prim::Uninitialized</code> is inserted by the compiler when it can prove the value will never be used. It can be introduced by exceptions, breaks, continues, and returns.</p>
+<p>We initially considered doing the Transform pass before Loads and Stores were removed from the graph. However, this breaks when a loop carried variable
+is captured in a break or continue and then is refined in the rest of the loop body. In the below example, at the point of the <code>continue</code>, <code>x</code> has type <code>Optional[int]</code> but is refined to <code>int</code> after the continue statement.</p>
+<p><code>python
+...
+if cond:
+  if i &lt; 3:
+      x = torch.jit.annotate(Optional[int], None)
+      continue
+  x = 1
+else:
+  x = 2
+print(x)</code>
+If we were to rearrange the graph before loads &amp; stores were removed:</p>
+<p><code>python
+if cond:
+  if i &lt; 3:
+    x = torch.jit.annotate(Optional[int], None)
+    did_continue = True
+    continue
+  else:
+    did_continue = False
+  if not did_continue:
+    x = 1
+else:
+  x = 2
+if not did_continue:
+  print(x)</code>
+The type of <code>x</code> at the print statement would be <code>Optional[int]</code>, which breaks its original type.</p>
+<h2>Python-Compiler Interaction</h2>
+<p><a href="python/script_init.cpp">python/script_init.cpp</a></p>
+<p>A set of special SugaredValues are used to translate between objects in the Python environment and <code>Values</code> in the <code>Graph</code> during the compilation process. The entry-point for this behavior is <code>toSugaredValue(py::object obj, ...)</code> which takes a pybind11 Python value and figures out how to turn it into an appropriate SugaredValue. <code>Values</code> exist to represent Python functions, Python modules, and <code>ScriptModule</code> objects.</p>
+<h1>Executing Programs</h1>
+<p>TorchScript is executed using an interpreter attached to a JIT-optimizer and compiler. The entry-point for execution is the GraphExecutor object that is created on demand inside a Method when the method is first called. This section first goes over the semantics of graphs, i.e. what does it mean to execute a graph? And then details how the implementation works.</p>
+<h2>Evaluation Semantics</h2>
+<p>TorchScript programs implement a very small subset of Python that is necessary to run models.</p>
+<p>TorchScript includes immutable value types:
+* <code>int</code>
+* <code>float</code>
+* <code>Tuple[T0, T1, ...]</code></p>
+<p>As well as mutable reference types:
+* <code>Tensor</code>
+* <code>List[T]</code>
+* <code>Dict[K, V]</code></p>
+<p>A value of a reference type points to an underlying memory location where the data for the reference type is stored, and variable assignment for a reference type can cause multiple values to point to the same underlying data. This is similar to Python's class model.</p>
+<p>It is important to remember that TorchScript uses these semantics for <code>Tensors</code> so not all computation on <code>Tensor</code> is pure. Individual <code>Tensors</code> may be <em>views</em> of the same underlying data. Views are established by special view creating operations, such as indexing into a Tensor:</p>
+<p><code>python
+t = torch.rand(3, 4)
+t2 =  t[0] # view of one slice of t</code></p>
+<p>Some builtin operators also mutably write to the underlying <code>Tensor</code>. In the standard library these operators are always named with a trailing underscore, or take a named <code>out</code> <code>Tensor</code> where the result is written:</p>
+<p><code>python
+t2.relu_() # inplace relu operator, note t is modified as well!
+torch.add(t, t, out=t) # update t, without using temporary memory if possible</code></p>
+<p>The combination of reference semantics and mutable operators can be more difficult to optimize, but it gives program writers powerful control of the memory usage of their programs. For instance, DenseNets use a concat operation instead of the addition found in a ResNet. Rather than compute a concat of existing <code>Tensors</code>, many implementations use <code>Tensor</code> indexing and <code>out</code> keywords to avoid allocating addition memory for the activations. Ideally a compiler would always be able to do these optimizations, but in practice new ideas are tried all the time that exist outside what compiler writers expect.</p>
+<p>In addition to being mutable, <code>Tensors</code> also have a set of dynamically determined properties (i.e. properties that can vary from run to run) this includes:</p>
+<ul>
+<li>dtype - their data type int, float, double, etc.</li>
+<li>device - where the <code>Tensor</code> lives, e.g. the CPU, or CUDA GPU 0</li>
+<li>rank - the number of dimensions that the <code>Tensor</code> has</li>
+<li>size - the precise size of the Tensor</li>
+<li>requires_grad - whether the <code>Tensor</code> is recording its gradient with autograd</li>
+</ul>
+<p>Changes in these properties change how operators on <code>Tensors</code> will evaluate and would make certain optimization invalid. For instance, if we have a fuser capable of generating new CUDA kernels but not CPU kernels, it is only valid to fuse operations where the inputs are known to run only on CUDA devices. The GraphExecutor's job is to still enable optimization even when certain combinations of properties prevent optimizations from occurring.</p>
+<p>Nodes in a graph are executed <em>serially</em> in the order they appear in a block. <code>Nodes</code> may be reordered either during optimization or by the interpreter itself if it can be proven that the new order
+is not distinguishable from the original execution order. These semantics are necessary since the combination of mutable <code>Tensors</code> and potential aliases between <code>Tensors</code> makes it unsafe to perform arbitrary reordering otherwise. However, the AliasInfo object can accurately track how alias propagate through builtin operators so optimization passes can query when certain reorders or optimizations are safe.</p>
+<p>We also provide user-accessible parallel execution through the <code>fork</code> and <code>wait</code> primitives. The <code>fork</code> primitive begins execution of <code>fn</code> in parallel with the current thread of execution, immediately returning a Future object that will hold the result of the forked function. The <code>wait</code> method of the future then causes the invoking thread to wait for the value being computed by <code>fn</code>.</p>
+<p>```python
+def fn(arg0, arg1, ...):
+  ...
+  return v</p>
+<p>fut = torch.jit.fork(fn, arg0, arg1, ...)
+...
+v = torch.jit.wait(fut)</p>
+<p>```</p>
+<p>Currently, the user is responsible for avoiding races between threads. We encourage users to not write to <code>Tensors</code> visible from other threads, and may enforce this more strictly in the future.</p>
+<p>Optimization passes that wish to exploit multi-threaded execution may automatically convert serial <code>Blocks</code> into parallel execution by inserting extra fork and wait events. This design enables our users to manually specify parallelism while also allowing optimization passes to exploit it when safe and profitable.</p>
+<h2>IValue</h2>
+<p><a href="/aten/src/ATen/core/ivalue.h">ivalue.h</a></p>
+<p>All evaluation involves computation using <code>IValues</code>, 16-byte tagged unions that can hold the concrete representation of any type in TorchScript. TorchScript is statically typed, so it would be possible to operate on unboxed primitive types, but the interface between interpreter, built-in ops and user functions would be significantly more complicated. A single tagged union keeps these interfaces simple and since most objects are <code>Tensors</code> anyway, the overhead of storing a tag is small compared to the data stored in the <code>Tensors</code>.</p>
+<p>IValue contains methods to check the type (e.g. <code>isTensor()</code>) and to convert to particular to type (e.g. <code>toTensor()</code>). We do not publicly expose the type tag and force clients to use the <code>isX</code> methods. This enables us to change the underlying implementation of <code>IValue</code> later, e.g. to use an 8-byte value with NaN-boxing. Most operators work on a specific static type, so dynamic dispatch on the tag is not frequently required.</p>
+<h2>Operation</h2>
+<p>All builtin operators are represented using a stack machine concept. An operator pops its arguments off the top of the stack and pushes its result to the stack:</p>
+<p>```cpp
+using Stack = std::vector<IValue>;
+using Operation = std::function<void(Stack*)>;</p>
+<p>// schema: example_add(Tensor a, Tensor b) -&gt; Tensor
+void example_add(Stack* stack) {
+    Tensor a, b;
+    // stack before: ? ? ? a b &lt;- back
+    pop(stack, a, b); // Templated helper function
+                      // that pops a, b and converts them to Tensor
+    push(stack, a + b);
+    // stack after:
+    // ? ? ? c &lt;- back
+}
+```</p>
+<p>Most operations, apart from some vararg primitive operators like prim::Unpack, have an associated FunctionSchema that describes how many inputs will be popped and how many will be pushed.</p>
+<p>The stack concept makes it easy to define operators with variable numbers of inputs and outputs without the need to allocate vectors of inputs and outputs for each individual operator.</p>
+<p>In practice, the interpreter will allocate one Stack, and it will eventually reach a sufficient size such that no more stack-related memory allocations will occur.</p>
+<h2>Operator</h2>
+<p><a href="runtime/operator.h">runtime/operator.h</a></p>
+<p>The Operator object represents a single registered operator in the system. It combines a FunctionSchema that describes how an Operation executes with a method to look up the corresponding Operation given the Node representing the operator in a Graph.  Most Operators are defined by providing a FunctionSchema and an Operation function. However, primitives like prim::Unpack require knowledge of their Node to know how to operate (e.g. how many elements to unpack). These Operators have a function that takes a <code>Node*</code> and returns an operation.</p>
+<h2>Interpreter</h2>
+<p><a href="runtime/interpreter.cpp">runtime/interpreter.cpp</a></p>
+<p>The interpreter is responsible for the straightforward execution of <code>Graphs</code> without any optimization. It is composed of two objects: Code and InterpreterState. Code is a linearized representation of the <code>Graph</code> into simple stack-machine Instructions. Code is shared among all the executions of the <code>Graph</code> and will include caches for certain operations like the generated CUDA code of FusionGroups.</p>
+<p>The InterpreterState is unique to each execution of the <code>Graph</code>. It holds a list registers with the intermediate <code>IValues</code> used in the execution, the Stack being used by each Operation, and the program counter tracking the position in the instructions. The information represents the complete state of the interpreter. <code>wait</code> instructions can cause the interpreter to suspend, and the InterpreterState is used to resume execution where the <code>wait</code> occurred, potentially on a different thread.</p>
+<p>Instructions in the interpreter have three parts: a list of registers from which to gather <code>IValues</code> onto the stack before the instruction, the Operation to run, and a list of registers in which to store the results of the Operation. Alternatively, we could have used individual instructions to load/store values from the stack to registers, but this design was easier to implement, requires fewer instructions since each instruction does more things, and has not yet been a performance bottleneck. Each Operation returns a potential relative jump to compute the next program counter.</p>
+<p>Unlike typical interpreters, we do not attempt careful register allocation. Since <code>Tensors</code> are reference types, saving registers would only save a few hundred bytes of space in typical applications by cutting down on the number of places a reference could be saved. The data in single a <code>Tensor</code> is likely significantly bigger than that, so we forgo register allocation to make debugging easier.</p>
+<p>However, we do need to ensure that values are destructed immediately after their last use. Because Torch reference counts <code>Tensors</code>, they will be deallocated immediately when their last reference is gone. To ensure we use a minimum amount of memory we want to ensure that the interpreter releases the reference as soon as it is no longer used. To do this, each Instruction also has a set of flags which indicate the inputs to the operation which will no longer be used after the operation. For these inputs, the <code>IValue</code> is moved rather than copied from the register file, ensuring the reference will go dead as soon as the Operation no longer needs it.  extra instructions may be inserted into the program to explicitly drop references for values whose last use depends on the control flow of the program.</p>
+<p>The following is an example program in <code>Graph</code> form and its equivalent in interpreter <a href="runtime/instruction.h">Instructions</a>:</p>
+<p><code>graph(%x : Tensor,
+      %hx : Tensor,
+      %cx : Tensor,
+      %w_ih : Tensor,
+      %w_hh : Tensor,
+      %b_ih : Tensor,
+      %b_hh : Tensor):
+  %7 : int = prim::Constant[value=4]()
+  %8 : int = prim::Constant[value=1]()
+  %9 : Tensor = aten::t(%w_ih)
+  %10 : Tensor = aten::mm(%x, %9)
+  %11 : Tensor = aten::t(%w_hh)
+  %12 : Tensor = aten::mm(%hx, %11)
+  %13 : Tensor = aten::add(%10, %12, %8)
+  %14 : Tensor = aten::add(%13, %b_ih, %8)
+  %gates : Tensor = aten::add(%14, %b_hh, %8)
+  %16 : Tensor[] = aten::chunk(%gates, %7, %8)
+  %ingate.1 : Tensor, %forgetgate.1 : Tensor, %cellgate.1 : Tensor, %outgate.1 : Tensor = prim::ListUnpack(%16)
+  %ingate : Tensor = aten::sigmoid(%ingate.1)
+  %forgetgate : Tensor = aten::sigmoid(%forgetgate.1)
+  %cellgate : Tensor = aten::tanh(%cellgate.1)
+  %outgate : Tensor = aten::sigmoid(%outgate.1)
+  %25 : Tensor = aten::mul(%forgetgate, %cx)
+  %26 : Tensor = aten::mul(%ingate, %cellgate)
+  %cy : Tensor = aten::add(%25, %26, %8)
+  %28 : Tensor = aten::tanh(%cy)
+  %hy : Tensor = aten::mul(%outgate, %28)
+  %30 : (Tensor, Tensor) = prim::TupleConstruct(%hy, %cy)
+  return (%30)</code></p>
+<p><code>0, 1, 2, 3, 4, 5, 6 = Load
+7 = Constant
+8 = t move(3)
+9 = mm move(0), move(8)
+10 = t move(4)
+11 = mm move(1), move(10)
+12 = add move(9), move(11), 7
+13 = add move(12), move(5), 7
+14 = add move(13), move(6), 7
+15, 16, 17, 18 = ConstantChunk move(14)
+19 = sigmoid move(15)
+20 = sigmoid move(16)
+21 = tanh move(17)
+22 = sigmoid move(18)
+23 = mul move(20), move(2)
+24 = mul move(19), move(21)
+25 = add move(23), move(24), move(7)
+26 = tanh 25
+27 = mul move(22), move(26)
+28 = TupleConstruct move(27), move(25)
+ = Store move(28)</code></p>
+<h2>Graph Executor</h2>
+<p><a href="runtime/graph_executor.cpp">runtime/graph_executor.cpp</a></p>
+<p>All program execution starts with a graph executor. It's responsible for running optimizations (potentially involving the JIT-compilation of fused kernel code), and then handing the <code>Graph</code> or subcomponents of it off to an interpreter to actually run.</p>
+<p>In this section, we use a running example program that computes one step of an LSTM to show how the graph is transformed:</p>
+<p>This section will use an example this LSTM program:</p>
+<p><code>python
+@torch.jit.script
+def LSTMCellS(x, hx, cx, w_ih, w_hh, b_ih, b_hh):
+    gates = x.mm(w_ih.t()) + hx.mm(w_hh.t()) + b_ih + b_hh
+    ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
+    ingate = torch.sigmoid(ingate)
+    forgetgate = torch.sigmoid(forgetgate)
+    cellgate = torch.tanh(cellgate)
+    outgate = torch.sigmoid(outgate)
+    cy = (forgetgate * cx) + (ingate * cellgate)
+    hy = outgate * torch.tanh(cy)
+    return hy, cy</code></p>
+<p>After going through the frontend, we start with this unoptimized graph:</p>
+<p><code>graph(%x : Tensor,
+      %hx : Tensor,
+      %cx : Tensor,
+      %w_ih : Tensor,
+      %w_hh : Tensor,
+      %b_ih : Tensor,
+      %b_hh : Tensor):
+  %7 : int = prim::Constant[value=4]()
+  %8 : int = prim::Constant[value=1]()
+  %9 : Tensor = aten::t(%w_ih)
+  %10 : Tensor = aten::mm(%x, %9)
+  %11 : Tensor = aten::t(%w_hh)
+  %12 : Tensor = aten::mm(%hx, %11)
+  %13 : Tensor = aten::add(%10, %12, %8)
+  %14 : Tensor = aten::add(%13, %b_ih, %8)
+  %gates : Tensor = aten::add(%14, %b_hh, %8)
+  %16 : Tensor[] = aten::chunk(%gates, %7, %8)
+  %ingate.1 : Tensor, %forgetgate.1 : Tensor, %cellgate.1 : Tensor, %outgate.1 : Tensor = prim::ListUnpack(%16)
+  %ingate : Tensor = aten::sigmoid(%ingate.1)
+  %forgetgate : Tensor = aten::sigmoid(%forgetgate.1)
+  %cellgate : Tensor = aten::tanh(%cellgate.1)
+  %outgate : Tensor = aten::sigmoid(%outgate.1)
+  %25 : Tensor = aten::mul(%forgetgate, %cx)
+  %26 : Tensor = aten::mul(%ingate, %cellgate)
+  %cy : Tensor = aten::add(%25, %26, %8)
+  %28 : Tensor = aten::tanh(%cy)
+  %hy : Tensor = aten::mul(%outgate, %28)
+  %30 : (Tensor, Tensor) = prim::TupleConstruct(%hy, %cy)
+  return (%30)</code></p>
+<p>Execution starts in <code>GraphExecutor::run</code>, which takes a Stack of inputs.</p>
+<h3>Specialization</h3>
+<p>The executor <em>specializes</em> the <code>Graph</code> for the particular set of inputs. Specialization is handled by the <code>ArgumentSpec</code> object which extracts a "signature" composed of all the properties being specialized. We only specialize to the properties of <code>Tensors</code>. The <code>ArgumentSpec</code> only records properties for <code>Tensors</code> that either appear directly in the inputs to the graph or inside Tuples that are inputs to the <code>Graph</code>. The properties recorded are currently:</p>
+<ul>
+<li>dtype</li>
+<li>rank, but not size</li>
+<li>requires_grad</li>
+<li>device type (CPU, CUDA)</li>
+<li>defined - whether the <code>Tensor</code> exists or is a placeholder</li>
+</ul>
+<p>The ArgumentSpec object is used as a key into a cache that holds pre-optimized Code objects (held in an ExecutionPlan object). On a cache hit, an InterpreterState is created and the Code in the cache is run.</p>
+<h3>Pre-derivative Optimization</h3>
+<p>On a code cache miss, we generate a new optimized <code>Graph</code> on the fly (<code>compileSpec</code>). It starts by creating a copy of the initial <code>Graph</code> and setting the input types to the specialized <code>Tensor</code> types observed in this specialization. TensorType inputs to the <code>Graph</code> will get refined with types that know the device, number of dimensions, and requires grad state.</p>
+<p>```</p>
+<h1>post specialization, inputs are now specialized types</h1>
+<p>graph(%x : Float(<em>, </em>),
+      %hx : Float(<em>, </em>),
+      %cx : Float(<em>, </em>),
+      %w_ih : Float(<em>, </em>),
+      %w_hh : Float(<em>, </em>),
+      %b_ih : Float(<em>),
+      %b_hh : Float(</em>)):
+  %7 : int = prim::Constant<a href="">value=4</a>
+  %8 : int = prim::Constant<a href="">value=1</a>
+  %9 : Tensor = aten::t(%w_ih)
+  %10 : Tensor = aten::mm(%x, %9)
+  %11 : Tensor = aten::t(%w_hh)
+  %12 : Tensor = aten::mm(%hx, %11)
+  %13 : Tensor = aten::add(%10, %12, %8)
+  %14 : Tensor = aten::add(%13, %b_ih, %8)
+  %gates : Tensor = aten::add(%14, %b_hh, %8)
+  %16 : Tensor[] = aten::chunk(%gates, %7, %8)
+  %ingate.1 : Tensor, %forgetgate.1 : Tensor, %cellgate.1 : Tensor, %outgate.1 : Tensor = prim::ListUnpack(%16)
+  %ingate : Tensor = aten::sigmoid(%ingate.1)
+  %forgetgate : Tensor = aten::sigmoid(%forgetgate.1)
+  %cellgate : Tensor = aten::tanh(%cellgate.1)
+  %outgate : Tensor = aten::sigmoid(%outgate.1)
+  %25 : Tensor = aten::mul(%forgetgate, %cx)
+  %26 : Tensor = aten::mul(%ingate, %cellgate)
+  %cy : Tensor = aten::add(%25, %26, %8)
+  %28 : Tensor = aten::tanh(%cy)
+  %hy : Tensor = aten::mul(%outgate, %28)
+  %30 : (Tensor, Tensor) = prim::TupleConstruct(%hy, %cy)
+  return (%30)
+```</p>
+<h3>Required Passes</h3>
+<p>It then runs "required passes", which are graph transformations necessary to generate legal graphs for the interpreter. (Some passes such as differentiation will introduce <code>Nodes</code> that are not defined by operators and require passes to clean up. The combination of <code>specializeUndef</code> and <code>LowerGradOf</code> clean up these operations.) These passes also remove broadcasting "expand" nodes that get implicitly inserted by the tracer but are not valid for all sizes.</p>
+<p>It then runs inference passes to calculate properties of the graph given this particular specialization:</p>
+<ul>
+<li>It propagates constants, pre-computing as much as possible</li>
+<li>It propagates the input ranks, dtypes, devices, and requires_grad information to the rest of the graph where possible.</li>
+</ul>
+<p><code>graph(%x : Float(*, *),
+      %hx : Float(*, *),
+      %cx : Float(*, *),
+      %w_ih : Float(*, *),
+      %w_hh : Float(*, *),
+      %b_ih : Float(*),
+      %b_hh : Float(*)):
+  %8 : int = prim::Constant[value=1]()
+  %9 : Float(*, *) = aten::t(%w_ih)
+  %10 : Float(*, *) = aten::mm(%x, %9)
+  %11 : Float(*, *) = aten::t(%w_hh)
+  %12 : Float(*, *) = aten::mm(%hx, %11)
+  %13 : Float(*, *) = aten::add(%10, %12, %8)
+  %14 : Float(*, *) = aten::add(%13, %b_ih, %8)
+  %gates : Float(*, *) = aten::add(%14, %b_hh, %8)
+  %31 : Float(*, *), %32 : Float(*, *), %33 : Float(*, *), %34 : Float(*, *) = prim::ConstantChunk[chunks=4, dim=1](%gates)
+  %ingate : Float(*, *) = aten::sigmoid(%31)
+  %forgetgate : Float(*, *) = aten::sigmoid(%32)
+  %cellgate : Float(*, *) = aten::tanh(%33)
+  %outgate : Float(*, *) = aten::sigmoid(%34)
+  %25 : Float(*, *) = aten::mul(%forgetgate, %cx)
+  %26 : Float(*, *) = aten::mul(%ingate, %cellgate)
+  %cy : Float(*, *) = aten::add(%25, %26, %8)
+  %28 : Float(*, *) = aten::tanh(%cy)
+  %hy : Float(*, *) = aten::mul(%outgate, %28)
+  %30 : (Float(*, *), Float(*, *)) = prim::TupleConstruct(%hy, %cy)
+  return (%30)</code></p>
+<h3>Derivative Preserving Optimization</h3>
+<p>It then runs a number of <em>derivative preserving</em> optimization passes. If a computation involves <code>Tensors</code> that have <code>requires_grad</code> and it is valid to compute its derivative, then these passes are only allowed to replace that computation with another computation that is also differentiable. In other words, these passes cannot break autograd. Algebraic rewrites and peephole optimizations are generally derivative preserving but something that generates code, like pointwise fusion, is not.</p>
+<p>Current derivative preserving passes:</p>
+<ul>
+<li>Eliminating dead code</li>
+<li>Eliminating common subexpressions</li>
+<li>Pooling redundant constants into single values</li>
+<li>Peephole optimizations, including some algebraic rewrites into simpler operations</li>
+<li>Unrolling small loops</li>
+<li>Batching matrix multiplications that result from unrolling loops</li>
+</ul>
+<p><code>graph(%x : Float(*, *),
+      %hx : Float(*, *),
+      %cx : Float(*, *),
+      %w_ih : Float(*, *),
+      %w_hh : Float(*, *),
+      %b_ih : Float(*),
+      %b_hh : Float(*)):
+  %8 : int = prim::Constant[value=1]()
+  %9 : Float(*, *) = aten::t(%w_ih)
+  %10 : Float(*, *) = aten::mm(%x, %9)
+  %11 : Float(*, *) = aten::t(%w_hh)
+  %12 : Float(*, *) = aten::mm(%hx, %11)
+  %13 : Float(*, *) = aten::add(%10, %12, %8)
+  %14 : Float(*, *) = aten::add(%13, %b_ih, %8)
+  %gates : Float(*, *) = aten::add(%14, %b_hh, %8)
+  %31 : Float(*, *), %32 : Float(*, *), %33 : Float(*, *), %34 : Float(*, *) = prim::ConstantChunk[chunks=4, dim=1](%gates)
+  %ingate : Float(*, *) = aten::sigmoid(%31)
+  %forgetgate : Float(*, *) = aten::sigmoid(%32)
+  %cellgate : Float(*, *) = aten::tanh(%33)
+  %outgate : Float(*, *) = aten::sigmoid(%34)
+  %25 : Float(*, *) = aten::mul(%forgetgate, %cx)
+  %26 : Float(*, *) = aten::mul(%ingate, %cellgate)
+  %cy : Float(*, *) = aten::add(%25, %26, %8)
+  %28 : Float(*, *) = aten::tanh(%cy)
+  %hy : Float(*, *) = aten::mul(%outgate, %28)
+  %30 : (Float(*, *), Float(*, *)) = prim::TupleConstruct(%hy, %cy)
+  return (%30)</code></p>
+<h3>Post-derivative optimization</h3>
+<p>The next optimization depends on whether any part of the graph actual requires a gradient to be calculated, which is determined by <code>needsGradient</code>. In the case where no gradients are required (i.e. for inference graphs), then we can directly apply optimizations that generate graphs that may not have valid gradients defined. For now this is the <code>FuseGraph</code> pass, which looks for adjacent point-wise operations along with reviewing operations such as <code>split</code> and <code>concat</code>, and creates <code>prim::FusionGroup</code> <code>Nodes</code> in the graph to replace these operations. The Operator registered to execute <code>prim::FusionGroup</code> nodes will generate a new CUDA kernel for each unique <code>Node</code>, which replaces the original separate execution.</p>
+<p>Note the two phases for compilation of fusion groups: First, the <code>FuseGraph</code> pass splits the <code>Graph</code> into fusible sub-Graphs and returns the resulting <code>Graph</code> to the graph executor. Second, when the <code>Graph</code> is turned into Code, the Operation for the FusionGroup node will be looked up and a new CUDA kernel generated for the body. Other compilers should work in a similar way by first introducing a new operator into the <code>Graph</code> where the compiled code should run, and then registering an Operator that implements that <code>Node</code> which performs the actual compilation.</p>
+<p>In the case where no gradients are required, the optimization process is finished, a Code object is constructed from the <code>Graph</code>, it is added to the code cache, and then an InterpreterState is constructed and run.</p>
+<p>```
+graph(%x : Float(<em>, </em>),
+      %hx : Float(<em>, </em>),
+      %cx : Float(<em>, </em>),
+      %w_ih : Float(<em>, </em>),
+      %w_hh : Float(<em>, </em>),
+      %b_ih : Float(<em>),
+      %b_hh : Float(</em>)):
+  %9 : Float(<em>, </em>) = aten::t(%w_ih)
+  %10 : Float(<em>, </em>) = aten::mm(%x, %9)
+  %11 : Float(<em>, </em>) = aten::t(%w_hh)
+  %12 : Float(<em>, </em>) = aten::mm(%hx, %11)
+  %77 : Tensor[] = prim::ListConstruct(%b_hh, %b_ih, %10, %12)
+  %78 : Tensor[] = aten::broadcast_tensors(%77)
+  %79 : Tensor, %80 : Tensor, %81 : Tensor, %82 : Tensor = prim::ListUnpack(%78)
+  %hy : Float(<em>, </em>), %cy : Float(<em>, </em>) = prim::FusionGroup_0(%cx, %82, %81, %80, %79)
+  %30 : (Float(<em>, </em>), Float(<em>, </em>)) = prim::TupleConstruct(%hy, %cy)
+  return (%30);</p>
+<p>with prim::FusionGroup_0 = graph(%13 : Float(<em>, </em>),
+      %71 : Tensor,
+      %76 : Tensor,
+      %81 : Tensor,
+      %86 : Tensor):
+  %87 : Float(<em>, </em>), %88 : Float(<em>, </em>), %89 : Float(<em>, </em>), %90 : Float(<em>, </em>) = prim::ConstantChunk<a href="%86">chunks=4, dim=1</a>
+  %82 : Float(<em>, </em>), %83 : Float(<em>, </em>), %84 : Float(<em>, </em>), %85 : Float(<em>, </em>) = prim::ConstantChunk<a href="%81">chunks=4, dim=1</a>
+  %77 : Float(<em>, </em>), %78 : Float(<em>, </em>), %79 : Float(<em>, </em>), %80 : Float(<em>, </em>) = prim::ConstantChunk<a href="%76">chunks=4, dim=1</a>
+  %72 : Float(<em>, </em>), %73 : Float(<em>, </em>), %74 : Float(<em>, </em>), %75 : Float(<em>, </em>) = prim::ConstantChunk<a href="%71">chunks=4, dim=1</a>
+  %69 : int = prim::Constant<a href="">value=1</a>
+  %70 : Float(<em>, </em>) = aten::add(%77, %72, %69)
+  %66 : Float(<em>, </em>) = aten::add(%78, %73, %69)
+  %62 : Float(<em>, </em>) = aten::add(%79, %74, %69)
+  %58 : Float(<em>, </em>) = aten::add(%80, %75, %69)
+  %54 : Float(<em>, </em>) = aten::add(%70, %82, %69)
+  %50 : Float(<em>, </em>) = aten::add(%66, %83, %69)
+  %46 : Float(<em>, </em>) = aten::add(%62, %84, %69)
+  %42 : Float(<em>, </em>) = aten::add(%58, %85, %69)
+  %38 : Float(<em>, </em>) = aten::add(%54, %87, %69)
+  %34 : Float(<em>, </em>) = aten::add(%50, %88, %69)
+  %30 : Float(<em>, </em>) = aten::add(%46, %89, %69)
+  %26 : Float(<em>, </em>) = aten::add(%42, %90, %69)
+  %ingate : Float(<em>, </em>) = aten::sigmoid(%38)
+  %forgetgate : Float(<em>, </em>) = aten::sigmoid(%34)
+  %cellgate : Float(<em>, </em>) = aten::tanh(%30)
+  %outgate : Float(<em>, </em>) = aten::sigmoid(%26)
+  %14 : Float(<em>, </em>) = aten::mul(%forgetgate, %13)
+  %11 : Float(<em>, </em>) = aten::mul(%ingate, %cellgate)
+  %cy : Float(<em>, </em>) = aten::add(%14, %11, %69)
+  %4 : Float(<em>, </em>) = aten::tanh(%cy)
+  %hy : Float(<em>, </em>) = aten::mul(%outgate, %4)
+  return (%hy, %cy)
+```</p>
+<h3>Derivate Splitting</h3>
+<p>Many <code>Graphs</code> will require gradients (i.e. one of the inputs will have a <code>requires_grad</code> property set). In this case, it is unsafe to run post-derivative optimizations directly on the <code>Graph</code>. Instead, our approach is to first <em>split</em> the <code>Graph</code> into sub-Graphs where symbolic gradient formulas are known and produce an explicit <code>Graph</code> for the forward pass along with a complementary <code>Graph</code> that implements the backwards pass using some of the values computed in the forward pass. We can then apply post-derivative optimization to the forward graph. The "gradOutputs" for the backwards graph are only known when the backward pass runs, so we cannot fully optimize it at this time. For instance, we do not know if some of those gradOutputs will also <code>require_grad</code> meaning that a gradient-of-gradient situation exists. Instead the backward pass will use a new GraphExecutor object to run and optimize its execution. In this way, we can handle an indefinite number of recursive gradient calculations.</p>
+<p>The creating of derivative subgraphs is done using a similar approach to finding fusion groups: adjacent operations with known gradient formulas are grouped together into <code>prim::DifferentiableGraph</code> nodes. We only generate these nodes if we can find a large enough subgraph where optimization is likely to be profitable since there is some overhead involved in entering and exiting a differentiable subgraph.</p>
+<p><code>graph(%x : Float(*, *),
+      %hx : Float(*, *),
+      %cx : Float(*, *),
+      %w_ih : Float(*, *),
+      %w_hh : Float(*, *),
+      %b_ih : Float(*),
+      %b_hh : Float(*)):
+  %8 : int = prim::Constant[value=1]()
+  %hy : Float(*, *), %cy : Float(*, *) = prim::DifferentiableGraph_0(%cx, %b_hh, %b_ih, %hx, %w_hh, %x, %w_ih)
+  %30 : (Float(*, *), Float(*, *)) = prim::TupleConstruct(%hy, %cy)
+  return (%30)
+with prim::DifferentiableGraph_0 = graph(%13 : Float(*, *),
+      %29 : Float(*),
+      %33 : Float(*),
+      %40 : Float(*, *),
+      %43 : Float(*, *),
+      %45 : Float(*, *),
+      %48 : Float(*, *)):
+  %49 : Float(*, *) = aten::t(%48)
+  %47 : Float(*, *) = aten::mm(%45, %49)
+  %44 : Float(*, *) = aten::t(%43)
+  %42 : Float(*, *) = aten::mm(%40, %44)
+  %38 : int = prim::Constant[value=1]()
+  %39 : Float(*, *) = aten::add(%47, %42, %38)
+  %35 : Float(*, *) = aten::add(%39, %33, %38)
+  %gates : Float(*, *) = aten::add(%35, %29, %38)
+  %24 : Float(*, *), %25 : Float(*, *), %26 : Float(*, *), %27 : Float(*, *) = prim::ConstantChunk[chunks=4, dim=1](%gates)
+  %ingate : Float(*, *) = aten::sigmoid(%24)
+  %forgetgate : Float(*, *) = aten::sigmoid(%25)
+  %cellgate : Float(*, *) = aten::tanh(%26)
+  %outgate : Float(*, *) = aten::sigmoid(%27)
+  %14 : Float(*, *) = aten::mul(%forgetgate, %13)
+  %11 : Float(*, *) = aten::mul(%ingate, %cellgate)
+  %cy : Float(*, *) = aten::add(%14, %11, %38)
+  %4 : Float(*, *) = aten::tanh(%cy)
+  %hy : Float(*, *) = aten::mul(%outgate, %4)
+  return (%hy, %cy)</code></p>
+<h3>Fusers</h3>
+<p>As mentioned in the <a href="#post-derivative-optimization">Post-derivative optimization</a> section, one of the
+available optimizations is <em>fusion</em>, which merges operator kernels and compiles new kernels. Fusion
+has two benefits: first, it reduces dispatcher overhead by combining multiple operator calls into a
+single call to the fused kernel; and second, on GPU it can reduce the number of reads and writes to
+global GPU memory, which can be a significant portion of the runtime for pointwise operators.</p>
+<p>The current default fuser on NVIDIA GPUs is
+<a href="https://github.com/pytorch/pytorch/blob/master/torch/csrc/jit/codegen/cuda/README.md">NVFuser</a>, while other use cases use
+<a href="https://github.com/pytorch/pytorch/tree/master/torch/csrc/jit/tensorexpr">NNC</a> as a fuser.</p>
+<p>Since fusers rely on specialized information that is only available at runtime - such as dtype,
+device, and shape - they are only applied after the first invocation of a torchscript function or
+module. As a result, the first invocation of a torchscript function can sometimes behave slightly
+differently from subsequent invocations.</p>
+<p>To enable/disable different fusers, refer to the settings below. These settings apply globally in
+the process in which they are set. Different fusers may excel in different scenarios, and disabling
+or switching the fuser could also provide a temporary fix in case of bugs.</p>
+<p><strong>Python APIs:</strong></p>
+<p>| Feature | Python API |
+|---|---|
+| NNC enable/disable | <code>torch._C._jit_set_texpr_fuser_enabled()</code> |
+| NNC on CPU | <code>torch._C._jit_override_can_fuse_on_cpu()</code> |
+| NNC on GPU | <code>torch._C._jit_override_can_fuse_on_gpu()</code> |
+| NNC context manager | <code>with torch.jit.fuser("fuser1"):</code> |
+| NVFuser enable/disable | <code>torch._C._jit_set_nvfuser_enabled()</code> |
+| NVFuser context manager | <code>with torch.jit.fuser("fuser2")</code> |
+| oneDNN Graph on CPU | <code>torch._C._jit_set_llga_enabled(True)</code> |
+| oneDNN Graph context manager | <code>with torch.jit.fuser("fuser3"):</code> |</p>
+<p><strong>C++ APIs:</strong></p>
+<p>| Feature | C++ API | Header file |
+|---|---|---|
+| NNC enable/disable | <code>torch::jit::setTensorExprFuserEnabled(bool);</code> | <a href="https://github.com/pytorch/pytorch/blob/1a7e560adecb0192f69f4d05b990800b60dc380b/torch/csrc/jit/passes/tensorexpr_fuser.h#L22">here</a> |
+| NNC on CPU | <code>torch::jit::overrideCanFuseOnCPU(bool);</code> | <a href="https://github.com/pytorch/pytorch/blob/1a7e560adecb0192f69f4d05b990800b60dc380b/torch/csrc/jit/codegen/fuser/interface.h#L28-L29">here</a> |
+| NNC on GPU | <code>torch::jit::overrideCanFuseOnGPU(bool);</code> | <a href="https://github.com/pytorch/pytorch/blob/1a7e560adecb0192f69f4d05b990800b60dc380b/torch/csrc/jit/codegen/fuser/interface.h#L28-L29">here</a> |
+| NVFuser enable/disable | <code>torch::jit::fuser::cuda::setEnabled(bool);</code> | <a href="https://github.com/pytorch/pytorch/blob/1a7e560adecb0192f69f4d05b990800b60dc380b/torch/csrc/jit/codegen/cuda/interface.h#L56">here</a> |</p>
+<h3>Disabling Optimizations</h3>
+<p>To completely disable the runtime optimizations and only run the minimum optimizations necessary,
+the following commands can be used to globally (in a process) disable the majority of runtime
+optimizations. This will disable JIT autodiff (instead it will rely on the default autograd
+implementation provided in eager mode) as well as the fusers and some other runtime optimizations.</p>
+<ul>
+<li>Python: <code>torch._C._get_graph_executor_optimize(False)</code></li>
+<li>C++: <code>torch::jit::setGraphExecutorOptimize(false);</code></li>
+<li>C++ header: <a href="https://github.com/pytorch/pytorch/blob/1a7e560adecb0192f69f4d05b990800b60dc380b/torch/csrc/jit/python/update_graph_executor_opt.h#L5">here</a></li>
+</ul>
+<h2>JIT Logging</h2>
+<p><a href="jit_log.h">jit_log.h</a></p>
+<p>Logging is a very useful debugging technique, especially in the context of compilers. Compilers perform a series of passes and analyses and logging can help to trace issues such as wrong results or segmentation faults
+all the way back to the original erroneous transformation.</p>
+<p><code>TorchScript</code> offers a simple logging facility that can enabled by setting an environment variable <code>PYTORCH_JIT_LOG_LEVEL</code>.</p>
+<p>Logging is enabled on a per file basis. To enable logging in <code>dead_code_elimination.cpp</code>, <code>PYTORCH_JIT_LOG_LEVEL</code> should be
+set to <code>dead_code_elimination.cpp</code> or, simply, to <code>dead_code_elimination</code> (i.e. <code>PYTORCH_JIT_LOG_LEVEL=dead_code_elimination</code>).</p>
+<p>Multiple files can be logged by separating each file name with a colon <code>:</code> as in the following example, <code>PYTORCH_JIT_LOG_LEVEL=dead_code_elimination:guard_elimination</code></p>
+<p>There are 3 logging levels available for your use ordered by the detail level from lowest to highest.</p>
+<ul>
+<li><code>GRAPH_DUMP</code> should be used for printing entire graphs after optimization passes</li>
+<li><code>GRAPH_UPDATE</code> should be used for reporting graph transformations (i.e. node deletion, constant folding, etc)</li>
+<li><code>GRAPH_DEBUG</code> should be used for providing information useful for debugging
+  the internals of a particular optimization pass or analysis</li>
+</ul>
+<p>The current logging level is <code>GRAPH_UPDATE</code> meaning that both <code>GRAPH_DUMP</code> and <code>GRAPH_UPDATE</code> will be enabled when
+one specifies a file(s) in <code>PYTORCH_JIT_LOG_LEVEL</code>.</p>
+<p><code>GRAPH_DEBUG</code> can be enabled by prefixing a file name with an <code>&gt;</code> as in <code>&gt;alias_analysis</code>.
+<code>&gt;&gt;</code> and <code>&gt;&gt;&gt;</code> are also valid and <strong>currently</strong> are equivalent to <code>GRAPH_DEBUG</code> as there is no logging level that is
+higher than <code>GRAPH_DEBUG</code>.</p>
+<p>By default, types in the graph are printed with maximum verbosity.  The verbosity level can be controlled via the environment variable <code>PYTORCH_JIT_TYPE_VERBOSITY</code>.  The available settings are:</p>
+<ul>
+<li><code>0</code>: No type information</li>
+<li><code>1</code>: Types and shapes only</li>
+<li><code>2</code>: Also print strides</li>
+<li><code>3</code>: Also print device type and whether gradient is required</li>
+</ul>
+<h2>JIT Optimization Limiter</h2>
+<p><a href="jit_opt_limit.h">jit_opt_limit.h</a></p>
+<p>Often times, we need to limit the number of optimizations for any lowering passes for debugging purposes.</p>
+<p><code>TorchScript</code> offers a simple optimization limit checker that can be configured through environment variable <code>PYTORCH_JIT_OPT_LIMIT</code>. The purpose is to limit how many optimization you can make per pass. This is useful for debugging any passes.</p>
+<p>Opt limit checker is enabled on a per file basis (hence per pass). For example, in <code>constant_propagation.cpp</code>, <code>PYTORCH_JIT_OPT_LIMIT</code> should be set to <code>constant_propagation=&lt;opt_limit&gt;</code> where <code>&lt;opt_limit&gt;</code> is the number of optimizations you want to make for the pass. (i.e.
+<code>PYTORCH_JIT_OPT_LIMIT="constant_propagation=&lt;opt_limit&gt;"</code>).</p>
+<p>Multiple files can be configured by separating each file name with a colon
+<code>:</code> as in the following example,
+<code>PYTORCH_JIT_OPT_LIMIT="constant_propagation=&lt;opt_limit&gt;:dead_code_elimination=&lt;opt_limit&gt;"</code></p>
+<p>You can call opt limiter by calling a macro <code>JIT_OPT_ALLOWED</code>. It will return true if
+we haven't reached the optimization limit yet. Typical usage:</p>
+<p><code>cpp
+if (!JIT_OPT_ALLOWED) {
+    GRAPH_DUMP(...); //supplied from jit_log
+    return;
+}</code></p>
+<h2>DifferentiableGraphOp</h2>
+<p><a href="runtime/graph_executor.cpp">runtime/graph_executor.cpp</a></p>
+<p>A DifferentiableGraphOp combines an explicit forward <code>Graph</code> <code>f</code> with a paired backward graph <code>df</code>. When it runs, the input <code>Tensors</code> to <code>f</code> are detached from the autograd, the body of <code>f</code> is run, and then the autograd graph for the outputs of <code>f</code> are hooked up to the <code>df</code> function. The <code>df</code> function's outputs are also hooked up to the autograd graph.</p>
+<h2>Handling Mutability</h2>
+<h3>Aliasing and mutation in the PyTorch API</h3>
+<p>In PyTorch, <code>Tensors</code> are reference types. Operators can return "views" of the input <code>Tensor</code>, creating a new <code>Tensor</code> object that shares the same underlying storage as the original:
+```python
+a = torch.rand(2, 3)
+b = a</p>
+<h1>At this point, <code>a</code> and <code>b</code> share their storage.</h1>
+<p>c = b[0]</p>
+<h1><code>c</code> shares storage with <code>a</code> and <code>b</code>, but only sees a slice of the allocated memory.</h1>
+<p>```</p>
+<p>Some operators will <em>mutate</em> one or more of their operands in-place. These are typically denoted with a trailing underscore, or by taking an <code>out</code> argument as input:
+<code>python
+a = torch.zeros(2, 3)
+b = torch.ones(2, 3)
+a.add_(b)  # in-place add, so `a` is modified.
+torch.add(a, b, out=a) # another way to express the same thing</code></p>
+<h3>Aliasing and mutation annotations in FunctionSchema</h3>
+<p>The JIT's <code>FunctionSchema</code>  allows operator writers to add annotations specifying the aliasing and mutation behavior of an operator. Optimization passes will use this information to determine whether transformations are semantics-preserving. This section provides a description of the alias annotation language, assuming that the reader already knows what <code>FunctionSchema</code> looks like.</p>
+<p>First, here is a pure function which always returns new memory:
+<code>add(Tensor a, Tensor b) -&gt; Tensor</code>
+The type <code>Tensor</code> with no annotations is sugar for "fresh, read-only <code>Tensor</code>". So since there are no annotations on anything, we know that this operator creates no aliases and mutates no inputs.</p>
+<p>Next, a function that returns an alias to one of the inputs.:
+<code>view(Tensor(a) self, int[] size) -&gt; Tensor(a)</code>
+The shared <code>(a)</code> annotation on <code>self</code> and the output signify that the <code>Tensors</code> will share the same storage. Another way to say is that <code>self</code> and the output belong to the same "alias set" <code>a</code>.</p>
+<p>Now a function that writes in-place to one of the inputs (note the trailing underscore):
+<code>add_(Tensor(a!) self, Tensor other) -&gt; Tensor(a!)</code>
+The <code>!</code> annotation means that this operator writes to the specified alias set (in this case <code>a</code>).</p>
+<p>Sometimes we don't have enough information to provide an exact alias annotation. For example, here is the operator to extract an element from a list:
+<code>list_select(Tensor[] list, int idx) -&gt; Tensor(*)</code>
+Note the alias set <code>*</code>. This is the <strong>wildcard set</strong>. These are values which we conservatively analyze. Containers, such as lists and dictionaries, Graph inputs, and class attributes are conservatively analyzed to all alias. In most cases, people shouldn't be writing operators with wildcard annotations. They are used as temporary workaround for when our alias analysis isn't sophisticated enough to understand something yet but we don't want to block feature development.</p>
+<p>Similarly, we have operators which result in Tensors being contained in a list. In this case, to preserve the relationship between output list and input, we annotate that the input enters the wildcard set with the <code>(a -&gt; *)</code> syntax.
+<code>func: chunk(Tensor(a -&gt; *) self, int chunks, int dim=0) -&gt; Tensor(a)[]</code></p>
+<p>This annotation language is consumed by the <code>FunctionSchema</code> parser, which produces <code>AliasInfo</code> objects summarizing the aliasing relationships for each schema <code>Argument</code>.</p>
+<h3>Alias Analysis in the IR</h3>
+<p><a href="ir/alias_analysis.h">ir/alias_analysis.h</a></p>
+<p>An alias analysis pass consumes the per-operator aliasing information to construct a database of aliasing and mutation relationships in a graph, called <code>AliasDb</code>. This section focuses on the alias analysis pass; the public interface to <code>AliasDb</code> will be described later.</p>
+<p>The core data structure in the AliasDb is called <code>MemoryDAG</code>, which is a DAG where the edges are "may point to" relationships and the  vertices are aliasing <code>Element</code>s. The most common kind of <code>Element</code> is an IR <code>Value</code>, but there are other kinds of things that can alias that aren't first-class <code>Value</code>s in the IR, like wildcards or contained types (such as in a list or tuple).</p>
+<p>The alias analysis pass walks through the nodes in a graph, examining schema <code>AliasInfo</code>  objects and adding edges in the <code>MemoryDAG</code> accordingly. For example, for the node:
+<code>%output : Tensor = aten::view(%self, %size)</code>
+the analyzer will examine the schema for <code>view()</code>:
+<code>view(Tensor(a) self, int[] size) -&gt; Tensor(a)</code>
+and add an edge from <code>%output</code> to <code>%self</code>. The alias analysis pass is flow-insensitive, as we are only adding "points-to" edges when processing a node.</p>
+<p>As a more involved example, the following TorchScript snippet:
+<code>python
+@torch.jit.script
+def foo(a : Tensor, b : Tensor):
+  c = 2 * b
+  a += 1
+  if a.max() &gt; 4:
+    r = a[0]
+  else:
+    r = b[0]
+  return c, r</code>
+Will produce a graph like this:</p>
+<p><img alt="AliasTracker graph" src="/docs/source/_static/img/aliastracker_graph.png" /></p>
+<p>A few things to note:
+- "Graph Input Element" is an example of an <code>Element</code> that isn't a first-class <code>Value</code>. Alias analysis happens on a per-function level, so we don't necessarily know the aliasing relationships of the inputs. The only safe assumption is that <code>a</code> and <code>b</code> may alias each other, so they point to a special <code>Element</code> that describes "the world outside of this function".
+- <code>r</code> may point to either <code>a</code> or <code>b</code>, depending on the runtime value of <code>a.max()</code>.  A given <code>Element</code> may point to multiple other <code>Element</code>s. This can happen if there is branching control flow (like in this example), or with certain ops like <code>contiguous()</code>, which either returns an alias to the input or a fresh <code>Tensor</code>, depending on the runtime characteristics of the input.
+- <code>c</code> is a fresh <code>Tensor</code> (i.e. it doesn't point to anything) since it was created using the pure operation <code>2 * b</code>.</p>
+<p>The last point demonstrates a key concept: <em>leaf elements uniquely describe memory locations</em>. Since a leaf element doesn't point to anything, the memory that backs it must have been freshly allocated by some op. Thus we can use leaf elements to represent disjoint memory locations.</p>
+<p>So to determine whether  <code>a</code> and <code>b</code> may alias, we traverse the <code>MemoryDAG</code> DAG and figure out if <code>a</code> and <code>b</code> share any leaf nodes. If they do, then we know <code>a</code> and <code>b</code> might point to the same memory location, i.e. <code>a</code> and <code>b</code> may alias. This kind of query is common enough that <code>MemoryDAG</code> does path compression to speed up leaf-finding, so that aliasing queries can be serviced in amortized constant time.</p>
+<h3>Writing optimization passes with <code>AliasDb</code></h3>
+<p><code>AliasDb</code> provides a high-level interface to help people write mutability-safe optimization passes.</p>
+<p>In particular, <code>moveAfterTopologicallyValid()</code> (and its <code>moveBefore</code> variant) will reorder nodes in a way that preserves data dependencies and avoids any data hazards.  The rules for this are that all mutable <em>writes</em> to a given memory location must occur in the same order (avoid WAW hazards), and that no reads can be reordered before or after any write (WAR, RAW hazards).</p>
+<p>However, reordering of reads across writes <em>is allowed</em> if we can prove that the read cannot alias the thing being written. This happens whenever we have <code>Tensors</code> that come from functions that produce fresh results (common) inside of the function. It also happens whenever the creation of the mutable <code>Tensor</code> is seen in the function (so it gets assigned a fresh variable), and all of its writes occur in that function.</p>
+<p>The intention is that if you only mutate the graph through <code>AliasDb</code>, you don't have to think about mutability/aliasing at all in your pass. As we write more passes, the interface to <code>AliasDb</code> will get richer (one example is transforming an in-place operation to its pure equivalent if we can prove it's safe).</p>
+<p><code>AliasDb</code> also provides lower level APIs that users of LLVM's alias analysis pass would be familiar with, such as querying whether any two <code>Value</code>s may alias.</p>
+<p>TODO: differentiation, symbolic autograd, fusion, operators</p>
+<h1>Profiling Programs</h1>
+<p><code>prim::profile</code> nodes are inserted on every <strong>use</strong> of a value by <code>ProfilingRecord::instrumentBlock</code>. Every <code>prim::profile</code> node runs a lambda that uses a captured, initial type value and the type of an incoming <code>Tensor</code> and merges the two into a refined <code>TensorType</code>.</p>
+<p><code>prim::profile</code> nodes are replaced with <code>prim::Guard</code> nodes by <code>InsertGuards</code>. <code>prim::Guard</code> nodes are inserted to guarantee that beyond the guard a guarded <code>Tensor</code> will always be of the profiled shape. This guarantee will enable optimizations and code generators to generate more efficient code.</p>
+<p>We attempt to reduce the number of <code>prim::Guard</code> nodes as these nodes may interfere with optimizations.
+* First, <code>GuardElimination::moveGuardsToDefs</code> tries to move <code>prim::Guards</code> to their definitions, so the guards guarding the same <code>Tensor</code> follow the definition directly or another guard on the same <code>Tensor</code>.
+* This ordering allows us to <strong>coalesce</strong> (done in <code>GuardElimination::coalesceGuards</code>) multiple guards into a single one.
+* After guards are  <strong>coalesced</strong> , <code>GuardElimination::eliminateGuards</code> attempts to eliminate more guards as follows: it inspects each operation and its inputs. It checks if inputs to the operation are guarded and also if the operation produces the consistent shapes given the guarded inputs. For example, if two inputs to <code>add</code> are guaranteed to be of shape <code>(2, 3)</code>, the output shape will also always be <code>(2, 3)</code>. If this property holds, we are allowed to remove the guard guarding operation's output.</p>
+<p>Lastly, we need to be handle cases when the assumptions about <code>Tensor</code> shapes fail at runtime. To handle guard failures, we need to be able to run the original code i.e. the code  that doesn't rely on assumptions about shapes. As guards can be inserted and moved (by Optimizer) at/to arbitrary points in a computational graph, we need to be able to resume execution starting from those arbitrary points onward.</p>
+<p><code>InsertBailoutNodes</code> builds deoptimized versions of the original computational graph, that contain the rest of computations starting from their corresponding guard failure points and also captures live values needed to execute those deoptimized graphs. In other words, the pass replaces <code>prim::Guard</code> nodes with <code>prim::BailOut</code> nodes which have the<code>attr::Subgraph</code> attributes set to the deoptimized versions of the  remaining computations at their corresponding <code>prim::Guard</code>s.</p>
+<h1>Saving Programs</h1>
+<p>See <a href="docs/serialization.md">the serialization docs</a>.</p>
+<h1>Testing Programs</h1>
+<h2>Testing Autodiff</h2>
+<p><a href="runtime/symbolic_script.cpp">runtime/symbolic_script.cpp</a></p>
+<p>When differentiating a graph, each node that has a symbolic gradient will be included in a <code>prim::DifferentiableGraph</code>. We fall back to using autograd for the node if there isn't a gradient formula for it.
+Adding/updating symbolic gradient functions must be tested carefully as it's easy to get CI green by comparing autograd result with itself, but potentially cause an autodiff support regression.</p>
+<p>If your PR adds/updates a gradient formula for <code>torch</code>/<code>nn</code> functions, you <strong>MUST</strong> enable/update the corresponding tests in
+- <code>torch</code> functions: <code>method_tests</code> in <a href="../../../test/common_method_tests.py">common_method_tests.py</a>
+- <code>nn</code> functions: <code>nn_functional_tests</code> in <a href="../../../test/test_jit.py">test_jit.py</a></p>
+<p>To turn on autodiff check, you can add an optional <code>check_ad(should_autodiff_node[bool], nonfusible_nodes[str|list[str]], fusible_nodes[str|list[str]])</code> tuple after the optional test variant name field.
+If <code>should_autodiff_node=True</code>, the differentiated traced/script forward graph must have a <code>prim::DifferentiableGraph</code>.</p>
+<p>All nodes in <code>nonfusible_nodes</code> should show up at least once in <code>prim::DifferentiableGraph</code> subgraphs.
+When fusion is enabled, all nodes in <code>fusible_nodes</code> should show up in one of <code>prim::FusionGroup</code> graphs attached to <code>prim::DifferentiableGraph</code>,
+otherwise they're checked as <code>nonfusible_nodes</code> as well.
+On the other hand, if <code>should_autodiff_node=False</code>, the graph can still have <code>prim::DifferentiableGraph</code> with other nodes, but not <code>nonfusible_nodes</code> and <code>fusible_nodes</code>.</p>
+<p>To make writing tests easier, you only need to write out node names if it's different from the function name. Below are a few examples:
+<code>python
+('conv1d', ...), # No symbolic gradient formula
+('avg_pool2d', ..., (True,)), # Has symbolic gradient formula, only has one nonfusible node aten::avg_pool2d
+('nll_loss', ..., (True, 'aten::nll_loss_forward')), # Is replaced by a different node in its symbolic gradient formula
+('dropout', ..., (True, ['prim::is_CUDA', 'aten::bernoulli_'], ['aten::rand_like', ..., 'aten::div'])), # Some ops are fused when fusion is enabled</code></p>
+<p>Note that even for the same function, different tests could trigger different function schemas (e.g <code>aten::add</code>) while only a few of them have symbolic gradient formulas.
+You should only turn on autodiff checks in tests that have symbolic gradients. If you are not sure, uncomment the debugging line in <a href="runtime/symbolic_script.cpp">runtime/symbolic_script.cpp</a>
+to check which function schema the test triggers.</p>
+<h1>Python Printer</h1>
+<p><a href="serialization/python_print.cpp">serialization/python_print.cpp</a>
+<a href="serialization/import_source.cpp">serialization/import_source.cpp</a></p>
+<p>The Python Printer takes a <code>Graph</code> and produces Python-like code that represents the same graph. Using some special values in <a href="serialization/import_source.cpp">serialization/import_source.cpp</a>, this code can be read back in by the compiler to produce the same <code>Graph</code>. In Python a <code>ScriptModule</code>'s <code>code</code> property shows the Python Printed graph.</p>
+<p>The table below shows the graph and code for this small <code>ScriptModule</code>:
+```python
+class M(torch.jit.ScriptModule):
+    @torch.jit.script_method
+    def forward(self, x, y, z):
+        # type: (Tensor, int, float) -&gt; Tensor
+        if y &gt; 2:
+            x = x + z
+        else:
+            x = x + y
+        return x</p>
+<p>m = M()
+```</p>
+<p><code>m.graph</code>
+<code>graph(%x.1 : Tensor,
+      %y : int,
+      %z : float):
+  %5 : int = prim::Constant[value=1]()
+  %3 : int = prim::Constant[value=2]()
+  %4 : bool = aten::gt(%y, %3)
+  %x : Tensor = prim::If(%4)
+    block0():
+      %x.2 : Tensor = aten::add(%x.1, %z, %5)
+      -&gt; (%x.2)
+    block1():
+      %x.3 : Tensor = aten::add(%x.1, %y, %5)
+      -&gt; (%x.3)
+  return (%x)</code></p>
+<p><code>m.code</code>
+<code>python
+def forward(self,
+    x: Tensor,
+    y: int,
+    z: float) -&gt; Tensor:
+  if torch.gt(y, 2):
+    x0 = torch.add(x, z, 1)
+  else:
+    x0 = torch.add(x, y, 1)
+  return x0</code></p>
+<h1>Python Bindings</h1>
+<p>TODO: Script Module, torch.jit.trace, <strong>constant</strong> handling, weak script modules</p>

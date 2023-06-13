@@ -1,0 +1,22 @@
+<h2>TFSA-2019-002: Heap buffer overflow in <code>UnsortedSegmentSum</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2019-16778</p>
+<h3>Issue Description</h3>
+<p>A heap buffer overflow in <code>UnsortedSegmentSum</code> can be produced when the <code>Index</code>
+template argument is <code>int32</code>. In this case <code>data_size</code> and <code>num_segments</code> fields
+are truncated from <code>int64</code> to <code>int32</code> and can produce negative numbers,
+resulting in accessing out of bounds heap memory.</p>
+<h3>Impact</h3>
+<p>This is unlikely to be exploitable and was detected and fixed internally. We are
+making the security advisory only to notify users that it is better to update to
+TensorFlow 1.15 or 2.0 or later as these versions already have this fixed.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.2.1, 1.3.0, 1.3.1, 1.4.0, 1.4.1, 1.5.0,
+1.5.1, 1.6.0, 1.7.0, 1.7.1, 1.8.0, 1.9.0, 1.10.0, 1.10.1, 1.11.0, 1.12.0,
+1.12.1, 1.12.2, 1.12.3, 1.13.0, 1.13.1, 1.13.2, 1.14.0.</p>
+<h3>Mitigation</h3>
+<p>We have patched the vulnerability in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/db4f9717c41bccc3ce10099ab61996b246099892">db4f971</a>.</p>
+<p>We encourage users to switch to TensorFlow 1.15 or 2.0 as these versions contain
+the fix. If switching is undesirable, consider cherry-picking the above commit
+and building from source.</p>

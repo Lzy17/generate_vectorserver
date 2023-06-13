@@ -1,0 +1,74 @@
+<h1>Build TensorFlow Lite for ARM boards</h1>
+<p>This page describes how to build the TensorFlow Lite libraries for ARM-based
+computers.</p>
+<p>TensorFlow Lite supports two build systems and supported features from each
+build system are not identical. Check the following table to pick a proper build
+system.</p>
+<p>Feature                                                                                   | Bazel                        | CMake
+----------------------------------------------------------------------------------------- | ---------------------------- | -----
+Predefined toolchains                                                                     | armhf, aarch64               | armel, armhf, aarch64
+Custom toolchains                                                                         | harder to use                | easy to use
+<a href="https://www.tensorflow.org/lite/guide/ops_select">Select TF ops</a>                         | supported                    | not supported
+<a href="https://www.tensorflow.org/lite/performance/gpu">GPU delegate</a>                           | only available for Android   | any platform that supports OpenCL
+XNNPack                                                                                   | supported                    | supported
+<a href="https://www.tensorflow.org/lite/guide/build_cmake_pip">Python Wheel</a>                     | supported                    | supported
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/c/README.md">C API</a> | supported                    | <a href="https://www.tensorflow.org/lite/guide/build_cmake#build_tensorflow_lite_c_library">supported</a>
+<a href="https://www.tensorflow.org/lite/guide/inference#load_and_run_a_model_in_c">C++ API</a>      | supported for Bazel projects | supported for CMake projects</p>
+<h2>Cross-compilation for ARM with CMake</h2>
+<p>If you have a CMake project or if you want to use a custom toolchain, you'd
+better use CMake for cross compilation. There is a separate
+<a href="https://www.tensorflow.org/lite/guide/build_cmake_arm">Cross compilation TensorFlow Lite with CMake</a>
+page available for this.</p>
+<h2>Cross-compilation for ARM with Bazel</h2>
+<p>If you have a Bazel project or if you want to use TF ops, you'd better use Bazel
+build system. You'll use the integrated
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/toolchains/embedded/arm-linux">ARM GCC 8.3 toolchains</a>
+with Bazel to build an ARM32/64 shared library.</p>
+<p>| Target Architecture | Bazel Configuration     | Compatible Devices         |
+| ------------------- | ----------------------- | -------------------------- |
+| armhf (ARM32)       | --config=elinux_armhf   | RPI3, RPI4 with 32 bit     |
+:                     :                         : Raspberry Pi OS            :
+| AArch64 (ARM64)     | --config=elinux_aarch64 | Coral, RPI4 with Ubuntu 64 |
+:                     :                         : bit                        :</p>
+<p>Note: The generated shared library requires glibc 2.28 or higher to run.</p>
+<p>The following instructions have been tested on Ubuntu 16.04.3 64-bit PC (AMD64)
+and TensorFlow devel docker image
+<a href="https://hub.docker.com/r/tensorflow/tensorflow/tags/">tensorflow/tensorflow:devel</a>.</p>
+<p>To cross compile TensorFlow Lite with Bazel, follow the steps:</p>
+<h4>Step 1. Install Bazel</h4>
+<p>Bazel is the primary build system for TensorFlow. Install the latest version of
+the <a href="https://bazel.build/versions/master/docs/install.html">Bazel build system</a>.</p>
+<p><strong>Note:</strong> If you're using the TensorFlow Docker image, Bazel is already
+available.</p>
+<h4>Step 2. Clone TensorFlow repository</h4>
+<p><code>sh
+git clone https://github.com/tensorflow/tensorflow.git tensorflow_src</code></p>
+<p><strong>Note:</strong> If you're using the TensorFlow Docker image, the repo is already
+provided in <code>/tensorflow_src/</code>.</p>
+<h4>Step 3. Build ARM binary</h4>
+<h5>C library</h5>
+<p><code>bash
+bazel build --config=elinux_aarch64 -c opt //tensorflow/lite/c:libtensorflowlite_c.so</code></p>
+<p>You can find a shared library in:
+<code>bazel-bin/tensorflow/lite/c/libtensorflowlite_c.so</code>.</p>
+<p><strong>Note:</strong> Use <code>elinux_armhf</code> for
+<a href="https://wiki.debian.org/ArmHardFloatPort">32bit ARM hard float</a> build.</p>
+<p>Check
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/c/README.md">TensorFlow Lite C API</a>
+page for the detail.</p>
+<h5>C++ library</h5>
+<p><code>bash
+bazel build --config=elinux_aarch64 -c opt //tensorflow/lite:libtensorflowlite.so</code></p>
+<p>You can find a shared library in:
+<code>bazel-bin/tensorflow/lite/libtensorflowlite.so</code>.</p>
+<p>Currently, there is no straightforward way to extract all header files needed,
+so you must include all header files in tensorflow/lite/ from the TensorFlow
+repository. Additionally, you will need header files from FlatBuffers and
+Abseil.</p>
+<h5>Etc</h5>
+<p>You can also build other Bazel targets with the toolchain. Here are some useful
+targets.</p>
+<ul>
+<li>//tensorflow/lite/tools/benchmark:benchmark_model</li>
+<li>//tensorflow/lite/examples/label_image:label_image</li>
+</ul>

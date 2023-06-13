@@ -1,0 +1,89 @@
+<h1>Frequently Asked Questions</h1>
+<p>If you don't find an answer to your question here, please look through our
+detailed documentation for the topic or file a
+<a href="https://github.com/tensorflow/tensorflow/issues">GitHub issue</a>.</p>
+<h2>Model Conversion</h2>
+<h4>What formats are supported for conversion from TensorFlow to TensorFlow Lite?</h4>
+<p>The supported formats are listed <a href="../models/convert/index#python_api">here</a></p>
+<h4>Why are some operations not implemented in TensorFlow Lite?</h4>
+<p>In order to keep TFLite lightweight, only certain TF operators (listed in the
+<a href="op_select_allowlist">allowlist</a>) are supported in TFLite.</p>
+<h4>Why doesn't my model convert?</h4>
+<p>Since the number of TensorFlow Lite operations is smaller than TensorFlow's,
+some models may not be able to convert. Some common errors are listed
+<a href="../models/convert/index#conversion-errors">here</a>.</p>
+<p>For conversion issues not related to missing operations or control flow ops,
+search our
+<a href="https://github.com/tensorflow/tensorflow/issues?q=label%3Acomp%3Alite+">GitHub issues</a>
+or file a <a href="https://github.com/tensorflow/tensorflow/issues">new one</a>.</p>
+<h4>How do I test that a TensorFlow Lite model behaves the same as the original TensorFlow model?</h4>
+<p>The best way to test is to compare the outputs of the TensorFlow and the
+TensorFlow Lite models for the same inputs (test data or random inputs) as shown
+<a href="inference#load-and-run-a-model-in-python">here</a>.</p>
+<h4>How do I determine the inputs/outputs for GraphDef protocol buffer?</h4>
+<p>The easiest way to inspect a graph from a <code>.pb</code> file is to use
+<a href="https://github.com/lutzroeder/netron">Netron</a>, an open-source viewer for
+machine learning models.</p>
+<p>If Netron cannot open the graph, you can try the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/graph_transforms/README.md#inspecting-graphs">summarize_graph</a>
+tool.</p>
+<p>If the summarize_graph tool yields an error, you can visualize the GraphDef with
+<a href="https://www.tensorflow.org/guide/summaries_and_tensorboard">TensorBoard</a> and
+look for the inputs and outputs in the graph. To visualize a <code>.pb</code> file, use the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/tools/import_pb_to_tensorboard.py"><code>import_pb_to_tensorboard.py</code></a>
+script like below:</p>
+<p><code>shell
+python import_pb_to_tensorboard.py --model_dir &lt;model path&gt; --log_dir &lt;log dir path&gt;</code></p>
+<h4>How do I inspect a <code>.tflite</code> file?</h4>
+<p><a href="https://github.com/lutzroeder/netron">Netron</a> is the easiest way to visualize a
+TensorFlow Lite model.</p>
+<p>If Netron cannot open your TensorFlow Lite model, you can try the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/visualize.py">visualize.py</a>
+script in our repository.</p>
+<p>If you're using TF 2.5 or a later version</p>
+<p><code>shell
+python -m tensorflow.lite.tools.visualize model.tflite visualized_model.html</code></p>
+<p>Otherwise, you can run this script with Bazel</p>
+<ul>
+<li><a href="https://www.tensorflow.org/install/source">Clone the TensorFlow repository</a></li>
+<li>Run the <code>visualize.py</code> script with bazel:</li>
+</ul>
+<p><code>shell
+bazel run //tensorflow/lite/tools:visualize model.tflite visualized_model.html</code></p>
+<h2>Optimization</h2>
+<h4>How do I reduce the size of my converted TensorFlow Lite model?</h4>
+<p><a href="../performance/post_training_quantization">Post-training quantization</a> can
+be used during conversion to TensorFlow Lite to reduce the size of the model.
+Post-training quantization quantizes weights to 8-bits of precision from
+floating-point and dequantizes them during runtime to perform floating point
+computations. However, note that this could have some accuracy implications.</p>
+<p>If retraining the model is an option, consider
+<a href="https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/quantize">Quantization-aware training</a>.
+However, note that quantization-aware training is only available for a subset of
+convolutional neural network architectures.</p>
+<p>For a deeper understanding of different optimization methods, look at
+<a href="../performance/model_optimization">Model optimization</a>.</p>
+<h4>How do I optimize TensorFlow Lite performance for my machine learning task?</h4>
+<p>The high-level process to optimize TensorFlow Lite performance looks something
+like this:</p>
+<ul>
+<li><em>Make sure that you have the right model for the task.</em> For image
+    classification, check out the
+    <a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=image-classification">TensorFlow Hub</a>.</li>
+<li><em>Tweak the number of threads.</em> Many TensorFlow Lite operators support
+    multi-threaded kernels. You can use <code>SetNumThreads()</code> in the
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/core/interpreter_builder.h#L110">C++ API</a>
+    to do this. However, increasing threads results in performance variability
+    depending on the environment.</li>
+<li><em>Use Hardware Accelerators.</em> TensorFlow Lite supports model acceleration for
+    specific hardware using delegates. See our
+    <a href="../performance/delegates">Delegates</a> guide for information on what
+    accelerators are supported and how to use them with your model on-device.</li>
+<li><em>(Advanced) Profile Model.</em> The Tensorflow Lite
+    <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark">benchmarking tool</a>
+    has a built-in profiler that can show per-operator statistics. If you know
+    how you can optimize an operator’s performance for your specific platform,
+    you can implement a <a href="ops_custom">custom operator</a>.</li>
+</ul>
+<p>For a more in-depth discussion on how to optimize performance, take a look at
+<a href="../performance/best_practices">Best Practices</a>.</p>

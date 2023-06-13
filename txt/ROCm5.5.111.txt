@@ -1,0 +1,9 @@
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable no-duplicate-header -->
+<h3>What's New in This Release</h3>
+<h4>HIP API Change</h4>
+<p>The following HIP API is updated in the ROCm v5.5.1 release,</p>
+<h5><code>hipDeviceSetCacheConfig</code></h5>
+<ul>
+<li>The return value for <code>hipDeviceSetCacheConfig</code> is updated from <code>hipErrorNotSupported</code> to <code>hipSuccess</code></li>
+</ul>

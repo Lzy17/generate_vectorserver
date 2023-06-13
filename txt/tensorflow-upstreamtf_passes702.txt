@@ -1,0 +1,4 @@
+<h1>TensorFlow passes</h1>
+<p>[TOC]</p>
+<h2>TF dialect passes</h2>
+<p>&lt;&lt;_includes/tf_passes.md&gt;&gt;</p>

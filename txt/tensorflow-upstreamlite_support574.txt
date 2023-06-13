@@ -1,0 +1,222 @@
+<h1>Process input and output data with the TensorFlow Lite Support Library</h1>
+<p>Note: TensorFlow Lite Support Library currently only supports Android.</p>
+<p>Mobile application developers typically interact with typed objects such as
+bitmaps or primitives such as integers. However, the TensorFlow Lite interpreter
+API that runs the on-device machine learning model uses tensors in the form of
+ByteBuffer, which can be difficult to debug and manipulate. The
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/java">TensorFlow Lite Android Support Library</a>
+is designed to help process the input and output of TensorFlow Lite models, and
+make the TensorFlow Lite interpreter easier to use.</p>
+<h2>Getting Started</h2>
+<h3>Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> model file to the assets directory of the Android module
+where the model will be run. Specify that the file should not be compressed, and
+add the TensorFlow Lite library to the module’s <code>build.gradle</code> file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import tflite dependencies
+implementation 'org.tensorflow:tensorflow-lite:0.0.0-nightly-SNAPSHOT'
+// The GPU delegate library is optional. Depend on it as needed.
+implementation 'org.tensorflow:tensorflow-lite-gpu:0.0.0-nightly-SNAPSHOT'
+implementation 'org.tensorflow:tensorflow-lite-support:0.0.0-nightly-SNAPSHOT'
+</code></pre>
+<p>}
+```</p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>
+<p>Explore the
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite-support">TensorFlow Lite Support Library AAR hosted at MavenCentral</a>
+for different versions of the Support Library.</p>
+<h3>Basic image manipulation and conversion</h3>
+<p>The TensorFlow Lite Support Library has a suite of basic image manipulation
+methods such as crop and resize. To use it, create an <code>ImagePreprocessor</code> and
+add the required operations. To convert the image into the tensor format
+required by the TensorFlow Lite interpreter, create a <code>TensorImage</code> to be used
+as input:</p>
+<p>```java
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.support.image.ImageProcessor;
+import org.tensorflow.lite.support.image.TensorImage;
+import org.tensorflow.lite.support.image.ops.ResizeOp;</p>
+<p>// Initialization code
+// Create an ImageProcessor with all ops required. For more ops, please
+// refer to the ImageProcessor Architecture section in this README.
+ImageProcessor imageProcessor =
+    new ImageProcessor.Builder()
+        .add(new ResizeOp(224, 224, ResizeOp.ResizeMethod.BILINEAR))
+        .build();</p>
+<p>// Create a TensorImage object. This creates the tensor of the corresponding
+// tensor type (uint8 in this case) that the TensorFlow Lite interpreter needs.
+TensorImage tensorImage = new TensorImage(DataType.UINT8);</p>
+<p>// Analysis code for every frame
+// Preprocess the image
+tensorImage.load(bitmap);
+tensorImage = imageProcessor.process(tensorImage);
+```</p>
+<p><code>DataType</code> of a tensor can be read through the
+<a href="../models/convert/metadata.md#read-the-metadata-from-models">metadata extractor library</a>
+as well as other model information.</p>
+<h3>Basic audio data processing</h3>
+<p>The TensorFlow Lite Support Library also defines a <code>TensorAudio</code> class wrapping
+some basic audio data processing methods. It's mostly used together with
+<a href="https://developer.android.com/reference/android/media/AudioRecord">AudioRecord</a>
+and captures audio samples in a ring buffer.</p>
+<p>```java
+import android.media.AudioRecord;
+import org.tensorflow.lite.support.audio.TensorAudio;</p>
+<p>// Create an <code>AudioRecord</code> instance.
+AudioRecord record = AudioRecord(...)</p>
+<p>// Create a <code>TensorAudio</code> object from Android AudioFormat.
+TensorAudio tensorAudio = new TensorAudio(record.getFormat(), size)</p>
+<p>// Load all audio samples available in the AudioRecord without blocking.
+tensorAudio.load(record)</p>
+<p>// Get the <code>TensorBuffer</code> for inference.
+TensorBuffer buffer = tensorAudio.getTensorBuffer()
+```</p>
+<h3>Create output objects and run the model</h3>
+<p>Before running the model, we need to create the container objects that will
+store the result:</p>
+<p>```java
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;</p>
+<p>// Create a container for the result and specify that this is a quantized model.
+// Hence, the 'DataType' is defined as UINT8 (8-bit unsigned integer)
+TensorBuffer probabilityBuffer =
+    TensorBuffer.createFixedSize(new int[]{1, 1001}, DataType.UINT8);
+```</p>
+<p>Loading the model and running inference:</p>
+<p>```java
+import java.nio.MappedByteBuffer;
+import org.tensorflow.lite.InterpreterFactory;
+import org.tensorflow.lite.InterpreterApi;</p>
+<p>// Initialise the model
+try{
+    MappedByteBuffer tfliteModel
+        = FileUtil.loadMappedFile(activity,
+            "mobilenet_v1_1.0_224_quant.tflite");
+    InterpreterApi tflite = new InterpreterFactory().create(
+        tfliteModel, new InterpreterApi.Options());
+} catch (IOException e){
+    Log.e("tfliteSupport", "Error reading model", e);
+}</p>
+<p>// Running inference
+if(null != tflite) {
+    tflite.run(tImage.getBuffer(), probabilityBuffer.getBuffer());
+}
+```</p>
+<h3>Accessing the result</h3>
+<p>Developers can access the output directly through
+<code>probabilityBuffer.getFloatArray()</code>. If the model produces a quantized output,
+remember to convert the result. For the MobileNet quantized model, the developer
+needs to divide each output value by 255 to obtain the probability ranging from
+0 (least likely) to 1 (most likely) for each category.</p>
+<h3>Optional: Mapping results to labels</h3>
+<p>Developers can also optionally map the results to labels. First, copy the text
+file containing labels into the module’s assets directory. Next, load the label
+file using the following code:</p>
+<p>```java
+import org.tensorflow.lite.support.common.FileUtil;</p>
+<p>final String ASSOCIATED_AXIS_LABELS = "labels.txt";
+List<String> associatedAxisLabels = null;</p>
+<p>try {
+    associatedAxisLabels = FileUtil.loadLabels(this, ASSOCIATED_AXIS_LABELS);
+} catch (IOException e) {
+    Log.e("tfliteSupport", "Error reading label file", e);
+}
+```</p>
+<p>The following snippet demonstrates how to associate the probabilities with
+category labels:</p>
+<p>```java
+import java.util.Map;
+import org.tensorflow.lite.support.common.TensorProcessor;
+import org.tensorflow.lite.support.common.ops.NormalizeOp;
+import org.tensorflow.lite.support.label.TensorLabel;</p>
+<p>// Post-processor which dequantize the result
+TensorProcessor probabilityProcessor =
+    new TensorProcessor.Builder().add(new NormalizeOp(0, 255)).build();</p>
+<p>if (null != associatedAxisLabels) {
+    // Map of labels and their corresponding probability
+    TensorLabel labels = new TensorLabel(associatedAxisLabels,
+        probabilityProcessor.process(probabilityBuffer));</p>
+<pre><code>// Create a map to access the result based on label
+Map&lt;String, Float&gt; floatMap = labels.getMapWithFloatValue();
+</code></pre>
+<p>}
+```</p>
+<h2>Current use-case coverage</h2>
+<p>The current version of the TensorFlow Lite Support Library covers:</p>
+<ul>
+<li>common data types (float, uint8, images, audio and array of these objects)
+    as inputs and outputs of tflite models.</li>
+<li>basic image operations (crop image, resize and rotate).</li>
+<li>normalization and quantization</li>
+<li>file utils</li>
+</ul>
+<p>Future versions will improve support for text-related applications.</p>
+<h2>ImageProcessor Architecture</h2>
+<p>The design of the <code>ImageProcessor</code> allowed the image manipulation operations to
+be defined up front and optimised during the build process. The <code>ImageProcessor</code>
+currently supports three basic preprocessing operations, as described in the
+three comments in the code snippet below:</p>
+<p>```java
+import org.tensorflow.lite.support.common.ops.NormalizeOp;
+import org.tensorflow.lite.support.common.ops.QuantizeOp;
+import org.tensorflow.lite.support.image.ops.ResizeOp;
+import org.tensorflow.lite.support.image.ops.ResizeWithCropOrPadOp;
+import org.tensorflow.lite.support.image.ops.Rot90Op;</p>
+<p>int width = bitmap.getWidth();
+int height = bitmap.getHeight();</p>
+<p>int size = height &gt; width ? width : height;</p>
+<p>ImageProcessor imageProcessor =
+    new ImageProcessor.Builder()
+        // Center crop the image to the largest square possible
+        .add(new ResizeWithCropOrPadOp(size, size))
+        // Resize using Bilinear or Nearest neighbour
+        .add(new ResizeOp(224, 224, ResizeOp.ResizeMethod.BILINEAR));
+        // Rotation counter-clockwise in 90 degree increments
+        .add(new Rot90Op(rotateDegrees / 90))
+        .add(new NormalizeOp(127.5, 127.5))
+        .add(new QuantizeOp(128.0, 1/128.0))
+        .build();
+```</p>
+<p>See more details
+<a href="../models/convert/metadata.md#normalization-and-quantization-parameters">here</a> about
+normalization and quantization.</p>
+<p>The eventual goal of the support library is to support all
+<a href="https://www.tensorflow.org/api_docs/python/tf/image"><code>tf.image</code></a>
+transformations. This means the transformation will be the same as TensorFlow
+and the implementation will be independent of the operating system.</p>
+<p>Developers are also welcome to create custom processors. It is important in
+these cases to be aligned with the training process - i.e. the same
+preprocessing should apply to both training and inference to increase
+reproducibility.</p>
+<h2>Quantization</h2>
+<p>When initiating input or output objects such as <code>TensorImage</code> or <code>TensorBuffer</code>
+you need to specify their types to be <code>DataType.UINT8</code> or <code>DataType.FLOAT32</code>.</p>
+<p><code>java
+TensorImage tensorImage = new TensorImage(DataType.UINT8);
+TensorBuffer probabilityBuffer =
+    TensorBuffer.createFixedSize(new int[]{1, 1001}, DataType.UINT8);</code></p>
+<p>The <code>TensorProcessor</code> can be used to quantize input tensors or dequantize output
+tensors. For example, when processing a quantized output <code>TensorBuffer</code>, the
+developer can use <code>DequantizeOp</code> to dequantize the result to a floating point
+probability between 0 and 1:</p>
+<p>```java
+import org.tensorflow.lite.support.common.TensorProcessor;</p>
+<p>// Post-processor which dequantize the result
+TensorProcessor probabilityProcessor =
+    new TensorProcessor.Builder().add(new DequantizeOp(0, 1/255.0)).build();
+TensorBuffer dequantizedBuffer = probabilityProcessor.process(probabilityBuffer);
+```</p>
+<p>The quantization parameters of a tensor can be read through the
+<a href="../models/convert/metadata.md#read-the-metadata-from-models">metadata extractor library</a>.</p>

@@ -1,0 +1,2 @@
+<h1>torch::deploy has been moved to pytorch/multipy</h1>
+<p>Please check out <a href="https://github.com/pytorch/multipy">https://github.com/pytorch/multipy</a> to find the new home for torch::deploy.</p>

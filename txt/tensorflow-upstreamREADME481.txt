@@ -1,0 +1,3 @@
+<h1>Cluster Resolvers</h1>
+<p>Cluster Resolvers are a new way of specifying cluster information for distributed execution. Built on top of existing <code>ClusterSpec</code> framework, Cluster Resolvers allow users to simply specify a configuration and a cluster management service and a <code>ClusterResolver</code> will automatically fetch the relevant information from the service and populate <code>ClusterSpec</code>s.</p>
+<p><code>ClusterResolvers</code> are designed to work well with <code>ManagedTrainingSession</code> and <code>ClusterSpec</code> propagation so that distributed training sessions remain robust in the face of node and network failures.</p>

@@ -1,0 +1,21 @@
+<h1>Random Numbers</h1>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>rocRAND &lt;rocrand:index&gt;</code>
+rocRAND is an AMD GPU optimized library for pseudo-random number generators (PRNG).</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocrand:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocRAND/blob/develop/CHANGELOG.md">Changelog</a></li>
+<li><a href="https://github.com/amd/rocm-examples/tree/develop/Libraries/rocRAND">Examples</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipRAND &lt;hiprand:index&gt;</code>
+hipRAND is a compatibility layer for GPU accelerated pseudo-random number
+generation (PRNG) optimized for AMD GPUs using rocRAND. hipRAND allows for a
+common interface for other non AMD GPU PRNG libraries.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hiprand:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipRAND/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

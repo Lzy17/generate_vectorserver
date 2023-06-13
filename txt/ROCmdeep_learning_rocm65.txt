@@ -1,0 +1,18 @@
+<h1>Deep Learning Guide</h1>
+<p>The following sections cover the different framework installations for ROCm and
+Deep Learning applications. {numref}<code>Rocm-Compat-Frameworks-Flowchart</code> provides
+the sequential flow for the use of each framework. Refer to the ROCm Compatible
+Frameworks Release Notes for each framework's most current release notes at
+{ref}<code>ml_framework_compat_matrix</code>.</p>
+<p>```{figure} ../data/how_to/magma_install/image.005.png
+:name: Rocm-Compat-Frameworks-Flowchart</p>
+<hr />
+<h2>align: center</h2>
+<p>ROCm Compatible Frameworks Flowchart
+```</p>
+<h2>Frameworks Installation</h2>
+<ul>
+<li><a href="pytorch_install/pytorch_install">How to Install PyTorch?</a></li>
+<li><a href="tensorflow_install/tensorflow_install">How to Install Tensorflow?</a></li>
+<li><a href="magma_install/magma_install">How to Install Magma?</a></li>
+</ul>

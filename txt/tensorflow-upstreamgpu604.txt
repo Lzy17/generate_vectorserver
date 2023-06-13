@@ -1,0 +1,346 @@
+<h1>GPU acceleration delegate for iOS</h1>
+<p>Using graphics processing units (GPUs) to run your machine learning (ML) models
+can dramatically improve the performance of your model and the user experience
+of your ML-enabled applications. On iOS devices, you can enable use of
+GPU-accelerated execution of your models using a <a href="../../performance/delegates"><em>delegate</em></a>.
+Delegates act as hardware drivers for TensorFlow Lite, allowing you to run
+the code of your model on GPU processors.</p>
+<p>This page describes how to enable GPU acceleration for TensorFlow Lite models
+in iOS apps. For more information about using the GPU delegate for
+TensorFlow Lite, including best practices and advanced techniques, see the
+<a href="../../performance/gpu">GPU delegates</a> page.</p>
+<h2>Use GPU with Interpreter API</h2>
+<p>The TensorFlow Lite <a href="../../api_docs/swift/Classes/Interpreter">Interpreter API</a>
+provides a set of general purpose APIs for building a machine learning
+applications. The following instructions guide you through adding GPU support to
+an iOS app. This guide assumes you already have an iOS app that can successfully
+execute an ML model with TensorFlow Lite.</p>
+<p>Note: If you don't already have an iOS app that uses TensorFlow Lite, follow the
+<a href="https://www.tensorflow.org/lite/guide/ios">iOS quickStart</a> and build the demo
+app. After completing the tutorial, you can follow along with these instructions
+to enable GPU support.</p>
+<h3>Modify the Podfile to include GPU support</h3>
+<p>Starting with the TensorFlow Lite 2.3.0 release, the GPU delegate is excluded
+from the pod to reduce the binary size. You can include them by specifying a
+subspec for the <code>TensorFlowLiteSwift</code> pod:</p>
+<p><code>ruby
+pod 'TensorFlowLiteSwift/Metal', '~&gt; 0.0.1-nightly',</code></p>
+<p>OR</p>
+<p><code>ruby
+pod 'TensorFlowLiteSwift', '~&gt; 0.0.1-nightly', :subspecs =&gt; ['Metal']</code></p>
+<p>You can also use <code>TensorFlowLiteObjC</code> or <code>TensorFlowLiteC</code> if you want to use
+the Objective-C, which is available for versions 2.4.0 and higher, or the C API.</p>
+<p>Note: For TensorFlow Lite versions 2.1.0 to 2.2.0, GPU delegate is <em>included</em> in
+the <code>TensorFlowLiteC</code> pod. You can choose between <code>TensorFlowLiteC</code> and
+<code>TensorFlowLiteSwift</code> depending on what programming language you use.</p>
+<h3>Initialize and use GPU delegate</h3>
+<p>You can use the GPU delegate with the TensorFlow Lite
+<a href="../../api_docs/swift/Classes/Interpreter">Interpreter API</a> with a number of
+programming languages. Swift and Objective-C are recommended, but you can also
+use C++ and C. Using C is required if you are using a version of TensorFlow Lite
+earlier than 2.4. The following code examples outline how to use the delegate
+with each of these languages.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+import TensorFlowLite
+
+// Load model ...
+
+// Initialize TensorFlow Lite interpreter with the GPU delegate.
+let delegate = MetalDelegate()
+if let interpreter = try Interpreter(modelPath: modelPath,
+                                      delegates: [delegate]) {
+  // Run inference ...
+}
+      </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+// Import module when using CocoaPods with module support
+@import TFLTensorFlowLite;
+
+// Or import following headers manually
+#import "tensorflow/lite/objc/apis/TFLMetalDelegate.h"
+#import "tensorflow/lite/objc/apis/TFLTensorFlowLite.h"
+
+// Initialize GPU delegate
+TFLMetalDelegate* metalDelegate = [[TFLMetalDelegate alloc] init];
+
+// Initialize interpreter with model path and GPU delegate
+TFLInterpreterOptions* options = [[TFLInterpreterOptions alloc] init];
+NSError* error = nil;
+TFLInterpreter* interpreter = [[TFLInterpreter alloc]
+                                initWithModelPath:modelPath
+                                          options:options
+                                        delegates:@[ metalDelegate ]
+                                            error:&amp;error];
+if (error != nil) { /* Error handling... */ }
+
+if (![interpreter allocateTensorsWithError:&amp;error]) { /* Error handling... */ }
+if (error != nil) { /* Error handling... */ }
+
+// Run inference ...
+      </pre></p>
+    </section>
+    <section>
+      <h3>C++</h3>
+      <p><pre class="prettyprint lang-cpp">
+// Set up interpreter.
+auto model = FlatBufferModel::BuildFromFile(model_path);
+if (!model) return false;
+tflite::ops::builtin::BuiltinOpResolver op_resolver;
+std::unique_ptr&lt;Interpreter> interpreter;
+InterpreterBuilder(*model, op_resolver)(&interpreter);
+
+// Prepare GPU delegate.
+auto* delegate = TFLGpuDelegateCreate(/*default options=*/nullptr);
+if (interpreter->ModifyGraphWithDelegate(delegate) != kTfLiteOk) return false;
+
+// Run inference.
+WriteToInputTensor(interpreter->typed_input_tensor&lt;float>(0));
+if (interpreter->Invoke() != kTfLiteOk) return false;
+ReadFromOutputTensor(interpreter->typed_output_tensor&lt;float>(0));
+
+// Clean up.
+TFLGpuDelegateDelete(delegate);
+      </pre></p>
+    </section>
+    <section>
+      <h3>C (before 2.4.0)</h3>
+      <p><pre class="prettyprint lang-c">
+#include "tensorflow/lite/c/c_api.h"
+#include "tensorflow/lite/delegates/gpu/metal_delegate.h"
+
+// Initialize model
+TfLiteModel* model = TfLiteModelCreateFromFile(model_path);
+
+// Initialize interpreter with GPU delegate
+TfLiteInterpreterOptions* options = TfLiteInterpreterOptionsCreate();
+TfLiteDelegate* delegate = TFLGPUDelegateCreate(nil);  // default config
+TfLiteInterpreterOptionsAddDelegate(options, metal_delegate);
+TfLiteInterpreter* interpreter = TfLiteInterpreterCreate(model, options);
+TfLiteInterpreterOptionsDelete(options);
+
+TfLiteInterpreterAllocateTensors(interpreter);
+
+NSMutableData *input_data = [NSMutableData dataWithLength:input_size * sizeof(float)];
+NSMutableData *output_data = [NSMutableData dataWithLength:output_size * sizeof(float)];
+TfLiteTensor* input = TfLiteInterpreterGetInputTensor(interpreter, 0);
+const TfLiteTensor* output = TfLiteInterpreterGetOutputTensor(interpreter, 0);
+
+// Run inference
+TfLiteTensorCopyFromBuffer(input, inputData.bytes, inputData.length);
+TfLiteInterpreterInvoke(interpreter);
+TfLiteTensorCopyToBuffer(output, outputData.mutableBytes, outputData.length);
+
+// Clean up
+TfLiteInterpreterDelete(interpreter);
+TFLGpuDelegateDelete(metal_delegate);
+TfLiteModelDelete(model);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<h4>GPU API language use notes</h4>
+<ul>
+<li>TensorFlow Lite versions prior to 2.4.0 can only use the C API for
+    Objective-C.</li>
+<li>The C++ API is only available when you are using bazel or build TensorFlow
+    Lite by yourself. C++ API can't be used with CocoaPods.</li>
+<li>When using TensorFlow Lite with the GPU delegate with C++, get the GPU
+    delegate via the <code>TFLGpuDelegateCreate()</code> function and then pass it to
+    <code>Interpreter::ModifyGraphWithDelegate()</code>, instead of calling
+    <code>Interpreter::AllocateTensors()</code>.</li>
+</ul>
+<h3>Build and test with release mode</h3>
+<p>Change to a release build with the appropriate Metal API accelerator settings to
+get better performance and for final testing. This section explains how to
+enable a release build and configure setting for Metal acceleration.</p>
+<p>Note: These instructions require XCode v10.1 or later.</p>
+<p>To change to a release build:</p>
+<ol>
+<li>Edit the build settings by selecting <strong>Product &gt; Scheme &gt; Edit
+    Scheme...</strong> and then selecting <strong>Run</strong>.</li>
+<li>On the <strong>Info</strong> tab, change <strong>Build Configuration</strong> to <strong>Release</strong> and
+    uncheck <strong>Debug executable</strong>.
+    <img alt="setting up release" src="../../../images/lite/ios/iosdebug.png" /></li>
+<li>Click the <strong>Options</strong> tab and change <strong>GPU Frame Capture</strong> to <strong>Disabled</strong>
+    and <strong>Metal API Validation</strong> to <strong>Disabled</strong>.<br>
+    <img alt="setting up metal options" src="../../../images/lite/ios/iosmetal.png" /></li>
+<li>Make sure to select Release-only builds on 64-bit architecture. Under
+    <strong>Project navigator &gt; tflite_camera_example &gt; PROJECT &gt; your_project_name &gt;
+    Build Settings</strong> set <strong>Build Active Architecture Only &gt; Release</strong> to 
+    <strong>Yes</strong>.
+    <img alt="setting up release options" src="../../../images/lite/ios/iosrelease.png" /></li>
+</ol>
+<h2>Advanced GPU support</h2>
+<p>This section covers advanced uses of the GPU delegate for iOS, including
+delegate options, input and output buffers, and use of quantized models.</p>
+<h3>Delegate Options for iOS</h3>
+<p>The constructor for GPU delegate accepts a <code>struct</code> of options in the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/swift/Sources/MetalDelegate.swift">Swift API</a>,
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/objc/apis/TFLMetalDelegate.h">Objective-C API</a>,
+and
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/gpu/metal_delegate.h">C API</a>.
+Passing <code>nullptr</code> (C API) or nothing (Objective-C and Swift API) to the
+initializer sets the default options (which are explicated in the Basic Usage
+example above).</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+// THIS:
+var options = MetalDelegate.Options()
+options.isPrecisionLossAllowed = false
+options.waitType = .passive
+options.isQuantizationEnabled = true
+let delegate = MetalDelegate(options: options)
+
+// IS THE SAME AS THIS:
+let delegate = MetalDelegate()
+      </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+// THIS:
+TFLMetalDelegateOptions* options = [[TFLMetalDelegateOptions alloc] init];
+options.precisionLossAllowed = false;
+options.waitType = TFLMetalDelegateThreadWaitTypePassive;
+options.quantizationEnabled = true;
+
+TFLMetalDelegate* delegate = [[TFLMetalDelegate alloc] initWithOptions:options];
+
+// IS THE SAME AS THIS:
+TFLMetalDelegate* delegate = [[TFLMetalDelegate alloc] init];
+      </pre></p>
+    </section>
+    <section>
+      <h3>C</h3>
+      <p><pre class="prettyprint lang-c">
+// THIS:
+const TFLGpuDelegateOptions options = {
+  .allow_precision_loss = false,
+  .wait_type = TFLGpuDelegateWaitType::TFLGpuDelegateWaitTypePassive,
+  .enable_quantization = true,
+};
+
+TfLiteDelegate* delegate = TFLGpuDelegateCreate(options);
+
+// IS THE SAME AS THIS:
+TfLiteDelegate* delegate = TFLGpuDelegateCreate(nullptr);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>Tip: While it is convenient to use <code>nullptr</code> or default constructors, you should
+explicitly set the options to avoid any unexpected behavior if default values
+are changed in the future.</p>
+<h3>Input/Output buffers using C++ API</h3>
+<p>Computation on the GPU requires that the data is available to the GPU. This
+requirement often means you must perform a memory copy. You should avoid having
+your data cross the CPU/GPU memory boundary if possible, as this can take up a
+significant amount of time. Usually, such crossing is inevitable, but in some
+special cases, one or the other can be omitted.</p>
+<p>Note: The following technique is only available when you are using Bazel or
+building TensorFlow Lite yourself. C++ API can't be used with CocoaPods.</p>
+<p>If the network's input is an image already loaded in the GPU memory (for
+example, a GPU texture containing the camera feed) it can stay in the GPU memory
+without ever entering the CPU memory. Similarly, if the network's output is in
+the form of a renderable image, such as a
+<a href="https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf">image style transfer</a>
+operation, you can directly display the result on screen.</p>
+<p>To achieve best performance, TensorFlow Lite makes it possible for users to
+directly read from and write to the TensorFlow hardware buffer and bypass
+avoidable memory copies.</p>
+<p>Assuming the image input is in GPU memory, you must first convert it to a
+<code>MTLBuffer</code> object for Metal. You can associate a <code>TfLiteTensor</code> to a
+user-prepared <code>MTLBuffer</code> with the <code>TFLGpuDelegateBindMetalBufferToTensor()</code>
+function. Note that this function <em>must</em> be called after
+<code>Interpreter::ModifyGraphWithDelegate()</code>. Additionally, the inference output is,
+by default, copied from GPU memory to CPU memory. You can turn this behavior off
+by calling <code>Interpreter::SetAllowBufferHandleOutput(true)</code> during
+initialization.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>C++</h3>
+      <p><pre class="prettyprint lang-swift">
+#include "tensorflow/lite/delegates/gpu/metal_delegate.h"
+#include "tensorflow/lite/delegates/gpu/metal_delegate_internal.h"
+
+// ...
+
+// Prepare GPU delegate.
+auto* delegate = TFLGpuDelegateCreate(nullptr);
+
+if (interpreter->ModifyGraphWithDelegate(delegate) != kTfLiteOk) return false;
+
+interpreter->SetAllowBufferHandleOutput(true);  // disable default gpu->cpu copy
+if (!TFLGpuDelegateBindMetalBufferToTensor(
+        delegate, interpreter->inputs()[0], user_provided_input_buffer)) {
+  return false;
+}
+if (!TFLGpuDelegateBindMetalBufferToTensor(
+        delegate, interpreter->outputs()[0], user_provided_output_buffer)) {
+  return false;
+}
+
+// Run inference.
+if (interpreter->Invoke() != kTfLiteOk) return false;
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>Once the default behavior is turned off, copying the inference output from
+GPU memory to CPU memory requires an explicit call to
+<code>Interpreter::EnsureTensorDataIsReadable()</code> for each output tensor.
+This approach also works for quantized models, but you still need to use a
+<strong>float32 sized buffer with float32 data</strong>, because the buffer is bound to the
+internal de-quantized buffer.</p>
+<h3>Quantized models {:#quantized-models}</h3>
+<p>The iOS GPU delegate libraries <em>support quantized models by default</em>. You do not
+need to make any code changes to use quantized models with the GPU delegate.
+The following section explains how to disable quantized support for testing or
+experimental purposes.</p>
+<h4>Disable quantized model support</h4>
+<p>The following code shows how to <strong><em>disable</em></strong> support for quantized models.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Swift</h3>
+      <p><pre class="prettyprint lang-swift">
+    var options = MetalDelegate.Options()
+    options.isQuantizationEnabled = false
+    let delegate = MetalDelegate(options: options)
+      </pre></p>
+    </section>
+    <section>
+      <h3>Objective-C</h3>
+      <p><pre class="prettyprint lang-objc">
+    TFLMetalDelegateOptions* options = [[TFLMetalDelegateOptions alloc] init];
+    options.quantizationEnabled = false;
+      </pre></p>
+    </section>
+    <section>
+      <h3>C</h3>
+      <p><pre class="prettyprint lang-c">
+    TFLGpuDelegateOptions options = TFLGpuDelegateOptionsDefault();
+    options.enable_quantization = false;
+
+    TfLiteDelegate* delegate = TFLGpuDelegateCreate(options);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>For more information about running quantized models with GPU acceleration,
+see <a href="../../performance/gpu#quantized-models">GPU delegate</a> overview.</p>

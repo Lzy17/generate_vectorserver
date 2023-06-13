@@ -1,0 +1,45 @@
+<h2>TFSA-2020-032: Heap out of bounds read in filesystem glob matching</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-26269</p>
+<h3>Impact</h3>
+<p>The general implementation for matching filesystem paths to globbing pattern is
+vulnerable to an access out of bounds of <a href="https://github.com/tensorflow/tensorflow/blob/458c6260265c46ebaf18052d6c61aea4b6b40926/tensorflow/core/platform/file_system_helper.cc#L127">the array holding the
+directories</a>:</p>
+<p><code>cc
+if (!fs-&gt;Match(child_path, dirs[dir_index])) { ... }</code></p>
+<p>Since <code>dir_index</code> is <a href="https://github.com/tensorflow/tensorflow/blob/458c6260265c46ebaf18052d6c61aea4b6b40926/tensorflow/core/platform/file_system_helper.cc#L106">unconditionaly
+incremented</a>
+outside of the lambda function where the vulnerable pattern occurs, this results
+in an access out of bounds issue under certain scenarios. For example, if
+<code>/tmp/x</code> is a directory that only contains a single file <code>y</code>, then the following
+snippet will cause a crash due to the out of bounds read:</p>
+<p>```python</p>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>tf.io.gfile.glob('/tmp/x/')
+Segmentation fault
+```</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>There are multiple invariants and preconditions that are assumed by the parallel
+implementation of <code>GetMatchingPaths</code> but are not verified by the PRs introducing
+it (<a href="https://github.com/tensorflow/tensorflow/pull/40861">#40861</a> and
+<a href="https://github.com/tensorflow/tensorflow/pull/44310">#44310</a>). Thus, we are
+completely rewriting the implementation to fully specify and validate these.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/8b5b9dc96666a3a5d27fad7179ff215e3b74b67c">8b5b9dc96666a3a5d27fad7179ff215e3b74b67c</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<p>This issue only impacts master branch and the release candidates for TF version
+2.4. The final release of the 2.4 release will be patched.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

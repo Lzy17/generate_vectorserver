@@ -1,0 +1,41 @@
+<h1>Troubleshooting</h1>
+<p><strong>Q: What do I do if I get this error when trying to run PyTorch:</strong></p>
+<p><code>bash
+hipErrorNoBinaryForGPU: Unable to find code object for all current devices!</code></p>
+<p>Ans: The error denotes that the installation of PyTorch and/or other
+dependencies or libraries do not support the current GPU.</p>
+<p><strong>Workaround:</strong></p>
+<p>To implement a workaround, follow these steps:</p>
+<ol>
+<li>
+<p>Confirm that the hardware supports the ROCm stack. Refer to
+{ref}<code>supported_gpus</code>.</p>
+</li>
+<li>
+<p>Determine the gfx target.</p>
+<p><code>bash
+rocminfo | grep gfx</code></p>
+</li>
+<li>
+<p>Check if PyTorch is compiled with the correct gfx target.</p>
+<p><code>bash
+TORCHDIR=$( dirname $( python3 -c 'import torch; print(torch.__file__)' ) )
+roc-obj-ls -v $TORCHDIR/lib/libtorch_hip.so # check for gfx target</code></p>
+</li>
+</ol>
+<p>:::{note}
+    Recompile PyTorch with the right gfx target if compiling from the source if
+    the hardware is not supported. For wheels or Docker installation, contact
+    ROCm support [^ROCm_issues].
+:::</p>
+<p><strong>Q: Why am I unable to access Docker or GPU in user accounts?</strong></p>
+<p>Ans: Ensure that the user is added to docker, video, and render Linux groups as
+described in the ROCm Installation Guide at {ref}<code>setting_group_permissions</code>.</p>
+<p><strong>Q: Can I install PyTorch directly on bare metal?</strong></p>
+<p>Ans: Bare-metal installation of PyTorch is supported through wheels. Refer to
+Option 2: Install PyTorch Using Wheels Package in the section
+{ref}<code>install_pytorch_using_wheels</code> of this guide for more information.</p>
+<p><strong>Q: How do I profile PyTorch workloads?</strong></p>
+<p>Ans: Use the PyTorch Profiler to profile GPU kernels on ROCm.</p>
+<hr />
+<p>[^ROCm_issues]: AMD, "ROCm issues," [Online]. Available: <a href="https://github.com/RadeonOpenCompute/ROCm/issues">https://github.com/RadeonOpenCompute/ROCm/issues</a></p>

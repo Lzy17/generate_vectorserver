@@ -1,0 +1,64 @@
+<h1>Build TensorFlow Lite Python Wheel Package</h1>
+<p>This page describes how to build the TensorFlow Lite <code>tflite_runtime</code> Python
+library for x86_64 and various ARM devices.</p>
+<p>The following instructions have been tested on Ubuntu 16.04.3 64-bit PC (AMD64)
+, macOS Catalina (x86_64) and TensorFlow devel Docker image
+<a href="https://hub.docker.com/r/tensorflow/tensorflow/tags/">tensorflow/tensorflow:devel</a>.</p>
+<p><strong>Note:</strong> This feature is available since version 2.4.</p>
+<h4>Prerequisites</h4>
+<p>You need CMake installed and a copy of the TensorFlow source code. Please check
+<a href="https://www.tensorflow.org/lite/guide/build_cmake">Build TensorFlow Lite with CMake</a>
+page for the details.</p>
+<p>To build the PIP package for your workstation, you can run the following
+commands.</p>
+<p><code>sh
+PYTHON=python3 tensorflow/lite/tools/pip_package/build_pip_package_with_cmake.sh native</code></p>
+<p><strong>Note:</strong> If you have multiple Python interpreters available, specify the exact
+Python version with <code>PYTHON</code> variable. (Currently, it supports Python 3.7 or
+higher)</p>
+<h2>ARM cross compilation</h2>
+<p>For ARM cross compilation, it's recommended to use Docker since it makes easier
+to setup cross build environment. Also you needs a <code>target</code> option to figure out
+the target architecture.</p>
+<p>There is a helper tool in Makefile <code>tensorflow/lite/tools/pip_package/Makefile</code>
+available to invoke a build command using a pre-defined Docker container. On a
+Docker host machine, you can run a build command as followings.</p>
+<p><code>sh
+make -C tensorflow/lite/tools/pip_package docker-build \
+  TENSORFLOW_TARGET=&lt;target&gt; PYTHON_VERSION=&lt;python3 version&gt;</code></p>
+<p><strong>Note:</strong> Python version 3.7 or higher is supported.</p>
+<h3>Available target names</h3>
+<p><code>tensorflow/lite/tools/pip_package/build_pip_package_with_cmake.sh</code> script needs
+a target name to figure out target architecture. Here is the list of supported
+targets.</p>
+<p>Target    | Target architecture  | Comments
+--------- | -------------------- | --------
+armhf     | ARMv7 VFP with Neon  | Compatible with Raspberry Pi 3 and 4
+rpi0      | ARMv6                | Compatible with Raspberry Pi Zero
+aarch64   | aarch64 (ARM 64-bit) | <a href="https://coral.ai/">Coral Mendel Linux 4.0</a> <br/> Raspberry Pi with <a href="https://ubuntu.com/download/raspberry-pi">Ubuntu Server 20.04.01 LTS 64-bit</a>
+native    | Your workstation     | It builds with "-mnative" optimization
+<default> | Your workstation     | Default target</p>
+<h3>Build examples</h3>
+<p>Here are some example commands you can use.</p>
+<h4>armhf target for Python 3.7</h4>
+<p><code>sh
+make -C tensorflow/lite/tools/pip_package docker-build \
+  TENSORFLOW_TARGET=armhf PYTHON_VERSION=3.7</code></p>
+<h4>aarch64 target for Python 3.8</h4>
+<p><code>sh
+make -C tensorflow/lite/tools/pip_package docker-build \
+  TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.8</code></p>
+<h4>How to use a custom toolchain?</h4>
+<p>If the generated binaries are not compatible with your target, you need to use
+your own toolchain or provide custom build flags. (Check
+<a href="https://www.tensorflow.org/lite/guide/build_cmake_arm#check_your_target_environment">this</a>
+to understand your target environment) In that case, you need to modify
+<code>tensorflow/lite/tools/cmake/download_toolchains.sh</code> to use your own toolchain.
+The toolchain script defines the following two variables for the
+<code>build_pip_package_with_cmake.sh</code> script.</p>
+<p>Variable       | Purpose                  | example
+-------------- | ------------------------ | -------------------------------
+<code>ARMCC_PREFIX</code> | defines toolchain prefix | arm-linux-gnueabihf-
+<code>ARMCC_FLAGS</code>  | compilation flags        | -march=armv7-a -mfpu=neon-vfpv4</p>
+<p><strong>Note:</strong> <code>ARMCC_FLAGS</code> might need to contain Python library include path. See
+the <code>download_toolchains.sh</code> for the reference.</p>

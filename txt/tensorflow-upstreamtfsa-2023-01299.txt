@@ -1,0 +1,15 @@
+<h2>TFSA-2023-012: NPE in TensorArrayConcatV2</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25663</p>
+<h3>Impact</h3>
+<p>When ctx-&gt;step_containter() is a null ptr, the Lookup function will be executed with a null pointer.
+<code>python
+import tensorflow as tf
+tf.raw_ops.TensorArrayConcatV2(handle=['a', 'b'], flow_in = 0.1, dtype=tf.int32, element_shape_except0=1)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/239139d2ae6a81ae9ba499ad78b56d9b2931538a">239139d2ae6a81ae9ba499ad78b56d9b2931538a</a>.</p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian</p>

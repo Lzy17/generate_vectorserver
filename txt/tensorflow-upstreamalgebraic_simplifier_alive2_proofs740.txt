@@ -1,0 +1,90 @@
+<h1>Proofs for TryRemoveUpcastAndDowncastSurroundingBinaryOp</h1>
+<p>We want to verify for which types and ops the operation
+<code>upcasting_convert -&gt; binary_op -&gt; downcasting_convert</code> is equivalent to
+<code>binary_op</code> in the original precision.</p>
+<p>XLA types analyzed:
+ - s8
+ - s16
+ - s32
+ - s64
+ - u8
+ - u16
+ - u32
+ - u64</p>
+<p>Binary ops:
+- Add
+- Subtract
+- Multiply
+- Divide
+- Remainder</p>
+<h2>Integer Tests</h2>
+<p>For integers, we verified using <a href="https://alive2.llvm.org/ce/">Alive2</a>. Tests
+were only done with types <code>i8</code>-&gt;<code>i16</code>-&gt;<code>i8</code>; this should generalize to other
+integer types. For integer tests, the online version of the tool was sufficient.</p>
+<h3>Add/Sub/Mul</h3>
+<p>Below is a test for signed integer addition. To test signed and unsigned, I
+changed <code>sext</code> to <code>zext</code>. For subtraction and multiplication, I replaced the
+<code>add</code> with <code>sub</code> or <code>mul</code> respectively. All of these show that these
+transformations are safe. I did not use <code>nsw</code> or <code>nuw</code> because we do not use
+them in XLA. In XLA, when creating add/sub/mul, we pass no additional arguments
+apart from rhs and lhs, which means that nsw and nuw are false.</p>
+<p>```
+define i8 @src(i8, i8) {
+  %cast1 = sext i8 %0 to i16
+  %cast2 = sext i8 %1 to i16
+  %sum = add i16 %cast1, %cast2
+  %trunc = trunc i16 %sum to i8
+  ret i8 %trunc
+}</p>
+<p>define i8 @tgt(i8, i8) {
+  %r = add i8 %0, %1
+  ret i8 %r
+}
+```</p>
+<h3>Div</h3>
+<p>Only unsigned division is safe, there can be overflow in signed integer
+division. This test shows that it “seems to be correct” for unsigned integers.</p>
+<p>```
+define i8 @src(i8, i8) {
+  %cast1 = zext i8 %0 to i16
+  %cast2 = zext i8 %1 to i16
+  %sum = udiv i16 %cast1, %cast2
+  %trunc = trunc i16 %sum to i8
+  ret i8 %trunc
+}</p>
+<p>define i8 @tgt(i8, i8) {
+  %r = udiv i8 %0, %1
+  ret i8 %r
+}
+```</p>
+<h3>Remainder</h3>
+<p>Similarly for the remainder op, unsigned is safe and signed is not safe. This
+test shows that it “seems to be correct” for unsigned integers.</p>
+<p>```
+define i8 @src(i8, i8) {
+  %cast1 = zext i8 %0 to i16
+  %cast2 = zext i8 %1 to i16
+  %sum = urem i16 %cast1, %cast2
+  %trunc = trunc i16 %sum to i8
+  ret i8 %trunc
+}</p>
+<p>define i8 @tgt(i8, i8) {
+  %r = urem i8 %0, %1
+  ret i8 %r
+}
+```</p>
+<h2>Next Steps</h2>
+<p>Assess the validity of floating point and complex types for these
+transformations.</p>
+<h3>Floating Point Tests</h3>
+<p>Floating point tests timeout on the online Alive2 tool. Cloning, building, and
+running the tool locally without timeout on the below test has taken at least
+10,000 minutes without finishing:</p>
+<p><code>%cast1 = fpext half %0 to float
+  %cast2 = fpext half %1 to float
+  %sum = fadd float %cast1, %cast2
+  %trunc = fptrunc float %sum to half
+  ret half %trunc
+=&gt;
+  %r = fadd half %0, %1
+  ret half %r</code></p>

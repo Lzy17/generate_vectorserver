@@ -1,0 +1,209 @@
+<h1>GPU delegates for TensorFlow Lite</h1>
+<p>Using graphics processing units (GPUs) to run your machine learning (ML) models
+can dramatically improve the performance of your model and the user experience
+of your ML-enabled applications. TensorFlow Lite enables the use of GPUs and
+other specialized processors through hardware driver called
+<a href="./delegates"><em>delegates</em></a>. Enabling use of GPUs with your TensorFlow Lite ML
+applications can provide the following benefits:</p>
+<ul>
+<li><strong>Speed</strong> - GPUs are built for high throughput of massively parallel
+    workloads. This design makes them well-suited for deep neural nets, which
+    consist of a huge number of operators, each working on input tensors that
+    can be processed in parallel, which typically results in lower latency. In
+    the best scenario, running your model on a GPU may run fast enough to enable
+    real-time applications that were not previously possible.</li>
+<li><strong>Power efficiency</strong> - GPUs carry out ML computations in a very efficient
+    and optimized manner, typically consuming less power and generating less
+    heat than the same task running on CPUs.</li>
+</ul>
+<p>This document provides an overview of GPUs support in TensorFlow Lite, and some
+advanced uses for GPU processors. For more specific information about
+implementing GPU support on specific platforms, see the following guides:</p>
+<ul>
+<li><a href="../android/delegates/gpu">GPU support for Android</a></li>
+<li><a href="../ios/delegates/gpu">GPU support for iOS</a></li>
+</ul>
+<h2>GPU ML operations support {:#supported_ops}</h2>
+<p>There are some limitations to what TensorFlow ML operations, or <em>ops</em>, can be
+accelerated by the TensorFlow Lite GPU delegate. The delegate supports the
+following ops in 16-bit and 32-bit float precision:</p>
+<ul>
+<li><code>ADD</code></li>
+<li><code>AVERAGE_POOL_2D</code></li>
+<li><code>CONCATENATION</code></li>
+<li><code>CONV_2D</code></li>
+<li><code>DEPTHWISE_CONV_2D v1-2</code></li>
+<li><code>EXP</code></li>
+<li><code>FULLY_CONNECTED</code></li>
+<li><code>LOGICAL_AND</code></li>
+<li><code>LOGISTIC</code></li>
+<li><code>LSTM v2 (Basic LSTM only)</code></li>
+<li><code>MAX_POOL_2D</code></li>
+<li><code>MAXIMUM</code></li>
+<li><code>MINIMUM</code></li>
+<li><code>MUL</code></li>
+<li><code>PAD</code></li>
+<li><code>PRELU</code></li>
+<li><code>RELU</code></li>
+<li><code>RELU6</code></li>
+<li><code>RESHAPE</code></li>
+<li><code>RESIZE_BILINEAR v1-3</code></li>
+<li><code>SOFTMAX</code></li>
+<li><code>STRIDED_SLICE</code></li>
+<li><code>SUB</code></li>
+<li><code>TRANSPOSE_CONV</code></li>
+</ul>
+<p>By default, all ops are only supported at version 1. Enabling the
+<a href="#quantized-models">quantization support</a> enables the appropriate versions, for
+example, ADD v2.</p>
+<h3>Troubleshooting GPU support</h3>
+<p>If some of the ops are not supported by the GPU delegate, the framework will
+only run a part of the graph on the GPU and the remaining part on the CPU. Due
+to the high cost of CPU/GPU synchronization, a split execution mode like this
+often results in slower performance than when the whole network is run on
+the CPU alone. In this case, the application generates warning, such as:</p>
+<p><code>none
+WARNING: op code #42 cannot be handled by this delegate.</code></p>
+<p>There is no callback for failures of this type, since this is not an actual
+run-time failure. When testing execution of your model with the GPU delegate,
+you should be alert for these warnings. A high number of these warnings can
+indicate that your model is not the best fit for use for GPU acceleration, and
+may require refactoring of the model.</p>
+<h2>Example models</h2>
+<p>The following example models are built to take advantage GPU acceleration with
+TensorFlow Lite and are provided for reference and testing:</p>
+<ul>
+<li><a href="https://ai.googleblog.com/2017/06/mobilenets-open-source-models-for.html">MobileNet v1 (224x224) image classification</a> -
+    An image classification model designed for mobile and embedded based vision
+    applications.
+    (<a href="https://tfhub.dev/google/imagenet/mobilenet_v1_100_224/classification/5">model</a>)</li>
+<li><a href="https://ai.googleblog.com/2018/03/semantic-image-segmentation-with.html">DeepLab segmentation (257x257)</a> -
+    image segmentation model that assigns semantic labels, such as a dog, cat,
+    car, to every pixel in the input image.
+    (<a href="https://tfhub.dev/tensorflow/lite-model/deeplabv3/1/default/1">model</a>)</li>
+<li><a href="https://ai.googleblog.com/2018/07/accelerated-training-and-inference-with.html">MobileNet SSD object detection</a> -
+    An image classification model that detects multiple objects with bounding
+    boxes.
+    (<a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/mobile_ssd_v2_float_coco.tflite">model</a>)</li>
+<li><a href="https://github.com/tensorflow/tfjs-models/tree/master/pose-detection">PoseNet for pose estimation</a> -
+    A vision model that estimates the poses of people in image or video.
+    (<a href="https://tfhub.dev/tensorflow/lite-model/posenet/mobilenet/float/075/1/default/1">model</a>)</li>
+</ul>
+<h2>Optimizing for GPUs</h2>
+<p>The following techniques can help you get better performance when running
+models on GPU hardware using the TensorFlow Lite GPU delegate:</p>
+<ul>
+<li>
+<p><strong>Reshape operations</strong> - Some operations that are quick on a CPU may have a
+    high cost for the GPU on mobile devices. Reshape operations are particularly
+    expensive to run, including <code>BATCH_TO_SPACE</code>, <code>SPACE_TO_BATCH</code>,
+    <code>SPACE_TO_DEPTH</code>, and so forth. You should closely examine use of reshape
+    operations, and consider that may have been applied only for exploring data
+    or for early iterations of your model. Removing them can significantly
+    improve performance.</p>
+</li>
+<li>
+<p><strong>Image data channels</strong> - On GPU, tensor data is sliced into 4-channels, and
+    so a computation on a tensor with the shape <code>[B,H,W,5]</code> performs about the
+    same on a tensor of shape <code>[B,H,W,8]</code>, but significantly worse than
+    <code>[B,H,W,4]</code>. If the camera hardware you are using supports image frames in
+    RGBA, feeding that 4-channel input is significantly faster, since it avoids
+    a memory copy from 3-channel RGB to 4-channel RGBX.</p>
+</li>
+<li>
+<p><strong>Mobile-optimized models</strong> - For best performance, you should consider
+    retraining your classifier with a mobile-optimized network architecture.
+    Optimization for on-device inferencing can dramatically reduce latency and
+    power consumption by taking advantage of mobile hardware features.</p>
+</li>
+</ul>
+<h2>Advanced GPU support</h2>
+<p>You can use additional, advanced techniques with GPU processing to enable even
+better performance for your models, including quantization and serialization.
+The following sections describe these techniques in further detail.</p>
+<h3>Using quantized models {:#quantized-models}</h3>
+<p>This section explains how the GPU delegate accelerates 8-bit quantized models,
+including the following:</p>
+<ul>
+<li>Models trained with
+    <a href="https://www.tensorflow.org/model_optimization/guide/quantization/training">Quantization-aware training</a></li>
+<li>Post-training <a href="https://www.tensorflow.org/lite/performance/post_training_quant">dynamic-range quantization</a></li>
+<li>Post-training <a href="https://www.tensorflow.org/lite/performance/post_training_integer_quant">full-integer quantization</a></li>
+</ul>
+<p>To optimize performance, use models that have both floating-point input and
+output tensors.</p>
+<h4>How does this work?</h4>
+<p>Since the GPU backend only supports floating-point execution, we run quantized
+models by giving it a ‘floating-point view’ of the original model. At a
+high-level, this entails the following steps:</p>
+<ul>
+<li>
+<p><em>Constant tensors</em> (such as weights/biases) are de-quantized once into the
+    GPU memory. This operation happens when the delegate is enabled for
+    TensorFlow Lite.</p>
+</li>
+<li>
+<p><em>Inputs and outputs</em> to the GPU program, if 8-bit quantized, are
+    de-quantized and quantized (respectively) for each inference. This operation
+    is done on the CPU using TensorFlow Lite’s optimized kernels.</p>
+</li>
+<li>
+<p><em>Quantization simulators</em> are inserted between operations to mimic quantized
+    behavior. This approach is necessary for models where ops expect activations
+    to follow bounds learnt during quantization.</p>
+</li>
+</ul>
+<p>For information about enabling this feature with the GPU delegate, see the
+following:</p>
+<ul>
+<li>Using <a href="../android/delegates/gpu#quantized-models">quantized models with GPU on Android</a></li>
+<li>Using <a href="../ios/delegates/gpu#quantized-models">quantized models with GPU on iOS</a></li>
+</ul>
+<h3>Reducing initialization time with serialization {:#delegate_serialization}</h3>
+<p>The GPU delegate feature allows you to load from pre-compiled kernel code and
+model data serialized and saved on disk from previous runs. This approach avoids
+re-compilation and can reduce startup time by up to 90%. This improvement is
+achieved by exchanging disk space for time savings. You can enable this feature
+with a few configurations options, as shown in the following code examples:</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>C++</h3>
+      <p><pre class="prettyprint lang-cpp">
+    TfLiteGpuDelegateOptionsV2 options = TfLiteGpuDelegateOptionsV2Default();
+    options.experimental_flags |= TFLITE_GPU_EXPERIMENTAL_FLAGS_ENABLE_SERIALIZATION;
+    options.serialization_dir = kTmpDir;
+    options.model_token = kModelToken;
+
+    auto* delegate = TfLiteGpuDelegateV2Create(options);
+    if (interpreter->ModifyGraphWithDelegate(delegate) != kTfLiteOk) return false;
+      </pre></p>
+    </section>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+    GpuDelegate delegate = new GpuDelegate(
+      new GpuDelegate.Options().setSerializationParams(
+        /* serializationDir= */ serializationDir,
+        /* modelToken= */ modelToken));
+
+    Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>When using the serialization feature, make sure your code complies with these
+implementation rules:</p>
+<ul>
+<li>Store the serialization data in a directory that is not accessible to other
+    apps. On Android devices, use
+    <a href="https://developer.android.com/reference/android/content/Context#getCacheDir()"><code>getCodeCacheDir()</code></a>
+    which points to a location that is private to the current application.</li>
+<li>The model token must be unique to the device for the specific model. You can
+    compute a model token by generating a fingerprint from the model data
+    using libraries such as
+    <a href="https://github.com/google/farmhash"><code>farmhash::Fingerprint64</code></a>.</li>
+</ul>
+<p>Note: Use of this serialization feature requires the
+<a href="https://github.com/KhronosGroup/OpenCL-SDK">OpenCL SDK</a>.</p>

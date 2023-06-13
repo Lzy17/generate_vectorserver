@@ -1,0 +1,277 @@
+<h2>Command Line Interface Tutorials</h2>
+<ul>
+<li><a href="#command-line-inputs">Command Line Inputs</a></li>
+<li><a href="#start-tfprof">Start <code>tfprof</code></a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#profile-python-time">Profile Python Time</a></li>
+<li><a href="#profile-graph-time">Profile Graph Time</a></li>
+<li><a href="#profile-checkpoint-value">Profile Checkpoint Value</a></li>
+<li><a href="#profile-model-parameter">Profile Model Parameter</a></li>
+<li><a href="#profile-device-placement">Profile Device Placement</a></li>
+<li><a href="#define-customized-operation-type">Define Customized Operation Type</a></li>
+<li><a href="#non-interactive-mode">Non-interactive Mode</a></li>
+</ul>
+<h3>Command Line Inputs</h3>
+<p>tfprof command line tool uses the following input:</p>
+<p><b>--profile_path:</b> A ProfileProto binary proto file.
+See QuickStart on generating the file.</p>
+<p><b>THE OLD WAY BELOW IS DEPRECATED:</b></p>
+<p><b>--graph_path:</b> GraphDef proto file (optional in eager execution).
+Used to build in-memory
+data structure of the model. For example, graph.pbtxt written by tf.Supervisor
+can be passed to --graph_path. You can also easily get GraphDef using
+tf.get_default_graph().as_graph_def(add_shapes=True) or other API.</p>
+<p><b>--run_meta_path:</b> RunMetadata proto file (optional).
+Used to get the memory consumption and execution time of
+each op of the model.</p>
+<p>The following code snippet writes a RunMetadata file:</p>
+<p><code>python
+run_options = config_pb2.RunOptions(trace_level=config_pb2.RunOptions.FULL_TRACE)
+run_metadata = config_pb2.RunMetadata()
+_ = self._sess.run(..., options=run_options, run_metadata=run_metadata)
+with tf.gfile.Open(os.path.join(output_dir, "run_meta"), "w") as f:
+  f.write(run_metadata.SerializeToString())</code></p>
+<p><b>--op_log_path:</b>
+tensorflow.tfprof.OpLogProto (optional). A proto used to provide extra operation
+information. 1) float operations. 2) code traces. 3) define customized operation
+type for <code>-account_type_regexes</code> option.</p>
+<p>The following code snippet writes a OpLogProto file.</p>
+<p><code>python
+tf.profiler.write_op_log(graph, log_dir, op_log=None)</code></p>
+<p><b>--checkpoint_path:</b> TensorFlow checkpoint (optional).
+It defines _checkpoint_variable op type. It also provides checkpointed tensors' values.
+Note: this feature is not well maintained now.</p>
+<h3>Start <code>tfprof</code></h3>
+<h4>Build <code>tfprof</code></h4>
+<p>```shell</p>
+<h1>Build the tool.</h1>
+<p>bazel build --config opt tensorflow/core/profiler:profiler</p>
+<h1>Help information, including detail 'option' instructions.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler help
+```</p>
+<h4>Start <code>tfprof</code> Interactive Mode</h4>
+<p>```shell</p>
+<h1>The following commands will start tfprof interactive mode.</h1>
+<h1></h1>
+<h1>Recommended:</h1>
+<h1></h1>
+<h1>The file contains the binary string of ProfileProto.</h1>
+<h1>It contains all needed information in one file.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --profile_path=profile_xxx</p>
+<h1></h1>
+<h1>Alternatively, user can pass separate files.</h1>
+<h1></h1>
+<h1>--graph_path contains the model architecture and tensor shapes.</h1>
+<h1>--run_meta_path contains the memory and time information.</h1>
+<h1>--op_log_path contains float operation and code traces.</h1>
+<h1>--checkpoint_path contains the model checkpoint data.</h1>
+<h1></h1>
+<h1>Only includes model architecture, parameters and shapes.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --graph_path=graph.pbtxt</p>
+<h1>For profiling eager execution, user can only specify run_meta_path</h1>
+<h1>and profile execution info of each operation.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --run_meta_path=run_meta</p>
+<h1></h1>
+<h1>Additionally profile ops memory and timing.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --graph_path=graph.pbtxt \
+    --run_meta_path=run_meta \</p>
+<h1></h1>
+<h1>tfprof_log is used to define customized op types, float ops and code traces.</h1>
+<h1>Use tfprof_logger.write_op_log() to create tfprof_log.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --graph_path=graph.pbtxt \
+    --run_meta_path=run_meta \
+    --op_log_path=tfprof_log \</p>
+<h1></h1>
+<h1>Additionally profile checkpoint statistics and values.</h1>
+<h1>Use '-account_type_regexes _checkpoint_variables' to select</h1>
+<h1>checkpoint tensors.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler \
+    --graph_path=graph.pbtxt \
+    --run_meta_path=run_meta \
+    --op_log_path=tfprof_log \
+    --checkpoint_path=model.ckpt
+```</p>
+<h4>Start <code>tfprof</code> Non-interactive Mode.</h4>
+<p>```python</p>
+<h1>Runs tfprof in one-shot.</h1>
+<p>bazel-bin/tensorflow/core/profiler/profiler scope \
+    --graph_path=graph.pbtxt \
+    --max_depth=3
+```</p>
+<h4>Press enter to show the default options</h4>
+<p>Refer to <a href="options.md">Options</a> for option instructions.</p>
+<p>```shell
+tfprof&gt;
+-max_depth                  4
+-min_bytes                  0
+-min_micros                 0
+-min_params                 0
+-min_float_ops              0
+-min_occurrence             0
+-step                       -1
+-order_by                   name
+-account_type_regexes       Variable,VariableV2
+-start_name_regexes         .<em>
+-trim_name_regexes
+-show_name_regexes          .</em>
+-hide_name_regexes          IsVariableInitialized_[0-9]+,save\/.<em>,^zeros[0-9_]</em>
+-account_displayed_op_only  false</p>
+<h1>supported select fields. Availability depends on --[run_meta|checkpoint|op_log]_path.</h1>
+<h1>[bytes|micros|params|float_ops|occurrence|tensor_value|device|op_types]</h1>
+<p>-select                     params</p>
+<h1>format: output_type:key=value,key=value...</h1>
+<h1>output_types: stdout (default), timeline, file.</h1>
+<h1>key=value pairs:</h1>
+<h1>1. timeline: outfile=<filename></h1>
+<h1>2. file: outfile=<filename></h1>
+<h1>3. stdout: None.</h1>
+<h1>E.g. timeline:outfile=/tmp/timeline.json</h1>
+<p>-output
+```</p>
+<h3>Examples</h3>
+<h4>Profile Python Time</h4>
+<p>```shell</p>
+<h1>Requires --graph_path --op_log_path</h1>
+<p>tfprof&gt; code -max_depth 1000 -show_name_regexes .<em>model_analyzer.</em>py.<em> -select micros -account_type_regexes .</em> -order_by micros
+<em>TFProfRoot (0us/22.44ms)
+  model_analyzer_test.py:149:run_filename_as_m...:none (0us/22.44ms)
+    model_analyzer_test.py:33:_run_code_in_main:none (0us/22.44ms)
+      model_analyzer_test.py:208:<module>:test.main() (0us/22.44ms)
+        model_analyzer_test.py:132:testComplexCodeView:x = lib.BuildFull... (0us/22.44ms)
+          model_analyzer_testlib.py:63:BuildFullModel:return sgd_op.min... (0us/21.83ms)
+          model_analyzer_testlib.py:58:BuildFullModel:cell, array_ops.c... (0us/333us)
+          model_analyzer_testlib.py:54:BuildFullModel:seq.append(array</em>... (0us/254us)
+            model_analyzer_testlib.py:42:BuildSmallModel:x = nn_ops.conv2d... (0us/134us)
+            model_analyzer_testlib.py:46:BuildSmallModel:initializer=init_... (0us/40us)
+            ...
+          model_analyzer_testlib.py:61:BuildFullModel:loss = nn_ops.l2_... (0us/28us)
+          model_analyzer_testlib.py:60:BuildFullModel:target = array_op... (0us/0us)
+        model_analyzer_test.py:134:testComplexCodeView:sess.run(variable... (0us/0us)
+```</p>
+<p>Set <code>-output timeline:outfile=&lt;filename&gt;</code> to generate timeline instead of stdout.
+<left>
+<img alt="CodeTimeline" src="code_timeline.png" />
+</left></p>
+<h4>Profile Graph Time</h4>
+<p>```shell</p>
+<h1>I defined an op named ‘cost’ to calculate the loss. I want to know what ops</h1>
+<h1>it depends on take a long time to run.</h1>
+<h1>Requires --graph_path, --run_meta_path.</h1>
+<p>tfprof&gt; graph -start_name_regexes cost.<em> -max_depth 100 -min_micros 10000 -select micros -account_type_regexes .</em>
+_TFProfRoot (0us/3.61sec)
+  init/init_conv/Conv2D (11.75ms/3.10sec)
+    random_shuffle_queue_DequeueMany (3.09sec/3.09sec)
+  unit_1_0/sub2/conv2/Conv2D (74.14ms/3.19sec)
+  unit_1_3/sub2/conv2/Conv2D (60.75ms/3.34sec)
+  unit_2_4/sub2/conv2/Conv2D (73.58ms/3.54sec)
+  unit_3_3/sub2/conv2/Conv2D (10.26ms/3.60sec)
+```</p>
+<h4>Profile Checkpoint Value</h4>
+<p>```shell</p>
+<h1>Requires --graph_path, --checkpoint_path.</h1>
+<p>tfprof&gt; scope -show_name_regexes unit_1_0.*gamma -select tensor_value -max_depth 5
+_TFProfRoot ()
+  unit_1_0/shared_activation/init_bn/gamma ()
+[1.80 2.10 2.06 1.91 2.26 1.86 1.81 1.37 1.78 1.85 1.96 1.54 2.04 2.34 2.22 1.99 ],
+  unit_1_0/sub2/bn2/gamma ()
+[1.57 1.83 1.30 1.25 1.59 1.14 1.26 0.82 1.19 1.10 1.48 1.01 0.82 1.23 1.21 1.14 ],
+```</p>
+<h4>Profile Model Parameter</h4>
+<p>```shell</p>
+<h1>Show the number of parameters of all <code>tf.trainable_variables()</code> in the model.</h1>
+<h1>Requires --graph_path --op_log_path.</h1>
+<h1>store option for future commands.</h1>
+<p>tfprof&gt; set -account_type_regexes _trainable_variables
+tfprof&gt; scope -max_depth 4 -select params
+_TFProfRoot (--/464.15k params)
+  init/init_conv/DW (3x3x3x16, 432/432 params)
+  pool_logit/DW (64x10, 640/640 params)
+  pool_logit/biases (10, 10/10 params)
+  unit_last/final_bn/beta (64, 64/64 params)
+  unit_last/final_bn/gamma (64, 64/64 params)
+```</p>
+<p>Where does <code>_trainable_variables</code> come from? It is customized operation type
+defined through the OpLogProto file.
+Users can <a href="#define-customized-operation-type">Define Customized Operation Type</a></p>
+<p><b>Following example shows importance of defining customized operation type.</b>
+In this example, extra <code>Variables</code> are created by TensorFlow
+implicitly and “/Momentum” is appended to their names. They shouldn't be
+included in you “model capacity” calculation.</p>
+<p><code>shell
+tfprof&gt; scope -account_type_regexes VariableV2 -max_depth 4 -select params
+_TFProfRoot (--/930.58k params)
+  global_step (1/1 params)
+  init/init_conv/DW (3x3x3x16, 432/864 params)
+  pool_logit/DW (64x10, 640/1.28k params)
+    pool_logit/DW/Momentum (64x10, 640/640 params)
+  pool_logit/biases (10, 10/20 params)
+    pool_logit/biases/Momentum (10, 10/10 params)
+  unit_last/final_bn/beta (64, 64/128 params)
+  unit_last/final_bn/gamma (64, 64/128 params)
+  unit_last/final_bn/moving_mean (64, 64/64 params)
+  unit_last/final_bn/moving_variance (64, 64/64 params)</code></p>
+<h4>Profile Device Placement</h4>
+<p>In this tutorial, a model is split
+on several gpus at workers and several parameter servers.</p>
+<p>In tfprof, 'device' is an op_type. For example, if op1 and op2 are placed on
+gpu:0. They share an operation type.</p>
+<p>```shell
+bazel-bin/tensorflow/core/profiler/profiler \
+  --graph_path=/tmp/graph.pbtxt  \
+  --run_meta_path=/tmp/run_meta</p>
+<h1>Looks like ps task 1 is holding twice more parameters than task 0.</h1>
+<p>tfprof&gt; scope -select device,params -account_type_regexes .<em>ps.</em>task:0.<em> -max_depth 1
+_TFProfRoot (--/25.81m params)
+tfprof&gt; scope -select device,params -account_type_regexes .</em>ps.<em>task:1.</em> -max_depth 1
+_TFProfRoot (--/58.84m params)
+```</p>
+<h4>Define Customized Operation Type</h4>
+<p>First, in Python code, create an <code>OpLogProto</code> proto and add op type
+information to it:</p>
+<p><code>python
+op_log = tfprof_log_pb2.OpLogProto()
+entry = op_log.log_entries.add()
+entry.name = 'pool_logit/DW'
+entry.types.append('pool_logit')
+entry = op_log.log_entries.add()
+entry.name = 'pool_logit/biases'
+entry.types.append('pool_logit')</code></p>
+<p>Second, call write_op_log to write the OpLogProto proto.</p>
+<p>```python
+tf.profiler.write_op_log(
+    sess.graph, /tmp/my_op_log_dir, op_log)</p>
+<h1>Get run-time shape information in order to fill shapes and get flops.</h1>
+<p>tf.profiler.write_op_log(
+    sess.graph, /tmp/my_op_log_dir, op_log, run_meta)
+```</p>
+<p>Third, when starting the tfprof tool, specify
+"--op_log_path=/tmp/my_op_log_dir/op_log"</p>
+<p><code>shell
+tfprof&gt; scope -account_type_regexes pool_logit -max_depth 4 -select params
+_TFProfRoot (--/650 params)
+  pool_logit/DW (64x10, 640/640 params)
+  pool_logit/biases (10, 10/10 params)</code></p>
+<p>Note that <code>tf.profiler.write_op_log(...)</code> automatically
+assigns all <code>Variables</code> inside <code>tf.trainable_variables()</code> a customized
+operation type: <code>_trainable_variables</code>.</p>
+<h4>Non-interactive Mode</h4>
+<p>12) Run tfprof in one-shot mode and dump result to file.</p>
+<p>```shell</p>
+<h1>By default output to stdout. Use -output option to change output types.</h1>
+<p>tfprof scope --graph_path=graph.pbtxt  \
+             --max_depth=3 \
+             --output="file:outfile=/tmp/dump"
+Reading Files...
+Parsing GraphDef...
+Preparing Views...</p>
+<p>cat /tmp/dump
+_TFProfRoot (--/930.58k params)
+  global_step (0/0 params)
+  pool_logit/DW (64x10, 640/1.28k params)
+  pool_logit/biases (10, 10/20 params)
+```</p>

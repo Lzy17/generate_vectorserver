@@ -1,0 +1,28 @@
+<h2>TFSA-2021-075: Division by zero in TFLite's implementation of <code>SpaceToDepth</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29587</p>
+<h3>Impact</h3>
+<p>The <code>Prepare</code> step of the <code>SpaceToDepth</code> TFLite operator <a href="https://github.com/tensorflow/tensorflow/blob/5f7975d09eac0f10ed8a17dbb6f5964977725adc/tensorflow/lite/kernels/space_to_depth.cc#L63-L67">does not check for 0
+before
+division</a>.</p>
+<p><code>cc
+const int block_size = params-&gt;block_size;
+const int input_height = input-&gt;dims-&gt;data[1];
+const int input_width = input-&gt;dims-&gt;data[2];
+int output_height = input_height / block_size;
+int output_width = input_width / block_size;</code></p>
+<p>An attacker can craft a model such that <code>params-&gt;block_size</code> would be zero.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/0d45ea1ca641b21b73bcf9c00e0179cda284e7e7">0d45ea1ca641b21b73bcf9c00e0179cda284e7e7</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

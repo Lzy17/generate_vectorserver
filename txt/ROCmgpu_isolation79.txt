@@ -1,0 +1,73 @@
+<h1>GPU Isolation Techniques</h1>
+<p>Restricting the access of applications to a subset of GPUs, aka isolating
+GPUs allows users to hide GPU resources from programs. The programs by default
+will only use the "exposed" GPUs ignoring other (hidden) GPUs in the system.</p>
+<p>There are multiple ways to achieve isolation of GPUs in the ROCm software stack,
+differing in which applications they apply to and the security they provide.
+This page serves as an overview of the techniques.</p>
+<h2>Environment Variables</h2>
+<p>The runtimes in the ROCm software stack read these environment variables to
+select the exposed or default device to present to applications using them.</p>
+<p>Environment variables shouldn't be used for isolating untrusted applications,
+as an application can reset them before initializing the runtime.</p>
+<h3><code>ROCR_VISIBLE_DEVICES</code></h3>
+<p>A list of device indices or {abbr}<code>UUID (universally unique identifier)</code>s
+that will be exposed to applications.</p>
+<p>Runtime
+: ROCm Platform Runtime. Applies to all applications using the user mode ROCm
+  software stack.</p>
+<p><code>{code-block} shell
+:caption: Example to expose the 1. device and a device based on UUID.
+export ROCR_VISIBLE_DEVICES="0,GPU-DEADBEEFDEADBEEF"</code></p>
+<h3><code>GPU_DEVICE_ORDINAL</code></h3>
+<p>Devices indices exposed to OpenCL and HIP applications.</p>
+<p>Runtime
+: ROCm Common Language Runtime (<code>ROCclr</code>). Applies to applications and runtimes
+  using the <code>ROCclr</code> abstraction layer including HIP and OpenCL applications.</p>
+<p><code>{code-block} shell
+:caption: Example to expose the 1. and 3. device in the system.
+export GPU_DEVICE_ORDINAL="0,2"</code></p>
+<h3><code>HIP_VISIBLE_DEVICES</code></h3>
+<p>Device indices exposed to HIP applications.</p>
+<p>Runtime
+: HIP Runtime. Applies only to applications using HIP on the AMD platform.</p>
+<p><code>{code-block} shell
+:caption: Example to expose the 1. and 3. devices in the system.
+export HIP_VISIBLE_DEVICES="0,2"</code></p>
+<h3><code>CUDA_VISIBLE_DEVICES</code></h3>
+<p>Provided for CUDA compatibility, has the same effect as <code>HIP_VISIBLE_DEVICES</code>
+on the AMD platform.</p>
+<p>Runtime
+: HIP or CUDA Runtime. Applies to HIP applications on the AMD or NVIDIA platform
+  and CUDA applications.</p>
+<h3><code>OMP_DEFAULT_DEVICE</code></h3>
+<p>Default device used for OpenMP target offloading.</p>
+<p>Runtime
+: OpenMP Runtime. Applies only to applications using OpenMP offloading.</p>
+<p><code>{code-block} shell
+:caption: Example on setting the default device to the third device.
+export OMP_DEFAULT_DEVICE="2"</code></p>
+<h2>Docker</h2>
+<p>Docker uses Linux kernel namespaces to provide isolated environments for
+applications. This isolation applies to most devices by default, including
+GPUs. To access them in containers explicit access must be granted, please see
+{ref}<code>docker-access-gpus-in-container</code> for details.
+Specifically refer to {ref}<code>docker-restrict-gpus</code> on exposing just a subset
+of all GPUs.</p>
+<p>Docker isolation is more secure than environment variables, and applies
+to all programs that use the <code>amdgpu</code> kernel module interfaces.
+Even programs that don't use the ROCm runtime, like graphics applications
+using OpenGL or Vulkan, can only access the GPUs exposed to the container.</p>
+<h2>GPU Passthrough to Virtual Machines</h2>
+<p>Virtual machines achieve the highest level of isolation, because even the kernel
+of the virtual machine is isolated from the host. Devices physically installed
+in the host system can be passed to the virtual machine using PCIe passthrough.
+This allows for using the GPU with a different operating systems like a Windows
+guest from a Linux host.</p>
+<p>Setting up PCIe passthrough is specific to the hypervisor used. ROCm officially
+supports <a href="https://www.vmware.com/products/esxi-and-esx.html">VMware ESXi</a>
+for select GPUs.</p>
+<!--
+TODO: This should link to a page about virtualization that explains
+      pass-through and SR-IOV and how-tos for maybe `libvirt` and `VMWare`
+-->

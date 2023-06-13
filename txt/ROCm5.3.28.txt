@@ -1,0 +1,29 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>Fixed Defects</h3>
+<p>The following known issues in ROCm v5.3.2 are fixed in this release.</p>
+<h4>Peer-to-Peer DMA Mapping Errors with SLES and RHEL</h4>
+<p>Peer-to-Peer Direct Memory Access (DMA) mapping errors on Dell systems (R7525 and R750XA) with SLES 15 SP3/SP4 and RHEL 9.0 are fixed in this release.</p>
+<p>Previously, running rocminfo resulted in Peer-to-Peer DMA mapping errors.</p>
+<h4>RCCL Tuning Table</h4>
+<p>The RCCL tuning table is updated for supported platforms.</p>
+<h4>SGEMM (F32 GEMM) Routines in rocBLAS</h4>
+<p>Functional correctness failures in SGEMM (F32 GEMM) routines in rocBLAS for certain problem sizes and ranges are fixed in this release.</p>
+<h3>Known Issues</h3>
+<p>This section consists of known issues in this release.</p>
+<h4>AMD Instinct™ MI200 SRIOV Virtualization Issue</h4>
+<p>There is a known issue in this ROCm v5.3 release with all AMD Instinct™ MI200 devices running within a virtual function (VF) under SRIOV virtualization. This issue will likely impact the functionality of SRIOV-based workloads but does not impact Discrete Device Assignment (DDA) or bare metal.</p>
+<p>Until a fix is provided, users should rely on ROCm v5.2.3 to support their SRIOV workloads.</p>
+<h4>AMD Instinct™ MI200 Firmware Updates</h4>
+<p>Customers cannot update the Integrated Firmware Image (IFWI) for AMD Instinct™ MI200 accelerators.</p>
+<p>An updated firmware maintenance bundle consisting of an installation tool and images specific to AMD Instinct™ MI200 accelerators is under planning and will be available soon.</p>
+<h4>Known Issue with rocThrust and rocPRIM Libraries</h4>
+<p>There is a known known issue with rocThrust and rocPRIM libraries supporting iterator and types in ROCm v5.3.x releases.</p>
+<ul>
+<li>
+<p>thrust::merge no longer correctly supports different iterator types for <code>keys_input1</code> and <code>keys_input2</code>.</p>
+</li>
+<li>
+<p>rocprim::device_merge no longer correctly supports using different types for <code>keys_input1</code> and <code>keys_input2</code>.</p>
+</li>
+</ul>
+<p>This issue is currently under investigation and will be resolved in a future release.</p>

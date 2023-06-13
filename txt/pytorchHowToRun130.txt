@@ -1,0 +1,5 @@
+<p>From the root of pytorch repo, run:
+<code>python -m benchmarks.tensorexpr --help</code>
+to show documentation.</p>
+<p>An example of an actual command line that one might use as a starting point:
+<code>python -m benchmarks.tensorexpr --device gpu --mode fwd --jit-mode trace --cuda-fuser=te</code></p>

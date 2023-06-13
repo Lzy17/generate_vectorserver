@@ -1,0 +1,16 @@
+<h2>TFSA-2022-122: <code>CHECK</code> fail in <code>EmptyTensorList</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35998</p>
+<h3>Impact</h3>
+<p>If <code>EmptyTensorList</code> receives an input <code>element_shape</code> with more than one dimension, it gives a <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.EmptyTensorList(element_shape=tf.ones(dtype=tf.int32, shape=[1, 0]), max_num_elements=tf.constant(1),element_dtype=tf.int32)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c8ba76d48567aed347508e0552a257641931024d">c8ba76d48567aed347508e0552a257641931024d</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Kang Hong Jin.</p>

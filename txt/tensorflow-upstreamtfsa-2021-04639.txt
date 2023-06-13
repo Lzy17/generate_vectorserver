@@ -1,0 +1,37 @@
+<h2>TFSA-2021-046: Heap buffer overflow in <code>SparseSplit</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29558</p>
+<h3>Impact</h3>
+<p>An attacker can cause a heap buffer overflow in <code>tf.raw_ops.SparseSplit</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>shape_dims = tf.constant(0, dtype=tf.int64)
+indices = tf.ones([1, 1], dtype=tf.int64)
+values = tf.ones([1], dtype=tf.int64)
+shape = tf.ones([1], dtype=tf.int64)</p>
+<p>tf.raw_ops.SparseSplit(
+    split_dim=shape_dims, indices=indices, values=values,
+    shape=shape, num_split=1)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/699bff5d961f0abfde8fa3f876e6d241681fbef8/tensorflow/core/util/sparse/sparse_tensor.h#L528-L530">implementation</a>
+accesses an array element based on a user controlled offset:</p>
+<p><code>cc
+const int dim = input_tensor.indices().matrix&lt;int64&gt;()(i, split_dim);
+int slice_index = GetSliceIndex(dim, split_size, residual);
+num_values[slice_index]++;</code></p>
+<p>This results in overriding values on the heap.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/8ba6fa29cd8bf9cef9b718dc31c78c73081f5b31">8ba6fa29cd8bf9cef9b718dc31c78c73081f5b31</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

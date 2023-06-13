@@ -1,0 +1,112 @@
+<h1>Optical character recognition (OCR)</h1>
+<p>Optical character recognition (OCR) is the process of recognizing characters
+from images using computer vision and machine learning techniques. This
+reference app demos how to use TensorFlow Lite to do OCR. It uses a combination
+of
+<a href="https://tfhub.dev/sayakpaul/lite-model/east-text-detector/fp16/1">text detection model</a>
+and a
+<a href="https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/float16/2">text recognition model</a>
+as an OCR pipeline to recognize text characters.</p>
+<h2>Get started</h2>
+<p><img src="images/screenshot.gif" class="attempt-right" style="max-width: 300px"></p>
+<p>If you are new to TensorFlow Lite and are working with Android, we recommend
+exploring the following example application that can help you get started.</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/examples/tree/master/lite/examples/optical_character_recognition/android">Android
+example</a></p>
+<p>If you are using a platform other than Android, or you are already familiar with
+the <a href="https://www.tensorflow.org/api_docs/python/tf/lite">TensorFlow Lite APIs</a>,
+you can download the models from <a href="https://tfhub.dev/">TF Hub</a>.</p>
+<h2>How it works</h2>
+<p>OCR tasks are often broken down into 2 stages. First, we use a text detection
+model to detect the bounding boxes around possible texts. Second, we feed
+processed bounding boxes into a text recognition model to determine specific
+characters inside the bounding boxes (we also need to do Non-Maximal
+Suppression, perspective transformation and etc. beforing text recognition). In
+our case, both models are from TensorFlow Hub and they are FP16 quantized
+models.</p>
+<h2>Performance benchmarks</h2>
+<p>Performance benchmark numbers are generated with the tool described
+<a href="https://www.tensorflow.org/lite/performance/benchmarks">here</a>.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Model Name</th>
+      <th>Model size </th>
+      <th>Device </th>
+      <th>CPU</th>
+      <th>GPU</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>
+      <a href="https://tfhub.dev/sayakpaul/lite-model/east-text-detector/fp16/1">Text Detection</a>
+    </td>
+    <td>45.9 Mb</td>
+     <td>Pixel 4 (Android 10)</td>
+     <td>181.93ms*</td>
+     <td>89.77ms*</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/float16/2">Text Recognition</a>
+    </td>
+    <td>16.8 Mb</td>
+     <td>Pixel 4 (Android 10)</td>
+     <td>338.33ms*</td>
+     <td>N/A**</td>
+  </tr>
+</table>
+
+<p>* 4 threads used.</p>
+<p>** this model could not use GPU delegate since we need TensorFlow ops to run it</p>
+<h2>Inputs</h2>
+<p>The text detection model accepts a 4-D <code>float32</code> Tensor of (1, 320, 320, 3) as
+input.</p>
+<p>The text recognition model accepts a 4-D <code>float32</code> Tensor of (1, 31, 200, 1) as
+input.</p>
+<h2>Outputs</h2>
+<p>The text detection model returns a 4-D <code>float32</code> Tensor of shape (1, 80, 80, 5)
+as bounding box and a 4-D <code>float32</code> Tensor of shape (1,80, 80, 5) as detection
+score.</p>
+<p>The text recognition model returns a 2-D <code>float32</code> Tensor of shape (1, 48) as
+the mapping indices to the alphabet list '0123456789abcdefghijklmnopqrstuvwxyz'</p>
+<h2>Limitations</h2>
+<ul>
+<li>
+<p>The current
+    <a href="https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/float16/2">text recognition model</a>
+    is trained using synthetic data with English letters and numbers, so only
+    English is supported.</p>
+</li>
+<li>
+<p>The models are not general enough for OCR in the wild (say, random images
+    taken by a smartphone camera in a low lighting condition).</p>
+</li>
+</ul>
+<p>So we have chosen 3 Google product logos only to demonstrate how to do OCR with
+TensorFlow Lite. If you are looking for a ready-to-use production-grade OCR
+product, you should consider
+<a href="https://developers.google.com/ml-kit/vision/text-recognition">Google ML Kit</a>.
+ML Kit, which uses TFLite underneath, should be sufficient for most OCR use
+cases, but there are some cases where you may want to build your own OCR
+solution with TFLite. Some examples are:</p>
+<ul>
+<li>You have your own text detection/recognition TFLite models that you would
+    like to use</li>
+<li>You have special business requirements (i.e., recognizing texts that are
+    upside down) and need to customize the OCR pipeline</li>
+<li>You want to support languages not covered by ML Kit</li>
+<li>Your target user devices don’t necessarily have Google Play services
+    installed</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li>OpenCV text detection/recognition example:
+    https://github.com/opencv/opencv/blob/master/samples/dnn/text_detection.cpp</li>
+<li>OCR TFLite community project by community contributors:
+    https://github.com/tulasiram58827/ocr_tflite</li>
+<li>OpenCV text detection:
+    https://www.pyimagesearch.com/2018/08/20/opencv-text-detection-east-text-detector/</li>
+<li>Deep Learning based Text Detection Using OpenCV:
+    https://learnopencv.com/deep-learning-based-text-detection-using-opencv-c-python/</li>
+</ul>

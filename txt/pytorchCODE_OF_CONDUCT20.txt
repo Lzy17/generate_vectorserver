@@ -1,0 +1,4 @@
+<h1>Code of Conduct</h1>
+<p>Facebook has adopted a Code of Conduct that we expect project participants to adhere to.
+Please read the <a href="https://code.fb.com/codeofconduct/">full text</a>
+so that you can understand what actions will and will not be tolerated.</p>

@@ -1,0 +1,20 @@
+<h2>TFSA-2021-199: Crash in <code>max_pool3d</code> when size argument is 0 or negative</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41196</p>
+<h3>Impact</h3>
+<p>The Keras pooling layers can trigger a segfault if the size of the pool is 0 or if a dimension is negative:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>pool_size = [2, 2, 0]
+layer = tf.keras.layers.MaxPooling3D(strides=1, pool_size=pool_size)
+input_tensor = tf.random.uniform([3, 4, 10, 11, 12], dtype=tf.float32)
+res = layer(input_tensor)
+```</p>
+<p>This is due to the TensorFlow's implementation of pooling operations where the values in the sliding window are not checked to be strictly positive.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/12b1ff82b3f26ff8de17e58703231d5a02ef1b8b">12b1ff82b3f26ff8de17e58703231d5a02ef1b8b</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/51975">#51975</a>).</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/51936">GitHub issue</a>.</p>

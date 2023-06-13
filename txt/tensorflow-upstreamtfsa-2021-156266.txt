@@ -1,0 +1,31 @@
+<h2>TFSA-2021-156: Use of unitialized value in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37682</p>
+<h3>Impact</h3>
+<p>All TFLite operations that use quantization can be made to use unitialized
+values. <a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/lite/kernels/depthwise_conv.cc#L198-L200">For
+example</a>:</p>
+<p><code>cc
+    const auto* affine_quantization =
+        reinterpret_cast&lt;TfLiteAffineQuantization*&gt;(
+            filter-&gt;quantization.params);</code></p>
+<p>The issue stems from the fact that <code>quantization.params</code> is only valid if
+<code>quantization.type</code> is different that <code>kTfLiteNoQuantization</code>. However, these
+checks are missing in large parts of the code.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits
+<a href="https://github.com/tensorflow/tensorflow/commit/537bc7c723439b9194a358f64d871dd326c18887">537bc7c723439b9194a358f64d871dd326c18887</a>,
+<a href="https://github.com/tensorflow/tensorflow/commit/4a91f2069f7145aab6ba2d8cfe41be8a110c18a5">4a91f2069f7145aab6ba2d8cfe41be8a110c18a5</a>
+and
+<a href="https://github.com/tensorflow/tensorflow/commit/8933b8a21280696ab119b63263babdb54c298538">8933b8a21280696ab119b63263babdb54c298538</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

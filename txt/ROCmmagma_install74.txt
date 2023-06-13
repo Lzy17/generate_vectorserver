@@ -1,0 +1,68 @@
+<h1>Magma Installation for ROCm</h1>
+<h2>MAGMA for ROCm</h2>
+<p>Matrix Algebra on GPU and Multi-core Architectures, abbreviated as MAGMA, is a
+collection of next-generation dense linear algebra libraries that is designed
+for heterogeneous architectures, such as multiple GPUs and multi- or many-core
+CPUs.</p>
+<p>MAGMA provides implementations for CUDA, HIP, Intel Xeon Phi, and OpenCL™. For
+more information, refer to
+<a href="https://icl.utk.edu/magma/index.html">https://icl.utk.edu/magma/index.html</a>.</p>
+<h3>Using MAGMA for PyTorch</h3>
+<p>Tensor is fundamental to Deep Learning techniques because it provides extensive
+representational functionalities and math operations. This data structure is
+represented as a multidimensional matrix. MAGMA accelerates tensor operations
+with a variety of solutions including driver routines, computational routines,
+BLAS routines, auxiliary routines, and utility routines.</p>
+<h3>Build MAGMA from Source</h3>
+<p>To build MAGMA from the source, follow these steps:</p>
+<ol>
+<li>In the event you want to compile only for your uarch, use:</li>
+</ol>
+<p><code>bash
+   export PYTORCH_ROCM_ARCH=&lt;uarch&gt;</code></p>
+<p><code>&lt;uarch&gt;</code> is the architecture reported by the <code>rocminfo</code> command.</p>
+<ol>
+<li>Use the following:</li>
+</ol>
+<p>```bash
+   export PYTORCH_ROCM_ARCH=<uarch></p>
+<p># "install" hipMAGMA into /opt/rocm/magma by copying after build
+   git clone https://bitbucket.org/icl/magma.git
+   pushd magma
+   # Fixes memory leaks of magma found while executing linalg UTs
+   git checkout 5959b8783e45f1809812ed96ae762f38ee701972
+   cp make.inc-examples/make.inc.hip-gcc-mkl make.inc
+   echo 'LIBDIR += -L$(MKLROOT)/lib' &gt;&gt; make.inc
+   echo 'LIB += -Wl,--enable-new-dtags -Wl,--rpath,/opt/rocm/lib -Wl,--rpath,$(MKLROOT)/lib -Wl,--rpath,/opt/rocm/magma/lib' &gt;&gt; make.inc
+   echo 'DEVCCFLAGS += --gpu-max-threads-per-block=256' &gt;&gt; make.inc
+   export PATH="${PATH}:/opt/rocm/bin"
+   if [[ -n "$PYTORCH_ROCM_ARCH" ]]; then
+     amdgpu_targets=<code>echo $PYTORCH_ROCM_ARCH | sed 's/;/ /g'</code>
+   else
+     amdgpu_targets=<code>rocm_agent_enumerator | grep -v gfx000 | sort -u | xargs</code>
+   fi
+   for arch in $amdgpu_targets; do
+     echo "DEVCCFLAGS += --amdgpu-target=$arch" &gt;&gt; make.inc
+   done
+   # hipcc with openmp flag may cause isnan() on <strong>device</strong> not to be found; depending on context, compiler may attempt to match with host definition
+   sed -i 's/^FOPENMP/#FOPENMP/g' make.inc
+   make -f make.gen.hipMAGMA -j $(nproc)
+   LANG=C.UTF-8 make lib/libmagma.so -j $(nproc) MKLROOT=/opt/conda
+   make testing/testing_dgemm -j $(nproc) MKLROOT=/opt/conda
+   popd
+   mv magma /opt/rocm
+   ```</p>
+<h2>References</h2>
+<p>C. Szegedy, V. Vanhoucke, S. Ioffe, J. Shlens and Z. Wojna, "Rethinking the Inception Architecture for Computer Vision," CoRR, p. abs/1512.00567, 2015</p>
+<p>PyTorch, [Online]. Available: <a href="https://pytorch.org/vision/stable/index.html">https://pytorch.org/vision/stable/index.html</a></p>
+<p>PyTorch, [Online]. Available: <a href="https://pytorch.org/hub/pytorch_vision_inception_v3/">https://pytorch.org/hub/pytorch_vision_inception_v3/</a></p>
+<p>Stanford, [Online]. Available: <a href="http://cs231n.stanford.edu/">http://cs231n.stanford.edu/</a></p>
+<p>Wikipedia, [Online]. Available: <a href="https://en.wikipedia.org/wiki/Cross_entropy">https://en.wikipedia.org/wiki/Cross_entropy</a></p>
+<p>AMD, "ROCm issues," [Online]. Available: <a href="https://github.com/RadeonOpenCompute/ROCm/issues">https://github.com/RadeonOpenCompute/ROCm/issues</a></p>
+<p>PyTorch, [Online image]. <a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf">https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf</a></p>
+<p>TensorFlow, [Online image]. <a href="https://www.tensorflow.org/extras/tensorflow_brand_guidelines.pdf">https://www.tensorflow.org/extras/tensorflow_brand_guidelines.pdf</a></p>
+<p>MAGMA, [Online image]. <a href="https://bitbucket.org/icl/magma/src/master/docs/">https://bitbucket.org/icl/magma/src/master/docs/</a></p>
+<p>Advanced Micro Devices, Inc., [Online]. Available: <a href="https://rocmsoftwareplatform.github.io/AMDMIGraphX/doc/html/">https://rocmsoftwareplatform.github.io/AMDMIGraphX/doc/html/</a></p>
+<p>Advanced Micro Devices, Inc., [Online]. Available: <a href="https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/wiki">https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/wiki</a></p>
+<p>Docker, [Online]. <a href="https://docs.docker.com/get-started/overview/">https://docs.docker.com/get-started/overview/</a></p>
+<p>Torchvision, [Online]. Available <a href="https://pytorch.org/vision/master/index.html?highlight=torchvision#module-torchvision">https://pytorch.org/vision/master/index.html?highlight=torchvision#module-torchvision</a></p>

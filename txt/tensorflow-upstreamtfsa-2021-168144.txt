@@ -1,0 +1,25 @@
+<h2>TFSA-2021-168: A use of uninitialized value vulnerability in Tensorflow</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41225</p>
+<h3>Impact</h3>
+<p>TensorFlow's Grappler optimizer has a <a href="https://github.com/tensorflow/tensorflow/blob/3457a2b122e50b4d44ceaaed5a663d635e5c22df/tensorflow/core/grappler/optimizers/auto_parallel.cc#L155-L164">use of unitialized variable</a>:</p>
+<p>```cc
+  const NodeDef<em> dequeue_node;
+  for (const auto&amp; train_node : train_nodes) {
+    if (IsDequeueOp(</em>train_node)) {
+      dequeue_node = train_node;
+      break;
+    }
+  }</p>
+<p>if (dequeue_node) {
+    ...
+  }
+```</p>
+<p>If the <code>train_nodes</code> vector (obtained from the saved model that gets optimized) does not contain a <code>Dequeue</code> node, then <code>dequeue_node</code> is left unitialized.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/68867bf01239d9e1048f98cbad185bf4761bedd3">68867bf01239d9e1048f98cbad185bf4761bedd3</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Qian Feng from Baidu Security Team.</p>

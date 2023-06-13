@@ -1,0 +1,34 @@
+<h2>TFSA-2020-009: Segfault and data corruption caused by negative indexing in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15207</p>
+<h3>Impact</h3>
+<p>To mimic Python's indexing with negative values, TFLite uses <code>ResolveAxis</code> to
+convert negative values to positive indices. However, the only check that the
+converted index is now valid is <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/lite/kernels/internal/reference/reduce.h#L68-L72">only present in debug
+builds</a>:
+<code>cc
+    // Handle negative index. A positive index 'p_idx' can be represented as a
+    // negative index 'n_idx' as: n_idx = p_idx-num_dims
+    // eg: For num_dims=3, [0, 1, 2] is the same as [-3, -2, -1]  */
+    int current = axis[idx] &lt; 0 ? (axis[idx] + num_dims) : axis[idx];
+    TFLITE_DCHECK(current &gt;= 0 &amp;&amp; current &lt; num_dims);</code></p>
+<p>If the <code>DCHECK</code> does not trigger, then code execution moves ahead with a
+negative index. This, in turn, results in accessing data out of bounds which
+results in segfaults and/or data corruption.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/2d88f470dea2671b430884260f3626b1fe99830a">2d88f470dea2671b430884260f3626b1fe99830a</a>
+and will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

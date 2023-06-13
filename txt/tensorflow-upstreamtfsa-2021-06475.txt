@@ -1,0 +1,46 @@
+<h2>TFSA-2021-064: Heap buffer overflow in <code>MaxPool3DGradGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29576</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.MaxPool3DGradGrad</code> is vulnerable to a heap
+buffer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>values = [0.01] * 11
+orig_input = tf.constant(values, shape=[11, 1, 1, 1, 1], dtype=tf.float32)
+orig_output = tf.constant([0.01], shape=[1, 1, 1, 1, 1], dtype=tf.float32)
+grad = tf.constant([0.01], shape=[1, 1, 1, 1, 1], dtype=tf.float32)
+ksize = [1, 1, 1, 1, 1]
+strides = [1, 1, 1, 1, 1]
+padding = "SAME"</p>
+<p>tf.raw_ops.MaxPool3DGradGrad(
+    orig_input=orig_input, orig_output=orig_output, grad=grad, ksize=ksize,
+    strides=strides, padding=padding)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/596c05a159b6fbb9e39ca10b3f7753b7244fa1e9/tensorflow/core/kernels/pooling_ops_3d.cc#L694-L696">implementation</a>
+does not check that the initialization of <code>Pool3dParameters</code> completes
+successfully:</p>
+<p><code>cc
+Pool3dParameters params{context,  ksize_,       stride_,
+                        padding_, data_format_, tensor_in.shape()};</code></p>
+<p>Since <a href="https://github.com/tensorflow/tensorflow/blob/596c05a159b6fbb9e39ca10b3f7753b7244fa1e9/tensorflow/core/kernels/pooling_ops_3d.cc#L48-L88">the
+constructor</a>
+uses <code>OP_REQUIRES</code> to validate conditions, the first assertion that fails
+interrupts the initialization of <code>params</code>, making it contain invalid data. In
+turn, this might cause a heap buffer overflow, depending on default initialized
+values.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/63c6a29d0f2d692b247f7bf81f8732d6442fad09">63c6a29d0f2d692b247f7bf81f8732d6442fad09</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

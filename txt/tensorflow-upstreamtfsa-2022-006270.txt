@@ -1,0 +1,16 @@
+<h2>TFSA-2022-006: Overflow and divide by zero in <code>UnravelIndex</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21729</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/unravel_index_op.cc#L36-L135">implementation of <code>UnravelIndex</code></a> is vulnerable to a division by zero caused by an integer overflow bug:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.UnravelIndex(indices=-0x100000,dims=[0x100000,0x100000])
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/58b34c6c8250983948b5a781b426f6aa01fd47af">58b34c6c8250983948b5a781b426f6aa01fd47af</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

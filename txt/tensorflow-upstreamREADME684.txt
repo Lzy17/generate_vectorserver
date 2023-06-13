@@ -1,0 +1,2 @@
+<p>The contents of this folder have been moved to:</p>
+<p><a href="https://github.com/tensorflow/examples/tree/master/courses/udacity_deep_learning">https://github.com/tensorflow/examples/tree/master/courses/udacity_deep_learning</a></p>

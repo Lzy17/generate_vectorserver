@@ -1,0 +1,18 @@
+<h1>Validation Tools</h1>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>RVS &lt;rocm-validation-suite:index&gt;</code>
+The ROCm Validation Suite is a system administrator’s and cluster manager's tool for detecting and troubleshooting common problems affecting AMD GPU(s) running in a high-performance computing environment, enabled using the ROCm software stack on a compatible platform.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocm-validation-suite:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>TransferBench &lt;transferbench:index&gt;</code>
+TransferBench is a simple utility capable of benchmarking simultaneous transfers between user-specified devices (CPUs/GPUs).</p>
+<ul>
+<li>{doc}<code>Documentation &lt;transferbench:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/TransferBench/blob/develop/CHANGELOG.md">Changelog</a></li>
+<li>{doc}<code>transferbench:examples/index</code></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

@@ -1,0 +1,23 @@
+<h2>TFSA-2022-146: Seg fault in <code>ndarray_tensor_bridge</code> due to zero and large inputs</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41884</p>
+<h3>Impact</h3>
+<p>If a numpy array is created with a shape such that one element is zero and the others sum to a large number, an error will be raised. E.g. the following raises an error:
+<code>python
+np.ones((0, 2**31, 2**31))</code>
+An example of a proof of concept:
+```python
+import numpy as np
+import tensorflow as tf</p>
+<p>input_val = tf.constant([1])
+shape_val = np.array([i for i in range(21)])</p>
+<p>tf.broadcast_to(input=input_val,shape=shape_val)
+<code>``
+The return value of</code>PyArray_SimpleNewFromData`, which returns null on such shapes, is not checked.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/2b56169c16e375c521a3bc8ea658811cc0793784">2b56169c16e375c521a3bc8ea658811cc0793784</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Pattarakrit Rattanukul.</p>

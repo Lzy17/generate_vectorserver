@@ -1,0 +1,29 @@
+<h2>TFSA-2020-012: Segfault by calling session-only ops in eager mode</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15204</p>
+<h3>Impact</h3>
+<p>In eager mode, TensorFlow does not set the session state. Hence, calling
+<code>tf.raw_ops.GetSessionHandle</code> or <code>tf.raw_ops.GetSessionHandleV2</code> results in a
+<a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/session_ops.cc#L45">null pointer
+dereference</a>:
+<code>cc
+  int64 id = ctx-&gt;session_state()-&gt;GetNewId();</code></p>
+<p>In the above snippet, in eager mode, <code>ctx-&gt;session_state()</code> returns <code>nullptr</code>.
+Since code immediately dereferences this, we get a segmentation fault.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/9a133d73ae4b4664d22bd1aa6d654fec13c52ee1">9a133d73ae4b4664d22bd1aa6d654fec13c52ee1</a>
+and will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

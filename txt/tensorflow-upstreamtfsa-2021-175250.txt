@@ -1,0 +1,28 @@
+<h2>TFSA-2021-175: Null pointer exception when <code>Exit</code> node is not preceded by <code>Enter</code> op</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41217</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/common_runtime/immutable_executor_state.cc#L284-L346">process of building the control flow graph</a> for a TensorFlow model is vulnerable to a null pointer exception when nodes that should be paired are not:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def func():
+  return tf.raw_ops.Exit(data=[False,False])</p>
+<p>func()
+```</p>
+<p>This occurs because the code assumes that the first node in the pairing (e.g., an <code>Enter</code> node) always exists when encountering the second node (e.g., an <code>Exit</code> node):</p>
+<p><code>cc
+  ...
+} else if (IsExit(curr_node)) {
+  // Exit to the parent frame.
+  parent = parent_nodes[curr_id];
+  frame_name = cf_info-&gt;frame_names[parent-&gt;id()];
+  ...</code></p>
+<p>When this is not the case, <code>parent</code> is <code>nullptr</code> so dereferencing it causes a crash.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/05cbebd3c6bb8f517a158b0155debb8df79017ff">05cbebd3c6bb8f517a158b0155debb8df79017ff</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

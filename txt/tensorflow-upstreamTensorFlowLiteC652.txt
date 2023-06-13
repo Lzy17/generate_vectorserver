@@ -1,0 +1,9 @@
+<h1>TensorFlow Lite for iOS</h1>
+<ul>
+<li>For Swift developers, add the <code>TensorFlowLiteSwift</code> pod to your Podfile. For
+  Objective-C developers, add <code>TensorFlowLiteObjC</code>. See the TensorFlow Lite
+  <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/swift">Swift</a>
+  and
+  <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/objc">ObjC</a>
+  directories for more details.</li>
+</ul>

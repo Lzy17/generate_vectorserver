@@ -1,0 +1,24 @@
+<h2>TFSA-2021-105: Crash in <code>tf.transpose</code> with complex inputs</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29618</p>
+<h3>Impact</h3>
+<p>Passing a complex argument to <code>tf.transpose</code> at the same time as passing
+<code>conjugate=True</code> argument results in a crash:</p>
+<p><code>python
+import tensorflow as tf
+tf.transpose(conjugate=True, a=complex(1))</code></p>
+<h3>Patches</h3>
+<p>We have received a patch for the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/1dc6a7ce6e0b3e27a7ae650bfc05b195ca793f88">1dc6a7ce6e0b3e27a7ae650bfc05b195ca793f88</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported in
+<a href="https://github.com/tensorflow/issues/42105">#42105</a> and fixed in
+<a href="https://github.com/tensorflow/issues/46973">#46973</a>.</p>

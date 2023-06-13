@@ -1,0 +1,38 @@
+<h2>TFSA-2021-132: Reference binding to nullptr in <code>MatrixSetDiagV*</code> ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37658</p>
+<h3>Impact</h3>
+<p>An attacker can cause undefined behavior via binding a reference to null pointer
+in all operations of type <code>tf.raw_ops.MatrixSetDiagV*</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.MatrixSetDiagV3(
+  input=[1,2,3],
+  diagonal=[1,1],
+  k=[],
+  align='RIGHT_LEFT')
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/84d053187cb80d975ef2b9684d4b61981bca0c41/tensorflow/core/kernels/linalg/matrix_diag_op.cc">implementation</a>
+has incomplete validation that the value of <code>k</code> is a valid tensor. We have check
+that this value is either a scalar or a vector, but there is no check for the
+number of elements. If this is an empty tensor, then code that accesses the
+first element of the tensor is wrong:</p>
+<p><code>cc
+  auto&amp; diag_index = context-&gt;input(1);
+  ...
+  lower_diag_index = diag_index.flat&lt;int32&gt;()(0);</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ff8894044dfae5568ecbf2ed514c1a37dc394f1b">ff8894044dfae5568ecbf2ed514c1a37dc394f1b</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

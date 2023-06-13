@@ -1,0 +1,30 @@
+<h2>TFSA-2021-133: Reference binding to nullptr and heap OOB in binary cwise ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37659</p>
+<h3>Impact</h3>
+<p>An attacker can cause undefined behavior via binding a reference to null pointer
+in all binary cwise operations that don't require broadcasting (e.g., gradients
+of binary cwise operations):</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.SqrtGrad(y=[4, 16],dy=[])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/84d053187cb80d975ef2b9684d4b61981bca0c41/tensorflow/core/kernels/cwise_ops_common.h#L264">implementation</a>
+assumes that the two inputs have exactly the same number of elements but does
+not check that. Hence, when the eigen functor executes it triggers heap OOB
+reads and undefined behavior due to binding to nullptr.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/93f428fd1768df147171ed674fee1fc5ab8309ec">93f428fd1768df147171ed674fee1fc5ab8309ec</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,12 @@
+<h2>TFSA-2022-165: FractionalMaxPool and FractionalAvgPool heap out-of-buffer</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41900</p>
+<h3>Impact</h3>
+<p>An input <code>pooling_ratio</code> that is smaller than 1 will trigger a heap OOB in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/fractional_max_pool_op.cc"><code>tf.raw_ops.FractionalMaxPool</code></a> and <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/fractional_avg_pool_op.cc"><code>tf.raw_ops.FractionalAvgPool</code></a>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/216525144ee7c910296f5b05d214ca1327c9ce48">216525144ee7c910296f5b05d214ca1327c9ce48</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported through the OSS VRP program.</p>

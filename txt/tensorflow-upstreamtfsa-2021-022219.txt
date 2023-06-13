@@ -1,0 +1,41 @@
+<h2>TFSA-2021-022: <code>CHECK</code>-fail in <code>DrawBoundingBoxes</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29533</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a denial of service via a <code>CHECK</code> failure by passing an
+empty image to <code>tf.raw_ops.DrawBoundingBoxes</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>images = tf.fill([53, 0, 48, 1], 0.)
+boxes = tf.fill([53, 31, 4], 0.)
+boxes = tf.Variable(boxes)
+boxes[0, 0, 0].assign(3.90621)
+tf.raw_ops.DrawBoundingBoxes(images=images, boxes=boxes)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/ea34a18dc3f5c8d80a40ccca1404f343b5d55f91/tensorflow/core/kernels/image/draw_bounding_box_op.cc#L148-L165">implementation</a>
+uses <code>CHECK_*</code> assertions instead of <code>OP_REQUIRES</code> to validate user controlled
+inputs. Whereas <code>OP_REQUIRES</code> allows returning an error condition back to the
+user, the <code>CHECK_*</code> macros result in a crash if the condition is false, similar
+to <code>assert</code>.</p>
+<p><code>cc
+const int64 max_box_row_clamp = std::min&lt;int64&gt;(max_box_row, height - 1);
+...
+CHECK_GE(max_box_row_clamp, 0);</code></p>
+<p>In this case, <code>height</code> is 0 from the <code>images</code> input. This results in
+<code>max_box_row_clamp</code> being negative and the assertion being falsified, followed
+by aborting program execution.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b432a38fe0e1b4b904a6c222cbce794c39703e87">b432a38fe0e1b4b904a6c222cbce794c39703e87</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

@@ -1,0 +1,54 @@
+<h1>TensorFlow Code of Conduct</h1>
+<p>In the interest of fostering an open and welcoming environment, we as
+contributors and maintainers pledge to make participation in our project and our
+community a harassment-free experience for everyone, regardless of age, body
+size, disability, ethnicity, gender identity and expression, level of
+experience, nationality, personal appearance, race, religion, or sexual identity
+and orientation.</p>
+<h2>Our Standards</h2>
+<p>Examples of behavior that contributes to creating a positive environment include:</p>
+<ul>
+<li>Using welcoming and inclusive language.</li>
+<li>Being respectful of differing viewpoints and experiences.</li>
+<li>Gracefully accepting constructive criticism.</li>
+<li>Focusing on what is best for the community.</li>
+<li>Showing empathy towards other community members.</li>
+</ul>
+<p>Examples of unacceptable behavior by participants include:</p>
+<ul>
+<li>The use of sexualized language or imagery and unwelcome sexual attention or
+    advances.</li>
+<li>Trolling, insulting/derogatory comments, and personal or political attacks.</li>
+<li>Public or private harassment.</li>
+<li>Publishing others' private information, such as a physical or electronic
+    address, without explicit permission.</li>
+<li>Conduct which could reasonably be considered inappropriate for the forum in
+    which it occurs.</li>
+</ul>
+<p>All TensorFlow forums and spaces are meant for professional interactions, and any behavior which could reasonably be considered inappropriate in a professional setting is unacceptable.</p>
+<h2>Our Responsibilities</h2>
+<p>Project maintainers are responsible for clarifying the standards of acceptable behavior and are expected to take appropriate and fair corrective action in response to any instances of unacceptable behavior.</p>
+<p>Project maintainers have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, or to ban temporarily or permanently any contributor for other behaviors that they deem inappropriate, threatening, offensive, or harmful.</p>
+<h2>Scope</h2>
+<p>This Code of Conduct applies to all content on tensorflow.org, TensorFlow’s GitHub organization, or any other official TensorFlow web presence allowing for community interactions, as well as at all official TensorFlow events, whether offline or online.</p>
+<p>The Code of Conduct also applies within project spaces and in public spaces whenever an individual is representing TensorFlow or its community. Examples of representing a project or community include using an official project e-mail address, posting via an official social media account, or acting as an appointed or de facto representative at an online or offline event. </p>
+<h2>Conflict Resolution</h2>
+<p>Conflicts in an open source project can take many forms, from someone having a bad day and using harsh and hurtful language in the issue queue, to more serious instances such as sexist/racist statements or threats of violence, and everything in between.</p>
+<p>If the behavior is threatening or harassing, or for other reasons requires immediate escalation, please see below.</p>
+<p>However, for the vast majority of issues, we aim to empower individuals to first resolve conflicts themselves, asking for help when needed, and only after that fails to escalate further. This approach gives people more control over the outcome of their dispute. </p>
+<p>If you are experiencing or witnessing conflict, we ask you to use the following escalation strategy to address the conflict:</p>
+<ol>
+<li>Address the perceived conflict directly with those involved, preferably in a
+    real-time medium.</li>
+<li>If this fails, get a third party (e.g. a mutual friend, and/or someone with
+    background on the issue, but not involved in the conflict) to intercede.</li>
+<li>If you are still unable to resolve the conflict, and you believe it rises to
+    harassment or another code of conduct violation, report it.</li>
+</ol>
+<h2>Reporting Violations</h2>
+<p>Violations of the Code of Conduct can be reported to TensorFlow’s Project Stewards, Thea Lamkin (thealamkin@google.com) and Joana Carrasqueira (joanafilipa@google.com). The Project Steward will determine whether the Code of Conduct was violated, and will issue an appropriate sanction, possibly including a written warning or expulsion from the project, project sponsored spaces, or project forums. We ask that you make a good-faith effort to resolve your conflict via the conflict resolution policy before submitting a report.</p>
+<p>Violations of the Code of Conduct can occur in any setting, even those unrelated to the project. We will only consider complaints about conduct that has occurred within one year of the report.</p>
+<h2>Enforcement</h2>
+<p>If the Project Stewards receive a report alleging a violation of the Code of Conduct, the Project Stewards will notify the accused of the report, and provide them an opportunity to discuss the report before a sanction is issued. The Project Stewards will do their utmost to keep the reporter anonymous. If the act is ongoing (such as someone engaging in harassment), or involves a threat to anyone's safety (e.g. threats of violence), the Project Stewards may issue sanctions without notice.</p>
+<h2>Attribution</h2>
+<p>This Code of Conduct is adapted from the Contributor Covenant, version 1.4, available at https://contributor-covenant.org/version/1/4, and includes some aspects of the Geek Feminism Code of Conduct and the Drupal Code of Conduct.</p>

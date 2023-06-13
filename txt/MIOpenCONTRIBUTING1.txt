@@ -1,0 +1,112 @@
+<h1>MIOpen Contributing Guide</h1>
+<p>To ensure the quality of the MIOpen code base, the MIOpen team has 
+established a code review process to inform developers of the steps 
+that are required to shepherd a change-set into the repository.</p>
+<h4>Table Of Contents</h4>
+<p><a href="#How-to-get-started">How to get started</a></p>
+<p><a href="#how-do-i-contribute">How do I contribute?</a>
+  * <a href="#reporting-issues">Reporting Issues</a>
+  * <a href="#Creating-a-Pull-Request">Creating a Pull Request</a></p>
+<p><a href="#Responsibility-of-the-Author">Responsibility of the Author</a></p>
+<p><a href="#Responsibility-of-the-Reviewer">Responsibility of the Reviewer</a></p>
+<p><a href="#Passing-CI">Passing CI</a></p>
+<p><a href="#the-review">The Review</a></p>
+<h2>How to get started</h2>
+<p>MIOpen is AMD’s deep learning primitives library which
+provides highly optimized, and hand-tuned implementations of
+different operators such as convolution, batch normalization,
+pooling, softmax, activation and layers for Recurrent Neural
+Networks (RNNs), used in both training and inference.</p>
+<p>The easiest way to get started is to check out <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/">MIOpen documentation</a> and <a href="https://arxiv.org/pdf/1910.00078.pdf">MIOpen: An Open Source Library For Deep Learning Primitives</a>.</p>
+<p>All contributions you make will be under the <a href="LICENSE.txt">MIT Software License</a>. </p>
+<h2>How do I contribute</h2>
+<h3>Reporting Issues</h3>
+<p>We use <a href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues">GitHub Issues</a> to track public <strong>bugs</strong> and <strong>enhancement requests</strong>.</p>
+<p>If you have found an issue, please check <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/">MIOpen documentation</a> to see if it is a bug or new feature enhancement which is not supported in the latest version of MIOpen:</p>
+<h4>Bugs</h4>
+<p>Please follow the template below to report any bugs found in MIOpen:</p>
+<ol>
+<li>Description: <strong><em>Please be clear and descriptive</em></strong></li>
+<li>How to Reproduce the issue:</li>
+<li>Hardware Information:</li>
+<li>Docker environment or Software Version:</li>
+<li>Expected behavior:</li>
+<li>Actual behavior:</li>
+<li>Any additional information:</li>
+</ol>
+<h4>Enhancement Requests</h4>
+<p>Please follow the template below to report any enhancement requests for MIOpen:</p>
+<ol>
+<li>Description: <strong><em>Please be clear and descriptive</em></strong></li>
+<li>Value and Motivation:</li>
+<li>Feature and functionalities enabled:</li>
+<li>Any alternatives:</li>
+<li>Any additional information:</li>
+</ol>
+<p>The author must set labels (and assigns a miliestone) according to his/her own understanding.</p>
+<p>Other contributors can change these values if they disagree. That being said, 
+adding a small comment explaining the motivation is highly recommended. 
+In this way, we keep the process flexible while cultivating mutual understanding.</p>
+<p>[<strong>Note</strong>] Most likely, the labels like "bug", "feature" or "complexity<em>" 
+would not be changed. However, "value</em>" or "urgency*" might be from mutual 
+understanding.</p>
+<h3>Creating a Pull Request</h3>
+<p>No changes are allowed to be directly committed to the develop 
+branch of the MIOpen repository. All authors are required to 
+develop their change sets on a separate branch and then create 
+a pull request (PR) to merge their changes into the develop branch.</p>
+<p>Once a PR has been created, a developer must choose two reviewers 
+to review the changes made. The first reviewer should be a 
+technical expert in the portion of the library that the changes 
+are being made in. You can find a list of these experts in 
+<a href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/789">MIOpen Issue #789</a>
+. The second reviewer should be a peer reviewer. This reviewer 
+can be any other MIOpen developer.</p>
+<h2>Responsibility of the Author</h2>
+<p>The author of a PR is responsible for:
+ * Writing clear, well documented code
+ * Meeting expectations of code quality
+ * Verifying that the changes do not break current functionality
+ * Writing tests to ensure code coverage
+ * Report on the impact to performance</p>
+<h2>Responsibility of the Reviewer</h2>
+<p>Each reviewer is responsible for verifying that the changes are 
+clearly written in keeping with the coding styles of the library, 
+are documented in a way that future developers will be able to 
+understand the intent of the added functionality, and will 
+maintain or improve the overall quality of the codebase.</p>
+<p>Reviewer's task checklist:
+1. Has the PR passed <a href="https://github.com/ROCmSoftwarePlatform/MIOpen/pull/932#discussion_r634835432">necessary CI</a>?
+2. Does the PR consist of a well-organized sequence of small commits, 
+each of which is designed to make one specific feature or fix 
+(and ideally should be able to pass CI testing)?
+3. Does the PR only include a reviewable amount of changes? Or it is a 
+consolidation of already reviewed small batches? e.g. break it into smaller 
+testable and reviewable tasks instead of a huge chunk at once.
+4. Does the PR have sufficient documentation and easy to read and understand, 
+feasible for test and future maintainence, related docs already in place? 
+e.g. revise or add to 
+<a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/">MIOpen documentation</a> 
+if API or functionality has changed?
+5. For bugfixes and new features, new regression test created and included in CI,
+ or some other holistic test pipeline?
+6. Is every PR associated with a ticket or issue number for tracking purposes?</p>
+<h2>Passing CI</h2>
+<p>The most critical component of the PR process is the CI testing. 
+All PRs must pass the CI in order to be considered for merger. 
+Reviewers may choose to defer their review until the CI testing 
+has passed. </p>
+<h2>The Review</h2>
+<p>During the review, reviewers will look over the changes and make 
+suggestions or requests for changes.</p>
+<p>In order to assist the reviewer in prioritizing their efforts, 
+authors can take the following actions:</p>
+<ul>
+<li>Set the urgency and value labels</li>
+<li>Set the milestone where the changes need to be delivered</li>
+<li>Describe the testing procedure and post the measured effect of 
+  the change</li>
+<li>Remind reviewers via email if a PR needs attention</li>
+<li>If a PR needs to be reviewed as soon as possible, explain to 
+  the reviewers why a review may need to take priority</li>
+</ul>

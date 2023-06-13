@@ -1,0 +1,33 @@
+<h2>TFSA-2021-110: Floating point exception in <code>SparseDenseCwiseDiv</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37636</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.SparseDenseCwiseDiv</code> is vulnerable to a
+division by 0 error:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>tf.raw_ops.SparseDenseCwiseDiv(
+  sp_indices=np.array([[4]]),
+  sp_values=np.array([-400]),
+  sp_shape=np.array([647.]),
+  dense=np.array([0]))
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/a1bc56203f21a5a4995311825ffaba7a670d7747/tensorflow/core/kernels/sparse_dense_binary_op_shared.cc#L56">implementation</a>
+uses a common class for all binary operations but fails to treat the division by
+0 case separately.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/d9204be9f49520cdaaeb2541d1dc5187b23f31d9">d9204be9f49520cdaaeb2541d1dc5187b23f31d9</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

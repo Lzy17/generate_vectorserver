@@ -1,0 +1,46 @@
+<h2>TFSA-2020-004: Out of bounds access in TFLite implementation of segment sum</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15212</p>
+<h3>Impact</h3>
+<p>In TensorFlow Lite models using segment sum can trigger <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/lite/kernels/internal/reference/reference_ops.h#L2625-L2631">writes outside of
+bounds of heap allocated
+buffers</a>
+by inserting negative elements in the segment ids tensor:
+<code>cc
+  for (int i = 0; i &lt; input_shape.Dims(0); i++) {
+    int output_index = segment_ids_data[i];
+    for (int j = 0; j &lt; segment_flat_size; ++j) {
+      output_data[output_index * segment_flat_size + j] +=
+          input_data[i * segment_flat_size + j];
+    }
+  }</code></p>
+<p>Users having access to <code>segment_ids_data</code> can alter <code>output_index</code> and then
+write to outside of <code>output_data</code> buffer.</p>
+<p>This might result in a segmentation fault but it can also be used to further
+corrupt the memory and can be chained with other vulnerabilities to create more
+advanced exploits.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/204945b">204945b</a> and will
+release patch releases for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 2.2.1, or 2.3.1.</p>
+<h3>Workarounds</h3>
+<p>A potential workaround would be to add a custom <code>Verifier</code> to the model loading
+code to ensure that the segment ids are all positive, although this only handles
+the case when the segment ids are stored statically in the model.</p>
+<p>A similar validation could be done if the segment ids are generated at runtime
+between inference steps.</p>
+<p>If the segment ids are generated as outputs of a tensor during inference steps,
+then there are no possible workaround and users are advised to upgrade to
+patched code.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-002.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

@@ -1,0 +1,42 @@
+<h2>TFSA-2020-007: Null pointer dereference in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15209</p>
+<h3>Impact</h3>
+<p>A crafted TFLite model can force a node to have as input a tensor backed by a
+<code>nullptr</code> buffer. This can be achieved by changing a buffer index in the
+flatbuffer serialization to convert a read-only tensor to a read-write one. The
+runtime assumes that these buffers are written to before a possible read, hence
+they are <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/lite/core/subgraph.cc#L1224-L1227">initialized with
+<code>nullptr</code></a>:
+<code>cc
+  TfLiteTensorReset(type, name, ConvertArrayToTfLiteIntArray(rank, dims),
+                    GetLegacyQuantization(quantization),
+                    /*buffer=*/nullptr, required_bytes, allocation_type,
+                    nullptr, is_variable, &amp;tensor);</code></p>
+<p>However, by changing the buffer index for a tensor and implicitly converting
+that tensor to be a read-write one, as there is nothing in the model that writes
+to it, we get a null pointer dereference.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/0b5662bc">0b5662bc</a> and will
+release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>Workarounds</h3>
+<p>A potential workaround would be to add a custom <code>Verifier</code> to the model loading
+code to ensure that no operator reuses tensors as both inputs and outputs. Care
+should be taken to check all types of inputs (i.e., constant or variable tensors
+as well as optional tensors).</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered by members of the Aivul Team and is also
+discoverable through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-005.md">another
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

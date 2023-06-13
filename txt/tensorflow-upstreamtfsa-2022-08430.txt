@@ -1,0 +1,10 @@
+<h2>TFSA-2022-084: Heap buffer overflow due to incorrect hash function</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29210</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/framework/tensor_key.h#L53-L64"><code>TensorKey</code> hash function</a> used total estimated <code>AllocatedBytes()</code>, which (a) is an estimate per tensor, and (b) is a very poor hash function for constants (e.g. <code>int32_t</code>).  It also tried to access individual tensor bytes through <code>tensor.data()</code> of size <code>AllocatedBytes()</code>.  This led to ASAN failures because the <code>AllocatedBytes()</code> is an estimate of total bytes allocated by a tensor, including any pointed-to constructs (e.g. strings), and does not refer to contiguous bytes in the <code>.data()</code> buffer.  We couldn't use this byte vector anyways, since types like <code>tstring</code> include pointers, whereas we need to hash the string values themselves.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/1b85a28d395dc91f4d22b5f9e1e9a22e92ccecd6">1b85a28d395dc91f4d22b5f9e1e9a22e92ccecd6</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, which is the only other affected version.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

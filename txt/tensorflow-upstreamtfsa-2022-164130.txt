@@ -1,0 +1,15 @@
+<h2>TFSA-2022-164: <code>CHECK_EQ</code> fail via input in <code>SparseMatrixNNZ</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41901</p>
+<h3>Impact</h3>
+<p>An input <code>sparse_matrix</code> that is not a matrix with a shape with rank 0 will trigger a <code>CHECK</code> fail in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/sparse/sparse_matrix.h"><code>tf.raw_ops.SparseMatrixNNZ</code></a>.</p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.SparseMatrixNNZ(sparse_matrix=[])</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/f856d02e5322821aad155dad9b3acab1e9f5d693">f856d02e5322821aad155dad9b3acab1e9f5d693</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Kang Hong Jin</p>

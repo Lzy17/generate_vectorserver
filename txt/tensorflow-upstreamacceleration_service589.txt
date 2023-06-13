@@ -1,0 +1,262 @@
+<h1>Acceleration Service for Android (Beta)</h1>
+<p>Beta: Acceleration Service for Android is currently in Beta.
+Please review the <a href="#caveats">Caveats</a> and the [Terms and Privacy]
+(#terms_privacy) sections of this page for more details.</p>
+<p>The use of specialized processors such as GPUs, NPUs or DSPs for hardware
+acceleration can dramatically improve inference performance (up to 10x faster
+inference in some cases) and the user experience of your ML-enabled Android
+application. However, given the variety of hardware and drivers your users might
+have, picking the optimal hardware acceleration configuration for each user's
+device can be challenging. Moreover, enabling the wrong configuration on a
+device can create poor user experience due to high latency or, in some rare
+cases, runtime errors or accuracy issues caused by hardware incompatibilities.</p>
+<p>Acceleration Service for Android is an API that helps you pick the
+optimal hardware acceleration configuration for a given user device and your
+<code>.tflite</code> model, while minimizing the risk of runtime error or accuracy issues.</p>
+<p>Acceleration Service evaluates different acceleration configurations on user
+devices by running internal inference benchmarks with your TensorFlow Lite
+model. These test runs typically complete in a few seconds, depending on your
+model. You can run the benchmarks once on every user device before inference
+time, cache the result and use it during inference. These benchmarks are run
+out-of-process; which minimizes the risk of crashes to your app.</p>
+<p>Provide your model, data samples and expected results ("golden" inputs and
+outputs) and Acceleration Service will run an internal TFLite inference
+benchmark to provide you with hardware recommendations.</p>
+<p><img alt="image" src="../images/acceleration/acceleration_service.png" /></p>
+<p>Acceleration Service is part of Android's custom ML stack and works with
+<a href="https://www.tensorflow.org/lite/android/play_services">TensorFlow Lite in Google Play services</a>.</p>
+<h2>Add the dependencies to your project</h2>
+<p>Add the following dependencies to your application's build.gradle file:</p>
+<p><code>implementation  "com.google.android.gms:play-services-tflite-
+acceleration-service:16.0.0-beta01"</code></p>
+<p>The Acceleration Service API works with <a href="https://www.tensorflow.org/lite/android/play_services">TensorFlow Lite in Google Play
+Services</a>. If you
+aren't using the TensorFlow Lite runtime provided via Play Services yet, you
+will need to update your <a href="https://www.tensorflow.org/lite/android/play_services#1_add_project_dependencies_2">dependencies</a>.</p>
+<h2>How to use the Acceleration Service API</h2>
+<p>To use Acceleration Service, start by creating the acceleration configuration
+you want to evaluate for you model (e.g GPU with OpenGL). Then create a
+validation configuration with your model, some sample data and the expected
+model output. Finally call <code>validateConfig()</code> in passing both your
+acceleration configuration and validation configuration.</p>
+<p><img alt="image" src="../images/acceleration/acceleration_service_steps.png" /></p>
+<h3>Create acceleration configurations</h3>
+<p>Acceleration configurations are representations of the hardware configurations
+which are translated into delegates during the execution time.
+The Acceleration Service will then use these configurations internally
+to perform test inferences.</p>
+<p>At the moment the acceleration service enables you to evaluate GPU
+configurations (converted to GPU delegate during the execution time)
+with the
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/GpuAccelerationConfig">GpuAccelerationConfig</a>
+and CPU inference (with
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CpuAccelerationConfig">CpuAccelerationConfig</a>).
+We are working on supporting more delegates to access other hardware in the
+future.</p>
+<h4>GPU acceleration configuration</h4>
+<p>Create a GPU acceleration configuration as follow:</p>
+<p><code>AccelerationConfig accelerationConfig = new GpuAccelerationConfig.Builder()
+  .setEnableQuantizedInference(false)
+  .build();</code></p>
+<p>You must specify whether or not your model is using quantization with
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/GpuAccelerationConfig.Builder#public-gpuaccelerationconfig.builder-setenablequantizedinference-boolean-value"><code>setEnableQuantizedInference()</code></a>.</p>
+<h4>CPU acceleration configuration</h4>
+<p>Create the CPU acceleration as follow:</p>
+<p><code>AccelerationConfig accelerationConfig = new CpuAccelerationConfig.Builder()
+  .setNumThreads(2)
+  .build();</code></p>
+<p>Use the
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CpuAccelerationConfig.Builder#setNumThreads(int)"><code>setNumThreads()</code></a>
+method to define the number of threads you want to use to evaluate CPU
+inference.</p>
+<h3>Create validation configurations</h3>
+<p>Validation configurations enable you to define how you want the Acceleration
+Service to evaluate inferences. You will use them to pass:</p>
+<ul>
+<li>input samples,</li>
+<li>expected outputs,</li>
+<li>accuracy validation logic.</li>
+</ul>
+<p>Make sure to provide input samples for which you expect a good performance of
+your model (also known as “golden” samples).</p>
+<p>Create a
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/ValidationConfig"><code>ValidationConfig</code></a>
+with
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder"><code>CustomValidationConfig.Builder</code></a>
+as follow:</p>
+<p><code>ValidationConfig validationConfig = new CustomValidationConfig.Builder()
+   .setBatchSize(5)
+   .setGoldenInputs(inputs)
+   .setGoldenOutputs(outputBuffer)
+   .setAccuracyValidator(new MyCustomAccuracyValidator())
+   .build();</code></p>
+<p>Specify the number of the golden samples with
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder#setBatchSize(int)"><code>setBatchSize()</code></a>.
+Pass the inputs of your golden samples using
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder#public-customvalidationconfig.builder-setgoldeninputs-object...-value"><code>setGoldenInputs()</code></a>.
+Provide the expected output for the input passed with
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder#public-customvalidationconfig.builder-setgoldenoutputs-bytebuffer...-value"><code>setGoldenOutputs()</code></a>.</p>
+<p>You can define a maximum inference time with <a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder#public-customvalidationconfig.builder-setinferencetimeoutmillis-long-value"><code>setInferenceTimeoutMillis()</code></a>
+(5000 ms by default). If the inference takes longer than the time you defined,
+the configuration will be rejected.</p>
+<p>Optionally, you can also create a custom <a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.AccuracyValidator"><code>AccuracyValidator</code></a>
+as follow:</p>
+<p>```
+class MyCustomAccuracyValidator implements AccuracyValidator {
+   boolean validate(
+      BenchmarkResult benchmarkResult,
+      ByteBuffer[] goldenOutput) {
+        for (int i = 0; i &lt; benchmarkResult.actualOutput().size(); i++) {
+            if (!goldenOutputs[i]
+               .equals(benchmarkResult.actualOutput().get(i).getValue())) {
+               return false;
+            }
+         }
+         return true;</p>
+<p>}
+}
+```</p>
+<p>Make sure to define a validation logic that works for your use case.</p>
+<p>Note that if the validation data is already embedded in your model, you can use
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/EmbeddedValidationConfig"><code>EmbeddedValidationConfig</code></a>.</p>
+<h5>Generate validation outputs</h5>
+<p>Golden outputs are optional and as long as you provide golden inputs, the
+Acceleration Service can internally generate the golden outputs. You can also
+define the acceleration configuration used to generate these golden outputs by
+calling <a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/CustomValidationConfig.Builder#setGoldenConfig(com.google.android.gms.tflite.acceleration.AccelerationConfig)"><code>setGoldenConfig()</code></a>:</p>
+<p><code>ValidationConfig validationConfig = new CustomValidationConfig.Builder()
+   .setBatchSize(5)
+   .setGoldenInputs(inputs)
+   .setGoldenConfig(customCpuAccelerationConfig)
+   [...]
+   .build();</code></p>
+<h3>Validate Acceleration configuration</h3>
+<p>Once you have created an acceleration configuration and a validation config you
+can evaluate them for your model.</p>
+<p>Make sure that the TensorFlow Lite with Play Services runtime is properly
+initialized and that the GPU delegate is available for the device by running:</p>
+<p><code>TfLiteGpu.isGpuDelegateAvailable(context)
+   .onSuccessTask(gpuAvailable -&gt; TfLite.initialize(context,
+      TfLiteInitializationOptions.builder()
+        .setEnableGpuDelegateSupport(gpuAvailable)
+        .build()
+      )
+   );</code></p>
+<p>Instantiate the <a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/AccelerationService"><code>AccelerationService</code></a>
+by calling <a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/AccelerationService#create(android.content.Context)"><code>AccelerationService.create()</code></a>.</p>
+<p>You can then validate your acceleration configuration for your model by calling
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/AccelerationService#validateConfig(com.google.android.gms.tflite.acceleration.Model,%20com.google.android.gms.tflite.acceleration.AccelerationConfig,%20com.google.android.gms.tflite.acceleration.ValidationConfig)"><code>validateConfig()</code></a>:</p>
+<p><code>InterpreterApi interpreter;
+InterpreterOptions interpreterOptions = InterpreterApi.Options();
+AccelerationService.create(context)
+   .validateConfig(model, accelerationConfig, validationConfig)
+   .addOnSuccessListener(validatedConfig -&gt; {
+      if (validatedConfig.isValid() &amp;&amp; validatedConfig.benchmarkResult().hasPassedAccuracyTest()) {
+         interpreterOptions.setAccelerationConfig(validatedConfig);
+         interpreter = InterpreterApi.create(model, interpreterOptions);
+});</code></p>
+<p>You can also validate multiple configurations by calling
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/AccelerationService#validateConfigs(com.google.android.gms.tflite.acceleration.Model,%20java.lang.Iterable%3Ccom.google.android.gms.tflite.acceleration.AccelerationConfig%3E,%20com.google.android.gms.tflite.acceleration.ValidationConfig)"><code>validateConfigs()</code></a>
+and passing an <code>Iterable&lt;AccelerationConfig&gt;</code> object as a parameter.</p>
+<p><code>validateConfig()</code>will return a
+<code>Task&lt;</code><a href="https://developers.google.com/android/reference/com/google/android/gms/tflite/acceleration/ValidatedAccelerationConfigResult"><code>ValidatedAccelerationConfigResult</code></a><code>&gt;</code>
+from the Google Play services
+<a href="https://developers.google.com/android/guides/tasks">Task Api</a> which enables
+asynchronous tasks. \
+To get the result from the validation call, add an
+<a href="https://developers.google.com/android/reference/com/google/android/gms/tasks/OnSuccessListener"><code>addOnSuccessListener()</code></a>
+callback.</p>
+<h4>Use validated configuration in your interpreter</h4>
+<p>After checking if the <code>ValidatedAccelerationConfigResult</code> returned in the
+callback is valid, you can set the validated config as an acceleration config
+for your interpreter calling <code>interpreterOptions.setAccelerationConfig()</code>.</p>
+<h4>Configuration caching</h4>
+<p>The optimal acceleration configuration for your model is unlikely to change on
+the device. So once you receive a satisfying acceleration configuration, you
+should store it on the device and let your application retrieve it and use it to
+create your <code>InterpreterOptions</code> during the following sessions instead of
+running another validation. The <code>serialize()</code> and <code>deserialize()</code> methods in
+<code>ValidatedAccelerationConfigResult</code> make the storage and retrieval process
+easier.</p>
+<h2>Limitations</h2>
+<p>The Acceleration Service has the current following limitations:</p>
+<ul>
+<li>Only CPU and GPU acceleration configurations are supported at the moment,</li>
+<li>It only supports TensorFlow Lite in Google Play services and you cannot
+    use it if you are using the bundled version of TensorFlow Lite,</li>
+<li>It doesn't support the TensorFlow Lite <a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/overview">Task
+    Library</a>
+    as you can't directly initialize
+    <a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/core/BaseOptions.Builder"><code>BaseOptions</code></a>
+    with the <code>ValidatedAccelerationConfigResult</code> object.</li>
+<li>Acceleration Service SDK only supports API level 22 and above.</li>
+</ul>
+<h2>Caveats {:#caveats}</h2>
+<p>Please review the following caveats carefully, especially if you are planning
+to use this SDK in production:</p>
+<ul>
+<li>
+<p>Before exiting Beta and releasing the stable version for the
+    Acceleration Service API, we will publish a new SDK which may have some
+    differences from the current Beta one. In order to continue using the
+    Acceleration Service, you will need to migrate to this new SDK and push an
+    update to your app in a timely manner. Not doing so may cause breakages as
+    the Beta SDK may no longer be compatible with Google Play services after
+    some time.</p>
+</li>
+<li>
+<p>There is no guarantee that a specific feature within the Acceleration
+    Service API or the API as a whole will ever become generally available. It
+    may remain in Beta indefinitely, be shut down, or be combined with other
+    features into packages designed for specific developer audiences. Some
+    features with the Acceleration Service API or the entire API itself may
+    eventually become generally available, but there is no fixed schedule for
+    this.</p>
+</li>
+</ul>
+<h2>Terms and privacy {:#terms_privacy}</h2>
+<h4>Terms of Service</h4>
+<p>Use of the Acceleration Service APIs is subject to the <a href="https://developers.google.com/terms/">Google APIs Terms of
+Service</a>.\
+Additionally, the Acceleration Service APIs is currently in beta
+and, as such, by using it you acknowledge the potential issues outlined in the
+Caveats section above and acknowledge that the Acceleration Service may not
+always perform as specified.</p>
+<h4>Privacy</h4>
+<p>When you use the Acceleration Service APIs, processing of the input data (e.g.
+images, video, text) fully happens on-device, and <strong>the Acceleration Service
+does not send that data to Google servers</strong>. As a result, you can use our APIs
+for processing input data that should not leave the device.\
+The Acceleration Service APIs may contact Google servers from time to time in
+order to receive things like bug fixes, updated models and hardware accelerator
+compatibility information. The Acceleration Service APIs also send metrics about
+the performance and utilization of the APIs in your app to Google. Google uses
+this metrics data to measure performance, debug, maintain and improve the APIs,
+and detect misuse or abuse, as further described in our <a href="https://policies.google.com/privacy">Privacy
+Policy</a>.\
+<strong>You are responsible for informing users of your app about Google's processing
+of the Acceleration Service metrics data as required by applicable law.</strong>\
+Data we collect includes the following:</p>
+<ul>
+<li>Device information (such as manufacturer, model, OS version and build) and
+    available ML hardware accelerators (GPU and DSP). Used for diagnostics and
+    usage analytics.</li>
+<li>App information (package name / bundle id, app version). Used for
+    diagnostics and usage analytics.</li>
+<li>API configuration (such as image format and resolution). Used for
+    diagnostics and usage analytics.</li>
+<li>Event type (such as initialize, download model, update, run, detection).
+    Used for diagnostics and usage analytics.</li>
+<li>Error codes. Used for diagnostics.</li>
+<li>Performance metrics. Used for diagnostics.</li>
+<li>Per-installation identifiers that do not uniquely identify a user or
+    physical device. Used for operation of remote configuration and usage
+    analytics.</li>
+<li>Network request sender IP addresses. Used for remote configuration
+    diagnostics. Collected IP addresses are retained temporarily.</li>
+</ul>
+<h2>Support and feedback</h2>
+<p>You can provide feedback and get support through the TensorFlow Issue Tracker.
+Please report issues and support requests using the
+<a href="https://github.com/tensorflow/tensorflow/issues/new?title=TensorFlow+Lite+in+Play+Services+issue&amp;template=tflite-in-play-services.md">issue template</a>
+for TensorFlow Lite in Google Play services.</p>

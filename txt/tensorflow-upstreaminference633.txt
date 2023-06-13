@@ -1,0 +1,504 @@
+<h1>TensorFlow Lite inference</h1>
+<p>The term <em>inference</em> refers to the process of executing a TensorFlow Lite model
+on-device in order to make predictions based on input data. To perform an
+inference with a TensorFlow Lite model, you must run it through an
+<em>interpreter</em>. The TensorFlow Lite interpreter is designed to be lean and fast.
+The interpreter uses a static graph ordering and a custom (less-dynamic) memory
+allocator to ensure minimal load, initialization, and execution latency.</p>
+<p>This page describes how to access to the TensorFlow Lite interpreter and perform
+an inference using C++, Java, and Python, plus links to other resources for each
+<a href="#supported-platforms">supported platform</a>.</p>
+<p>[TOC]</p>
+<h2>Important concepts</h2>
+<p>TensorFlow Lite inference typically follows the following steps:</p>
+<ol>
+<li>
+<p><strong>Loading a model</strong></p>
+<p>You must load the <code>.tflite</code> model into memory, which contains the model's
+execution graph.</p>
+</li>
+<li>
+<p><strong>Transforming data</strong></p>
+<p>Raw input data for the model generally does not match the input data format
+expected by the model. For example, you might need to resize an image or
+change the image format to be compatible with the model.</p>
+</li>
+<li>
+<p><strong>Running inference</strong></p>
+<p>This step involves using the TensorFlow Lite API to execute the model. It
+involves a few steps such as building the interpreter, and allocating
+tensors, as described in the following sections.</p>
+</li>
+<li>
+<p><strong>Interpreting output</strong></p>
+<p>When you receive results from the model inference, you must interpret the
+tensors in a meaningful way that's useful in your application.</p>
+<p>For example, a model might return only a list of probabilities. It's up to
+you to map the probabilities to relevant categories and present it to your
+end-user.</p>
+</li>
+</ol>
+<h2>Supported platforms</h2>
+<p>TensorFlow inference APIs are provided for most common mobile/embedded platforms
+such as <a href="#android-platform">Android</a>, <a href="#ios-platform">iOS</a> and
+<a href="#linux-platform">Linux</a>, in multiple programming languages.</p>
+<p>In most cases, the API design reflects a preference for performance over ease of
+use. TensorFlow Lite is designed for fast inference on small devices, so it
+should be no surprise that the APIs try to avoid unnecessary copies at the
+expense of convenience. Similarly, consistency with TensorFlow APIs was not an
+explicit goal and some variance between languages is to be expected.</p>
+<p>Across all libraries, the TensorFlow Lite API enables you to load models, feed
+inputs, and retrieve inference outputs.</p>
+<h3>Android Platform</h3>
+<p>On Android, TensorFlow Lite inference can be performed using either Java or C++
+APIs. The Java APIs provide convenience and can be used directly within your
+Android Activity classes. The C++ APIs offer more flexibility and speed, but may
+require writing JNI wrappers to move data between Java and C++ layers.</p>
+<p>See below for details about using <a href="#load-and-run-a-model-in-c">C++</a> and
+<a href="#load-and-run-a-model-in-java">Java</a>, or follow the
+<a href="../android">Android quickstart</a> for a tutorial and example code.</p>
+<h4>TensorFlow Lite Android wrapper code generator</h4>
+<p>Note: TensorFlow Lite wrapper code generator is in experimental (beta) phase and
+it currently only supports Android.</p>
+<p>For TensorFlow Lite model enhanced with <a href="../inference_with_metadata/overview">metadata</a>,
+developers can use the TensorFlow Lite Android wrapper code generator to create
+platform specific wrapper code. The wrapper code removes the need to interact
+directly with <code>ByteBuffer</code> on Android. Instead, developers can interact with the
+TensorFlow Lite model with typed objects such as <code>Bitmap</code> and <code>Rect</code>. For more
+information, please refer to the
+<a href="../inference_with_metadata/codegen.md">TensorFlow Lite Android wrapper code generator</a>.</p>
+<h3>iOS Platform</h3>
+<p>On iOS, TensorFlow Lite is available with native iOS libraries written in
+<a href="https://www.tensorflow.org/code/tensorflow/lite/swift">Swift</a>
+and
+<a href="https://www.tensorflow.org/code/tensorflow/lite/objc">Objective-C</a>.
+You can also use
+<a href="https://www.tensorflow.org/code/tensorflow/lite/c/c_api.h">C API</a>
+directly in Objective-C codes.</p>
+<p>See below for details about using <a href="#load-and-run-a-model-in-swift">Swift</a>,
+<a href="#load-and-run-a-model-in-objective-c">Objective-C</a> and the
+<a href="#using-c-api-in-objective-c-code">C API</a>, or follow the
+<a href="ios.md">iOS quickstart</a> for a tutorial and example code.</p>
+<h3>Linux Platform</h3>
+<p>On Linux platforms (including <a href="build_arm">Raspberry Pi</a>), you can run
+inferences using TensorFlow Lite APIs available in
+<a href="#load-and-run-a-model-in-c">C++</a> and <a href="#load-and-run-a-model-in-python">Python</a>,
+as shown in the following sections.</p>
+<h2>Running a model</h2>
+<p>Running a TensorFlow Lite model involves a few simple steps:</p>
+<ol>
+<li>Load the model into memory.</li>
+<li>Build an <code>Interpreter</code> based on an existing model.</li>
+<li>Set input tensor values. (Optionally resize input tensors if the predefined
+    sizes are not desired.)</li>
+<li>Invoke inference.</li>
+<li>Read output tensor values.</li>
+</ol>
+<p>Following sections describe how these steps can be done in each language.</p>
+<h2>Load and run a model in Java</h2>
+<p><em>Platform: Android</em></p>
+<p>The Java API for running an inference with TensorFlow Lite is primarily designed
+for use with Android, so it's available as an Android library dependency:
+<code>org.tensorflow:tensorflow-lite</code>.</p>
+<p>In Java, you'll use the <code>Interpreter</code> class to load a model and drive model
+inference. In many cases, this may be the only API you need.</p>
+<p>You can initialize an <code>Interpreter</code> using a <code>.tflite</code> file:</p>
+<p><code>java
+public Interpreter(@NotNull File modelFile);</code></p>
+<p>Or with a <code>MappedByteBuffer</code>:</p>
+<p><code>java
+public Interpreter(@NotNull MappedByteBuffer mappedByteBuffer);</code></p>
+<p>In both cases, you must provide a valid TensorFlow Lite model or the API throws
+<code>IllegalArgumentException</code>. If you use <code>MappedByteBuffer</code> to initialize an
+<code>Interpreter</code>, it must remain unchanged for the whole lifetime of the
+<code>Interpreter</code>.</p>
+<p>The preferred way to run inference on a model is to use signatures -
+Available for models converted starting Tensorflow 2.5</p>
+<p><code>Java
+try (Interpreter interpreter = new Interpreter(file_of_tensorflowlite_model)) {
+  Map&lt;String, Object&gt; inputs = new HashMap&lt;&gt;();
+  inputs.put("input_1", input1);
+  inputs.put("input_2", input2);
+  Map&lt;String, Object&gt; outputs = new HashMap&lt;&gt;();
+  outputs.put("output_1", output1);
+  interpreter.runSignature(inputs, outputs, "mySignature");
+}</code></p>
+<p>The <code>runSignature</code> method takes three arguments:</p>
+<ul>
+<li>
+<p><strong>Inputs</strong> : map for inputs from input name in the signature to an input
+    object.</p>
+</li>
+<li>
+<p><strong>Outputs</strong> : map for output mapping from output name in signature to output
+    data.</p>
+</li>
+<li>
+<p><strong>Signature Name</strong> [optional]: Signature name (Can be left empty if the
+    model has single signature).</p>
+</li>
+</ul>
+<p>Another way to run an inference when the model doesn't
+have a defined signatures.
+Simply call <code>Interpreter.run()</code>. For example:</p>
+<p><code>java
+try (Interpreter interpreter = new Interpreter(file_of_a_tensorflowlite_model)) {
+  interpreter.run(input, output);
+}</code></p>
+<p>The <code>run()</code> method takes only one input and returns only one output. So if your
+model has multiple inputs or multiple outputs, instead use:</p>
+<p><code>java
+interpreter.runForMultipleInputsOutputs(inputs, map_of_indices_to_outputs);</code></p>
+<p>In this case, each entry in <code>inputs</code> corresponds to an input tensor and
+<code>map_of_indices_to_outputs</code> maps indices of output tensors to the corresponding
+output data.</p>
+<p>In both cases, the tensor indices should correspond to the values you gave to
+the <a href="../models/convert/">TensorFlow Lite Converter</a> when you created the model. Be
+aware that the order of tensors in <code>input</code> must match the order given to the
+TensorFlow Lite Converter.</p>
+<p>The <code>Interpreter</code> class also provides convenient functions for you to get the
+index of any model input or output using an operation name:</p>
+<p><code>java
+public int getInputIndex(String opName);
+public int getOutputIndex(String opName);</code></p>
+<p>If <code>opName</code> is not a valid operation in the model, it throws an
+<code>IllegalArgumentException</code>.</p>
+<p>Also beware that <code>Interpreter</code> owns resources. To avoid memory leak, the
+resources must be released after use by:</p>
+<p><code>java
+interpreter.close();</code></p>
+<p>For an example project with Java, see the
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/image_classification/android">Android image classification sample</a>.</p>
+<h3>Supported data types (in Java)</h3>
+<p>To use TensorFlow Lite, the data types of the input and output tensors must be
+one of the following primitive types:</p>
+<ul>
+<li><code>float</code></li>
+<li><code>int</code></li>
+<li><code>long</code></li>
+<li><code>byte</code></li>
+</ul>
+<p><code>String</code> types are also supported, but they are encoded differently than the
+primitive types. In particular, the shape of a string Tensor dictates the number
+and arrangement of strings in the Tensor, with each element itself being a
+variable length string. In this sense, the (byte) size of the Tensor cannot be
+computed from the shape and type alone, and consequently strings cannot be
+provided as a single, flat <code>ByteBuffer</code> argument. You can see some examples in
+this <a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/Interpreter">page</a>.</p>
+<p>If other data types, including boxed types like <code>Integer</code> and <code>Float</code>, are used,
+an <code>IllegalArgumentException</code> will be thrown.</p>
+<h4>Inputs</h4>
+<p>Each input should be an array or multi-dimensional array of the supported
+primitive types, or a raw <code>ByteBuffer</code> of the appropriate size. If the input is
+an array or multi-dimensional array, the associated input tensor will be
+implicitly resized to the array's dimensions at inference time. If the input is
+a ByteBuffer, the caller should first manually resize the associated input
+tensor (via <code>Interpreter.resizeInput()</code>) before running inference.</p>
+<p>When using <code>ByteBuffer</code>, prefer using direct byte buffers, as this allows the
+<code>Interpreter</code> to avoid unnecessary copies. If the <code>ByteBuffer</code> is a direct byte
+buffer, its order must be <code>ByteOrder.nativeOrder()</code>. After it is used for a
+model inference, it must remain unchanged until the model inference is finished.</p>
+<h4>Outputs</h4>
+<p>Each output should be an array or multi-dimensional array of the supported
+primitive types, or a ByteBuffer of the appropriate size. Note that some models
+have dynamic outputs, where the shape of output tensors can vary depending on
+the input. There's no straightforward way of handling this with the existing
+Java inference API, but planned extensions will make this possible.</p>
+<h2>Load and run a model in Swift</h2>
+<p><em>Platform: iOS</em></p>
+<p>The
+<a href="https://www.tensorflow.org/code/tensorflow/lite/swift">Swift API</a>
+is available in <code>TensorFlowLiteSwift</code> Pod from Cocoapods.</p>
+<p>First, you need to import <code>TensorFlowLite</code> module.</p>
+<p><code>swift
+import TensorFlowLite</code></p>
+<p>```swift
+// Getting model path
+guard
+  let modelPath = Bundle.main.path(forResource: "model", ofType: "tflite")
+else {
+  // Error handling...
+}</p>
+<p>do {
+  // Initialize an interpreter with the model.
+  let interpreter = try Interpreter(modelPath: modelPath)</p>
+<p>// Allocate memory for the model's input <code>Tensor</code>s.
+  try interpreter.allocateTensors()</p>
+<p>let inputData: Data  // Should be initialized</p>
+<p>// input data preparation...</p>
+<p>// Copy the input data to the input <code>Tensor</code>.
+  try self.interpreter.copy(inputData, toInputAt: 0)</p>
+<p>// Run inference by invoking the <code>Interpreter</code>.
+  try self.interpreter.invoke()</p>
+<p>// Get the output <code>Tensor</code>
+  let outputTensor = try self.interpreter.output(at: 0)</p>
+<p>// Copy output to <code>Data</code> to process the inference results.
+  let outputSize = outputTensor.shape.dimensions.reduce(1, {x, y in x * y})
+  let outputData =
+        UnsafeMutableBufferPointer<Float32>.allocate(capacity: outputSize)
+  outputTensor.data.copyBytes(to: outputData)</p>
+<p>if (error != nil) { /<em> Error handling... </em>/ }
+} catch error {
+  // Error handling...
+}
+```</p>
+<h2>Load and run a model in Objective-C</h2>
+<p><em>Platform: iOS</em></p>
+<p>The
+<a href="https://www.tensorflow.org/code/tensorflow/lite/objc">Objective-C API</a>
+is available in <code>TensorFlowLiteObjC</code> Pod from Cocoapods.</p>
+<p>First, you need to import <code>TensorFlowLite</code> module.</p>
+<p><code>objc
+@import TensorFlowLite;</code></p>
+<p>```objc
+NSString <em>modelPath = [[NSBundle mainBundle] pathForResource:@"model"
+                                                      ofType:@"tflite"];
+NSError </em>error;</p>
+<p>// Initialize an interpreter with the model.
+TFLInterpreter <em>interpreter = [[TFLInterpreter alloc] initWithModelPath:modelPath
+                                                                  error:&amp;error];
+if (error != nil) { /</em> Error handling... */ }</p>
+<p>// Allocate memory for the model's input <code>TFLTensor</code>s.
+[interpreter allocateTensorsWithError:&amp;error];
+if (error != nil) { /<em> Error handling... </em>/ }</p>
+<p>NSMutableData *inputData;  // Should be initialized
+// input data preparation...</p>
+<p>// Get the input <code>TFLTensor</code>
+TFLTensor <em>inputTensor = [interpreter inputTensorAtIndex:0 error:&amp;error];
+if (error != nil) { /</em> Error handling... */ }</p>
+<p>// Copy the input data to the input <code>TFLTensor</code>.
+[inputTensor copyData:inputData error:&amp;error];
+if (error != nil) { /<em> Error handling... </em>/ }</p>
+<p>// Run inference by invoking the <code>TFLInterpreter</code>.
+[interpreter invokeWithError:&amp;error];
+if (error != nil) { /<em> Error handling... </em>/ }</p>
+<p>// Get the output <code>TFLTensor</code>
+TFLTensor <em>outputTensor = [interpreter outputTensorAtIndex:0 error:&amp;error];
+if (error != nil) { /</em> Error handling... */ }</p>
+<p>// Copy output to <code>NSData</code> to process the inference results.
+NSData <em>outputData = [outputTensor dataWithError:&amp;error];
+if (error != nil) { /</em> Error handling... */ }
+```</p>
+<h3>Using C API in Objective-C code</h3>
+<p>Currently Objective-C API does not support delegates. In order to use delegates
+with Objective-C code, you need to directly call underlying
+<a href="https://www.tensorflow.org/code/tensorflow/lite/c/c_api.h">C API</a>.</p>
+<p>```c</p>
+<h1>include "tensorflow/lite/c/c_api.h"</h1>
+<p>```</p>
+<p>```c
+TfLiteModel<em> model = TfLiteModelCreateFromFile([modelPath UTF8String]);
+TfLiteInterpreterOptions</em> options = TfLiteInterpreterOptionsCreate();</p>
+<p>// Create the interpreter.
+TfLiteInterpreter* interpreter = TfLiteInterpreterCreate(model, options);</p>
+<p>// Allocate tensors and populate the input tensor data.
+TfLiteInterpreterAllocateTensors(interpreter);
+TfLiteTensor* input_tensor =
+    TfLiteInterpreterGetInputTensor(interpreter, 0);
+TfLiteTensorCopyFromBuffer(input_tensor, input.data(),
+                           input.size() * sizeof(float));</p>
+<p>// Execute inference.
+TfLiteInterpreterInvoke(interpreter);</p>
+<p>// Extract the output tensor data.
+const TfLiteTensor* output_tensor =
+    TfLiteInterpreterGetOutputTensor(interpreter, 0);
+TfLiteTensorCopyToBuffer(output_tensor, output.data(),
+                         output.size() * sizeof(float));</p>
+<p>// Dispose of the model and interpreter objects.
+TfLiteInterpreterDelete(interpreter);
+TfLiteInterpreterOptionsDelete(options);
+TfLiteModelDelete(model);
+```</p>
+<h2>Load and run a model in C++</h2>
+<p><em>Platforms: Android, iOS, and Linux</em></p>
+<p>Note: C++ API on iOS is only available when using bazel.</p>
+<p>In C++, the model is stored in
+<a href="https://www.tensorflow.org/lite/api_docs/cc/class/tflite/flat-buffer-model.html"><code>FlatBufferModel</code></a>
+class. It encapsulates a TensorFlow Lite model and you can build it in a couple
+of different ways, depending on where the model is stored:</p>
+<p>```c++
+class FlatBufferModel {
+  // Build a model based on a file. Return a nullptr in case of failure.
+  static std::unique_ptr<FlatBufferModel> BuildFromFile(
+      const char<em> filename,
+      ErrorReporter</em> error_reporter);</p>
+<p>// Build a model based on a pre-loaded flatbuffer. The caller retains
+  // ownership of the buffer and should keep it alive until the returned object
+  // is destroyed. Return a nullptr in case of failure.
+  static std::unique_ptr<FlatBufferModel> BuildFromBuffer(
+      const char<em> buffer,
+      size_t buffer_size,
+      ErrorReporter</em> error_reporter);
+};
+```</p>
+<p>Note: If TensorFlow Lite detects the presence of the
+<a href="https://developer.android.com/ndk/guides/neuralnetworks">Android NNAPI</a>, it
+will automatically try to use shared memory to store the <code>FlatBufferModel</code>.</p>
+<p>Now that you have the model as a <code>FlatBufferModel</code> object, you can execute it
+with an
+<a href="https://www.tensorflow.org/lite/api_docs/cc/class/tflite/interpreter.html"><code>Interpreter</code></a>.
+A single <code>FlatBufferModel</code> can be used simultaneously by more than one
+<code>Interpreter</code>.</p>
+<p>Caution: The <code>FlatBufferModel</code> object must remain valid until all instances of
+<code>Interpreter</code> using it have been destroyed.</p>
+<p>The important parts of the <code>Interpreter</code> API are shown in the code snippet
+below. It should be noted that:</p>
+<ul>
+<li>Tensors are represented by integers, in order to avoid string comparisons
+    (and any fixed dependency on string libraries).</li>
+<li>An interpreter must not be accessed from concurrent threads.</li>
+<li>Memory allocation for input and output tensors must be triggered by calling
+    <code>AllocateTensors()</code> right after resizing tensors.</li>
+</ul>
+<p>The simplest usage of TensorFlow Lite with C++ looks like this:</p>
+<p>```c++
+// Load the model
+std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile(filename);</p>
+<p>// Build the interpreter
+tflite::ops::builtin::BuiltinOpResolver resolver;
+std::unique_ptr<tflite::Interpreter> interpreter;
+tflite::InterpreterBuilder(*model, resolver)(&amp;interpreter);</p>
+<p>// Resize input tensors, if desired.
+interpreter-&gt;AllocateTensors();</p>
+<p>float* input = interpreter-&gt;typed_input_tensor<float>(0);
+// Fill <code>input</code>.</p>
+<p>interpreter-&gt;Invoke();</p>
+<p>float* output = interpreter-&gt;typed_output_tensor<float>(0);
+```</p>
+<p>For more example code, see
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/minimal/minimal.cc"><code>minimal.cc</code></a>
+and
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/label_image/label_image.cc"><code>label_image.cc</code></a>.</p>
+<h2>Load and run a model in Python</h2>
+<p><em>Platform: Linux</em></p>
+<p>The Python API for running an inference is provided in the <code>tf.lite</code> module.
+From which, you mostly need only
+<a href="https://www.tensorflow.org/api_docs/python/tf/lite/Interpreter"><code>tf.lite.Interpreter</code></a>
+to load a model and run an inference.</p>
+<p>The following example shows how to use the Python interpreter to load a
+<code>.tflite</code> file and run inference with random input data:</p>
+<p>This example is recommended if you're converting from SavedModel with a defined
+SignatureDef.
+Available starting from TensorFlow 2.5</p>
+<p>```python
+class TestModel(tf.Module):
+  def <strong>init</strong>(self):
+    super(TestModel, self).<strong>init</strong>()</p>
+<p>@tf.function(input_signature=[tf.TensorSpec(shape=[1, 10], dtype=tf.float32)])
+  def add(self, x):
+    '''
+    Simple method that accepts single input 'x' and returns 'x' + 4.
+    '''
+    # Name the output 'result' for convenience.
+    return {'result' : x + 4}</p>
+<p>SAVED_MODEL_PATH = 'content/saved_models/test_variable'
+TFLITE_FILE_PATH = 'content/test_variable.tflite'</p>
+<h1>Save the model</h1>
+<p>module = TestModel()</p>
+<h1>You can omit the signatures argument and a default signature name will be</h1>
+<h1>created with name 'serving_default'.</h1>
+<p>tf.saved_model.save(
+    module, SAVED_MODEL_PATH,
+    signatures={'my_signature':module.add.get_concrete_function()})</p>
+<h1>Convert the model using TFLiteConverter</h1>
+<p>converter = tf.lite.TFLiteConverter.from_saved_model(SAVED_MODEL_PATH)
+tflite_model = converter.convert()
+with open(TFLITE_FILE_PATH, 'wb') as f:
+  f.write(tflite_model)</p>
+<h1>Load the TFLite model in TFLite Interpreter</h1>
+<p>interpreter = tf.lite.Interpreter(TFLITE_FILE_PATH)</p>
+<h1>There is only 1 signature defined in the model,</h1>
+<h1>so it will return it by default.</h1>
+<h1>If there are multiple signatures then we can pass the name.</h1>
+<p>my_signature = interpreter.get_signature_runner()</p>
+<h1>my_signature is callable with input as arguments.</h1>
+<p>output = my_signature(x=tf.constant([1.0], shape=(1,10), dtype=tf.float32))</p>
+<h1>'output' is dictionary with all outputs from the inference.</h1>
+<h1>In this case we have single output 'result'.</h1>
+<p>print(output['result'])
+```</p>
+<p>Another example if the model doesn't have SignatureDefs defined.</p>
+<p>```python
+import numpy as np
+import tensorflow as tf</p>
+<h1>Load the TFLite model and allocate tensors.</h1>
+<p>interpreter = tf.lite.Interpreter(model_path="converted_model.tflite")
+interpreter.allocate_tensors()</p>
+<h1>Get input and output tensors.</h1>
+<p>input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()</p>
+<h1>Test the model on random input data.</h1>
+<p>input_shape = input_details[0]['shape']
+input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
+interpreter.set_tensor(input_details[0]['index'], input_data)</p>
+<p>interpreter.invoke()</p>
+<h1>The function <code>get_tensor()</code> returns a copy of the tensor data.</h1>
+<h1>Use <code>tensor()</code> in order to get a pointer to the tensor.</h1>
+<p>output_data = interpreter.get_tensor(output_details[0]['index'])
+print(output_data)
+```</p>
+<p>As an alternative to loading the model as a pre-converted <code>.tflite</code> file, you
+can combine your code with the
+<a href="https://www.tensorflow.org/lite/api_docs/python/tf/lite/TFLiteConverter">TensorFlow Lite Converter Python API</a>
+(<code>tf.lite.TFLiteConverter</code>), allowing you to convert your TensorFlow model into
+the TensorFlow Lite format and then run inference:</p>
+<p>```python
+import numpy as np
+import tensorflow as tf</p>
+<p>img = tf.placeholder(name="img", dtype=tf.float32, shape=(1, 64, 64, 3))
+const = tf.constant([1., 2., 3.]) + tf.constant([1., 4., 4.])
+val = img + const
+out = tf.identity(val, name="out")</p>
+<h1>Convert to TF Lite format</h1>
+<p>with tf.Session() as sess:
+  converter = tf.lite.TFLiteConverter.from_session(sess, [img], [out])
+  tflite_model = converter.convert()</p>
+<h1>Load the TFLite model and allocate tensors.</h1>
+<p>interpreter = tf.lite.Interpreter(model_content=tflite_model)
+interpreter.allocate_tensors()</p>
+<h1>Continue to get tensors and so forth, as shown above...</h1>
+<p>```</p>
+<p>For more Python sample code, see
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/python/label_image.py"><code>label_image.py</code></a>.</p>
+<p>Tip: Run <code>help(tf.lite.Interpreter)</code> in the Python terminal to get detailed
+documentation about the interpreter.</p>
+<h2>Run inference with dynamic shape model</h2>
+<p>If you want to run a model with dynamic input shape,
+<em>resize the input shape</em> before running inference.
+Otherwise, the <code>None</code> shape in Tensorflow models will be replaced by a
+placeholder of <code>1</code> in TFLite models.</p>
+<p>The following examples show how to resize the input shape before
+running inference in different languages.
+All the examples assume that the input shape is defined as <code>[1/None, 10]</code>, and
+need to be resized to <code>[3, 10]</code>.</p>
+<section class="tabs">
+
+###### C++ {.new-tab}
+
+```c++
+// Resize input tensors before allocate tensors
+interpreter->ResizeInputTensor(/*tensor_index=*/0, std::vector<int>{3,10});
+interpreter->AllocateTensors();
+```
+###### Python {.new-tab}
+
+```python
+# Load the TFLite model in TFLite Interpreter
+interpreter = tf.lite.Interpreter(model_path=TFLITE_FILE_PATH)
+
+# Resize input shape for dynamic shape model and allocate tensor
+interpreter.resize_tensor_input(interpreter.get_input_details()[0]['index'], [3, 10])
+interpreter.allocate_tensors()
+
+# Get input and output tensors.
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+```
+
+</section>
+
+<h2>Supported operations</h2>
+<p>TensorFlow Lite supports a subset of TensorFlow operations with some
+limitations. For full list of operations and limitations see
+<a href="https://www.tensorflow.org/mlir/tfl_ops">TF Lite Ops page</a>.</p>

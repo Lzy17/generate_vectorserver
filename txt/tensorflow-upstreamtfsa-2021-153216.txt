@@ -1,0 +1,39 @@
+<h2>TFSA-2021-153: Heap OOB in nested <code>tf.map_fn</code> with <code>RaggedTensor</code>s</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37679</p>
+<h3>Impact</h3>
+<p>It is possible to nest a <code>tf.map_fn</code> within another <code>tf.map_fn</code> call. However,
+if the input tensor is a <code>RaggedTensor</code> and there is no function signature
+provided, code assumes the output is a fully specified tensor and fills output
+buffer with uninitialized contents from the heap:</p>
+<p><code>python
+import tensorflow as tf
+x = tf.ragged.constant([[1,2,3], [4,5], [6]])
+t = tf.map_fn(lambda r: tf.map_fn(lambda y: r, r), x)
+z = tf.ragged.constant([[[1,2,3],[1,2,3],[1,2,3]],[[4,5],[4,5]],[[6]]])</code></p>
+<p>The <code>t</code> and <code>z</code> outputs should be identical, however this is not the case. The
+last row of <code>t</code> contains data from the heap which can be used to leak other
+memory information.</p>
+<p>The bug lies in the conversion from a <code>Variant</code> tensor to a <code>RaggedTensor</code>. The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/ragged_tensor_from_variant_op.cc#L177-L190">implementation</a>
+does not check that all inner shapes match and this results in the additional
+dimensions in the above example.</p>
+<p>The same implementation can result in data loss, if input tensor is tweaked:</p>
+<p><code>python
+import tensorflow as tf
+x = tf.ragged.constant([[1,2], [3,4,5], [6]])
+t = tf.map_fn(lambda r: tf.map_fn(lambda y: r, r), x)</code></p>
+<p>Here, the output tensor will only have 2 elements for each inner dimension.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/4e2565483d0ffcadc719bd44893fb7f609bb5f12">4e2565483d0ffcadc719bd44893fb7f609bb5f12</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Haris Sahovic.</p>

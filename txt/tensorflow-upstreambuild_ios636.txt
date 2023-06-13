@@ -1,0 +1,188 @@
+<h1>Build TensorFlow Lite for iOS</h1>
+<p>This document describes how to build TensorFlow Lite iOS library on your own.
+Normally, you do not need to locally build TensorFlow Lite iOS library. If you
+just want to use it, the easiest way is using the prebuilt stable or nightly
+releases of the TensorFlow Lite CocoaPods. See <a href="ios.md">iOS quickstart</a> for more
+details on how to use them in your iOS projects.</p>
+<h2>Building locally</h2>
+<p>In some cases, you might wish to use a local build of TensorFlow Lite, for
+example when you want to make local changes to TensorFlow Lite and test those
+changes in your iOS app or you prefer using static framework to our provided
+dynamic one. To create a universal iOS framework for TensorFlow Lite locally,
+you need to build it using Bazel on a macOS machine.</p>
+<h3>Install Xcode</h3>
+<p>If you have not already, you will need to install Xcode 8 or later and the tools
+using <code>xcode-select</code>:</p>
+<p><code>sh
+xcode-select --install</code></p>
+<p>If this is a new install, you will need to accept the license agreement for all
+users with the following command:</p>
+<p><code>sh
+sudo xcodebuild -license accept</code></p>
+<h3>Install Bazel</h3>
+<p>Bazel is the primary build system for TensorFlow. Install Bazel as per the
+<a href="https://docs.bazel.build/versions/master/install-os-x.html">instructions on the Bazel website</a>. Make sure to choose a
+version between <code>_TF_MIN_BAZEL_VERSION</code> and <code>_TF_MAX_BAZEL_VERSION</code> in
+<a href="https://github.com/tensorflow/tensorflow/blob/master/configure.py"><code>configure.py</code> file</a> at the root of <code>tensorflow</code> repository.</p>
+<h3>Configure WORKSPACE and .bazelrc</h3>
+<p>Run the <code>./configure</code> script in the root TensorFlow checkout directory, and
+answer "Yes" when the script asks if you wish to build TensorFlow with iOS
+support.</p>
+<h3>Build TensorFlowLiteC dynamic framework (recommended)</h3>
+<p>Note: This step is not necessary if (1) you are using Bazel for your app, or (2)
+you only want to test local changes to the Swift or Objective-C APIs. In these
+cases, skip to the <a href="#use_in_your_own_application">Use in your own application</a>
+section below.</p>
+<p>Once Bazel is properly configured with iOS support, you can build the
+<code>TensorFlowLiteC</code> framework with the following command.</p>
+<p><code>sh
+bazel build --config=ios_fat -c opt --cxxopt=--std=c++17 \
+  //tensorflow/lite/ios:TensorFlowLiteC_framework</code></p>
+<p>This command will generate the <code>TensorFlowLiteC_framework.zip</code> file under
+<code>bazel-bin/tensorflow/lite/ios/</code> directory under your TensorFlow root directory.
+By default, the generated framework contains a "fat" binary, containing armv7,
+arm64, and x86_64 (but no i386). To see the full list of build flags used when
+you specify <code>--config=ios_fat</code>, please refer to the iOS configs section in the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/.bazelrc"><code>.bazelrc</code> file</a>.</p>
+<h3>Build TensorFlowLiteC static framework</h3>
+<p>By default, we only distribute the dynamic framework via Cocoapods. If you want
+to use the static framework instead, you can build the <code>TensorFlowLiteC</code> static
+framework with the following command:</p>
+<p><code>bazel build --config=ios_fat -c opt --cxxopt=--std=c++17 \
+  //tensorflow/lite/ios:TensorFlowLiteC_static_framework</code></p>
+<p>The command will generate a file named <code>TensorFlowLiteC_static_framework.zip</code>
+under <code>bazel-bin/tensorflow/lite/ios/</code> directory under your TensorFlow root
+directory. This static framework can be used in the exact same way as the
+dynamic one.</p>
+<h3>Selectively build TFLite frameworks</h3>
+<p>You can build smaller frameworks targeting only a set of models using selective
+build, which will skip unused operations in your model set and only include the
+op kernels required to run the given set of models. The command is as following:</p>
+<p><code>sh
+bash tensorflow/lite/ios/build_frameworks.sh \
+  --input_models=model1.tflite,model2.tflite \
+  --target_archs=x86_64,armv7,arm64</code></p>
+<p>The above command will generate the static framework
+<code>bazel-bin/tensorflow/lite/ios/tmp/TensorFlowLiteC_framework.zip</code> for TensorFlow
+Lite built-in and custom ops; and optionally, generates the static framework
+<code>bazel-bin/tensorflow/lite/ios/tmp/TensorFlowLiteSelectTfOps_framework.zip</code> if
+your models contain Select TensorFlow ops. Note that the <code>--target_archs</code> flag
+can be used to specify your deployment architectures.</p>
+<h2>Use in your own application</h2>
+<h3>CocoaPods developers</h3>
+<p>There are three CocoaPods for TensorFlow Lite:</p>
+<ul>
+<li><code>TensorFlowLiteSwift</code>: Provides the Swift APIs for TensorFlow Lite.</li>
+<li><code>TensorFlowLiteObjC</code>: Provides the Objective-C APIs for TensorFlow Lite.</li>
+<li><code>TensorFlowLiteC</code>: Common base pod, which embeds the TensorFlow Lite core
+    runtime and exposes the base C APIs used by the above two pods. Not meant to
+    be directly used by users.</li>
+</ul>
+<p>As a developer, you should choose either <code>TensorFlowLiteSwift</code> or
+<code>TensorFlowLiteObjC</code> pod based on the language in which your app is written, but
+not both. The exact steps for using local builds of TensorFlow Lite differ,
+depending on which exact part you would like to build.</p>
+<h4>Using local Swift or Objective-C APIs</h4>
+<p>If you are using CocoaPods, and only wish to test some local changes to the
+TensorFlow Lite's <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/swift">Swift APIs</a> or <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/objc">Objective-C APIs</a>,
+follow the steps here.</p>
+<ol>
+<li>
+<p>Make changes to the Swift or Objective-C APIs in your <code>tensorflow</code> checkout.</p>
+</li>
+<li>
+<p>Open the <code>TensorFlowLite(Swift|ObjC).podspec</code> file, and update this line: \
+    <code>s.dependency 'TensorFlowLiteC', "#{s.version}"</code> \
+    to be: \
+    <code>s.dependency 'TensorFlowLiteC', "~&gt; 0.0.1-nightly"</code> \
+    This is to ensure that you are building your Swift or Objective-C APIs
+    against the latest available nightly version of <code>TensorFlowLiteC</code> APIs
+    (built every night between 1-4AM Pacific Time) rather than the stable
+    version, which may be outdated compared to your local <code>tensorflow</code> checkout.
+    Alternatively, you could choose to publish your own version of
+    <code>TensorFlowLiteC</code> and use that version (see
+    <a href="#using_local_tensorflow_lite_core">Using local TensorFlow Lite core</a>
+    section below).</p>
+</li>
+<li>
+<p>In the <code>Podfile</code> of your iOS project, change the dependency as follows to
+    point to the local path to your <code>tensorflow</code> root directory. \
+    For Swift: \
+    <code>pod 'TensorFlowLiteSwift', :path =&gt; '&lt;your_tensorflow_root_dir&gt;'</code> \
+    For Objective-C: \
+    <code>pod 'TensorFlowLiteObjC', :path =&gt; '&lt;your_tensorflow_root_dir&gt;'</code></p>
+</li>
+<li>
+<p>Update your pod installation from your iOS project root directory. \
+    <code>$ pod update</code></p>
+</li>
+<li>
+<p>Reopen the generated workspace (<code>&lt;project&gt;.xcworkspace</code>) and rebuild your
+    app within Xcode.</p>
+</li>
+</ol>
+<h4>Using local TensorFlow Lite core</h4>
+<p>You can set up a private CocoaPods specs repository, and publish your custom
+<code>TensorFlowLiteC</code> framework to your private repo. You can copy this
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/ios/TensorFlowLiteC.podspec">podspec file</a> and modify a few values:</p>
+<p><code>ruby
+  ...
+  s.version      = &lt;your_desired_version_tag&gt;
+  ...
+  # Note the `///`, two from the `file://` and one from the `/path`.
+  s.source       = { :http =&gt; "file:///path/to/TensorFlowLiteC_framework.zip" }
+  ...
+  s.vendored_frameworks = 'TensorFlowLiteC.framework'
+  ...</code></p>
+<p>After creating your own <code>TensorFlowLiteC.podspec</code> file, you can follow the
+<a href="https://guides.cocoapods.org/making/private-cocoapods.html">instructions on using private CocoaPods</a> to use it in your
+own project. You can also modify the <code>TensorFlowLite(Swift|ObjC).podspec</code> to
+point to your custom <code>TensorFlowLiteC</code> pod and use either Swift or Objective-C
+pod in your app project.</p>
+<h3>Bazel developers</h3>
+<p>If you are using Bazel as the main build tool, you can simply add
+<code>TensorFlowLite</code> dependency to your target in your <code>BUILD</code> file.</p>
+<p>For Swift:</p>
+<p><code>python
+swift_library(
+  deps = [
+      "//tensorflow/lite/swift:TensorFlowLite",
+  ],
+)</code></p>
+<p>For Objective-C:</p>
+<p><code>python
+objc_library(
+  deps = [
+      "//tensorflow/lite/objc:TensorFlowLite",
+  ],
+)</code></p>
+<p>When you build your app project, any changes to the TensorFlow Lite library will
+be picked up and built into your app.</p>
+<h3>Modify Xcode project settings directly</h3>
+<p>It is highly recommended to use CocoaPods or Bazel for adding TensorFlow Lite
+dependency into your project. If you still wish to add <code>TensorFlowLiteC</code>
+framework manually, you'll need to add the <code>TensorFlowLiteC</code> framework as an
+embedded framework to your application project. Unzip the
+<code>TensorFlowLiteC_framework.zip</code> generated from the above build to get the
+<code>TensorFlowLiteC.framework</code> directory. This directory is the actual framework
+which Xcode can understand.</p>
+<p>Once you've prepared the <code>TensorFlowLiteC.framework</code>, first you need to add it
+as an embedded binary to your app target. The exact project settings section for
+this may differ depending on your Xcode version.</p>
+<ul>
+<li>Xcode 11: Go to the 'General' tab of the project editor for your app target,
+    and add the <code>TensorFlowLiteC.framework</code> under 'Frameworks, Libraries, and
+    Embedded Content' section.</li>
+<li>Xcode 10 and below: Go to the 'General' tab of the project editor for your
+    app target, and add the <code>TensorFlowLiteC.framework</code> under 'Embedded
+    Binaries'. The framework should also be added automatically under 'Linked
+    Frameworks and Libraries' section.</li>
+</ul>
+<p>When you add the framework as an embedded binary, Xcode would also update the
+'Framework Search Paths' entry under 'Build Settings' tab to include the parent
+directory of your framework. In case this does not happen automatically, you
+should manually add the parent directory of the <code>TensorFlowLiteC.framework</code>
+directory.</p>
+<p>Once these two settings are done, you should be able to import and call the
+TensorFlow Lite's C API, defined by the header files under
+<code>TensorFlowLiteC.framework/Headers</code> directory.</p>

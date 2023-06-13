@@ -1,0 +1,434 @@
+<h1>Text classification with Android</h1>
+<p>This tutorial shows you how to build an Android application using TensorFlow
+Lite to classify natural language text. This application is designed for a
+physical Android device but can also run on a device emulator.</p>
+<p>The
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/text_classification/android">example application</a>
+uses TensorFlow Lite to classify text as either positive or negative, using the
+<a href="../../inference_with_metadata/task_library/overview#supported_tasks">Task library for natural language (NL)</a>
+to enable execution of the text classification machine learning models.</p>
+<p>If you are updating an existing project, you can use the example application as
+a reference or template. For instructions on how to add text classification to
+an existing application, refer to
+<a href="#modify_applications">Updating and modifying your application</a>.</p>
+<h2>Text classification overview</h2>
+<p><em>Text classification</em> is the machine learning task of assigning a set of
+predefined categories to open-ended text. A text classification model is trained
+on a corpus of natural language text, where words or phrases are manually
+classified.</p>
+<p>The trained model receives text as input and attempts to categorize the text
+according to the set of known classes it was trained to classify. For example,
+the models in this example accept a snippet of text and determines whether the
+sentiment of the text is positive or negative. For each snippet of text, the
+text classification model outputs a score that indicates the confidence of the
+text being correctly classified as either positive or negative.</p>
+<p>For more information on how the models in this tutorial are generated, refer to
+the
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_classification">Text classification with TensorFlow Lite Model Maker</a>
+tutorial.</p>
+<h2>Models and dataset</h2>
+<p>This tutorial uses models that were trained using the
+<a href="https://nlp.stanford.edu/sentiment/index.html">SST-2</a> (Stanford Sentiment
+Treebank) dataset. SST-2 contains 67,349 movie reviews for training and 872
+movie reviews for testing, with each review categorized as either positive or
+negative. The models used in this app were trained using the TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_classification">Model Maker</a>
+tool.</p>
+<p>The example application uses the following pre-trained models:</p>
+<ul>
+<li>
+<p><a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/nl_classifier">Average Word Vector</a>
+    (<code>NLClassifier</code>) - The Task Library's <code>NLClassifier</code> classifies input text
+    into different categories, and can handle most text classification models.</p>
+</li>
+<li>
+<p><a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/bert_nl_classifier">MobileBERT</a>
+    (<code>BertNLClassifier</code>) - The Task Library's <code>BertNLClassifier</code> is similar to
+    the NLClassifier but is tailored for cases that require out-of-graph
+    Wordpiece and Sentencepiece tokenizations.</p>
+</li>
+</ul>
+<h2>Setup and run the example app</h2>
+<p>To setup the text classification application, download the example app from
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/text_classification/android">GitHub</a>
+and run it using <a href="https://developer.android.com/studio/">Android Studio</a>.</p>
+<h3>System requirements</h3>
+<ul>
+<li><strong><a href="https://developer.android.com/studio/index.html">Android Studio</a></strong>
+    version 2021.1.1 (Bumblebee) or higher.</li>
+<li>Android SDK version 31 or higher</li>
+<li>Android device with a minimum OS version of SDK 21 (Android 7.0 - Nougat)
+    with
+    <a href="https://developer.android.com/studio/debug/dev-options">developer mode</a>
+    enabled, or an Android Emulator.</li>
+</ul>
+<h3>Get the example code</h3>
+<p>Create a local copy of the example code. You will use this code to create a
+project in Android Studio and run the example application.</p>
+<p>To clone and setup the example code:</p>
+<ol>
+<li>Clone the git repository
+    <pre class="devsite-click-to-copy">
+    git clone https://github.com/tensorflow/examples.git
+    </pre></li>
+<li>Optionally, configure your git instance to use sparse checkout, so you have only
+    the files for the text classification example app:
+    <pre class="devsite-click-to-copy">
+    cd examples
+    git sparse-checkout init --cone
+    git sparse-checkout set lite/examples/text_classification/android
+    </pre></li>
+</ol>
+<h3>Import and run the project</h3>
+<p>Create a project from the downloaded example code, build the project, and then
+run it.</p>
+<p>To import and build the example code project:</p>
+<ol>
+<li>Start <a href="https://developer.android.com/studio">Android Studio</a>.</li>
+<li>From the Android Studio, select <strong>File &gt; New &gt; Import Project</strong>.</li>
+<li>Navigate to the example code directory containing the build.gradle file
+    (<code>.../examples/lite/examples/text_classification/android/build.gradle</code>) and
+    select that directory.</li>
+<li>If Android Studio requests a Gradle Sync, choose OK.</li>
+<li>Ensure that your Android device is connected to your computer and developer
+    mode is enabled. Click the green <code>Run</code> arrow.</li>
+</ol>
+<p>If you select the correct directory, Android Studio creates a new project and
+builds it. This process can take a few minutes, depending on the speed of your
+computer and if you have used Android Studio for other projects. When the build
+completes, the Android Studio displays a <code>BUILD SUCCESSFUL</code> message in the
+<strong>Build Output</strong> status panel.</p>
+<p>To run the project:</p>
+<ol>
+<li>From Android Studio, run the project by selecting <strong>Run &gt; Run…</strong>.</li>
+<li>Select an attached Android device (or emulator) to test the app.</li>
+</ol>
+<h3>Using the application</h3>
+<p><img alt="Text classification example app in Android" src="../../../images/lite/android/text-classification-screenshot.png" />{: .attempt-right width="250px"}</p>
+<p>After running the project in Android Studio, the application will automatically
+open on the connected device or device emulator.</p>
+<p>To use the text classifier:</p>
+<ol>
+<li>Enter a snippet of text in the text box.</li>
+<li>From the <strong>Delegate</strong> drop-down, choose either <code>CPU</code> or <code>NNAPI</code>.</li>
+<li>Specify a model by choosing either <code>AverageWordVec</code> or <code>MobileBERT</code>.</li>
+<li>Choose <strong>Classify</strong>.</li>
+</ol>
+<p>The application outputs a <em>positive</em> score and a <em>negative</em> score. These two
+scores will sum to 1, and measures the likelihood that the sentiment of the
+input text is positive or negative. A higher number denotes a higher level of
+confidence.</p>
+<p>You now have a functioning text classification application. Use the following
+sections to better understand how the example application works, and how to
+implement text classification features to your production applications:</p>
+<ul>
+<li>
+<p><a href="#how_it_works">How the application works</a> - A walkthrough of the structure
+    and key files of the example application.</p>
+</li>
+<li>
+<p><a href="#modify_applications">Modify your application</a> - Instructions on adding
+    text classification to an existing application.</p>
+</li>
+</ul>
+<h2>How the example app works {:#how_it_works}</h2>
+<p>The application uses the
+<a href="../../inference_with_metadata/task_library/overview#supported_tasks">Task library for natural language (NL)</a>
+package to implement the text classification models. The two models, Average
+Word Vector and MobileBERT, were trained using the TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_classification">Model Maker</a>.
+The application runs on CPU by default, with the option of hardware acceleration
+using the NNAPI delegate.</p>
+<p>The following files and directories contain the crucial code for this text
+classification application:</p>
+<ul>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a> -
+    Initializes the text classifier and handles the model and delegate
+    selection.</li>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/MainActivity.kt">MainActivity.kt</a> -
+    Implements the application, including calling <code>TextClassificationHelper</code> and
+    <code>ResultsAdapter</code>.</li>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/ResultsAdapter.kt">ResultsAdapter.kt</a> -
+    Handles and formats the results.</li>
+</ul>
+<h2>Modify your application {:#modify_applications}</h2>
+<p>The following sections explain the key steps to modify your own Android app to
+run the model shown in the example app. These instructions use the example app
+as a reference point. The specific changes needed for your own app may vary from
+the example app.</p>
+<h3>Open or create an Android project</h3>
+<p>You need an Android development project in Android Studio to follow along with
+the rest of these instructions. Follow the instructions below to open an
+existing project or create a new one.</p>
+<p>To open an existing Android development project:</p>
+<ul>
+<li>In Android Studio, select <em>File &gt; Open</em> and select an existing project.</li>
+</ul>
+<p>To create a basic Android development project:</p>
+<ul>
+<li>Follow the instructions in Android Studio to
+    <a href="https://developer.android.com/studio/projects/create-project">Create a basic project</a>.</li>
+</ul>
+<p>For more information on using Android Studio, refer to the
+<a href="https://developer.android.com/studio/intro">Android Studio documentation</a>.</p>
+<h3>Add project dependencies</h3>
+<p>In your own application, you must add specific project dependencies to run
+TensorFlow Lite machine learning models, and access utility functions that
+convert data such as strings, into a tensor data format that can be processed by
+the model you are using.</p>
+<p>The following instructions explain how to add the required project and module
+dependencies to your own Android app project.</p>
+<p>To add module dependencies:</p>
+<ol>
+<li>
+<p>In the module that uses TensorFlow Lite, update the module's <code>build.gradle</code>
+    file to include the following dependencies.</p>
+<p>In the example application, the dependencies are located in
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/build.gradle">app/build.gradle</a>:</p>
+<p><code>dependencies {
+  ...
+  implementation 'org.tensorflow:tensorflow-lite-task-text:0.4.0'
+}</code></p>
+<p>The project must include the Text task library
+(<code>tensorflow-lite-task-text</code>).</p>
+<p>If you want to modify this app to run on a graphics processing unit (GPU),
+the GPU library (<code>tensorflow-lite-gpu-delegate-plugin</code>) provides the
+infrastructure to run the app on GPU, and Delegate (<code>tensorflow-lite-gpu</code>)
+provides the compatibility list. Running this app on GPU is outside the
+scope of this tutorial.</p>
+</li>
+<li>
+<p>In Android Studio, sync the project dependencies by selecting: <strong>File &gt; Sync
+    Project with Gradle Files</strong>.</p>
+</li>
+</ol>
+<h3>Initialize the ML models {:#initialize_models}</h3>
+<p>In your Android app, you must initialize the TensorFlow Lite machine learning
+model with parameters before running predictions with the model.</p>
+<p>A TensorFlow Lite model is stored as a <code>*.tflite</code> file. The model file contains
+the prediction logic and typically includes
+<a href="../../models/convert/metadata">metadata</a> about how to interpret prediction
+results, such as prediction class names. Typically, model files are stored in
+the <code>src/main/assets</code> directory of your development project, as in the code
+example:</p>
+<ul>
+<li><code>&lt;project&gt;/src/main/assets/mobilebert.tflite</code></li>
+<li><code>&lt;project&gt;/src/main/assets/wordvec.tflite</code></li>
+</ul>
+<p>Note: The example app uses a
+<code>[download_model.gradle](https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/download_model.gradle)</code>
+file to download the
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/nl_classifier">Average Word Vector</a>
+and
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/bert_nl_classifier">MobileBERT</a>
+models at build time. This approach is not necessary or recommended for a
+production app.</p>
+<p>For convenience and code readability, the example declares a companion object
+that defines the settings for the model.</p>
+<p>To initialize the model in your app:</p>
+<ol>
+<li>
+<p>Create a companion object to define the settings for the model. In the
+    example application, this object is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p><code>companion object {
+  const val DELEGATE_CPU = 0
+  const val DELEGATE_NNAPI = 1
+  const val WORD_VEC = "wordvec.tflite"
+  const val MOBILEBERT = "mobilebert.tflite"
+}</code></p>
+</li>
+<li>
+<p>Create the settings for the model by building a classifier object, and
+    construct a TensorFlow Lite object using either <code>BertNLClassifier</code> or
+    <code>NLClassifier</code>.</p>
+<p>In the example application, this is located in the <code>initClassifier</code> function
+within
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p><code>fun initClassifier() {
+  ...
+  if( currentModel == MOBILEBERT ) {
+    ...
+    bertClassifier = BertNLClassifier.createFromFileAndOptions(
+      context,
+      MOBILEBERT,
+      options)
+  } else if (currentModel == WORD_VEC) {
+      ...
+      nlClassifier = NLClassifier.createFromFileAndOptions(
+        context,
+        WORD_VEC,
+        options)
+  }
+}</code></p>
+<p>Note: Most production apps using text classification will use either
+<code>BertNLClassifier</code> or <code>NLClassifier</code> - not both.</p>
+</li>
+</ol>
+<h3>Enable hardware acceleration (optional) {:#hardware_acceleration}</h3>
+<p>When initializing a TensorFlow Lite model in your app, you should consider using
+hardware acceleration features to speed up the prediction calculations of the
+model. TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/performance/delegates">delegates</a> are software
+modules that accelerate execution of machine learning models using specialized
+processing hardware on a mobile device, such as graphics processing unit (GPUs)
+or tensor processing units (TPUs).</p>
+<p>To enable hardware acceleration in your app:</p>
+<ol>
+<li>
+<p>Create a variable to define the delegate that the application will use. In
+    the example application, this variable is located early in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p><code>var currentDelegate: Int = 0</code></p>
+</li>
+<li>
+<p>Create a delegate selector. In the example application, the delegate
+    selector is located in the <code>initClassifier</code> function within
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p><code>val baseOptionsBuilder = BaseOptions.builder()
+when (currentDelegate) {
+   DELEGATE_CPU -&gt; {
+       // Default
+   }
+   DELEGATE_NNAPI -&gt; {
+       baseOptionsBuilder.useNnapi()
+   }
+}</code></p>
+</li>
+</ol>
+<p>Note: It is possible to modify this app to use a GPU delegate, but this requires
+that the classifier be created on the same thread that is using the classifier.
+This is outside of the scope of this tutorial.</p>
+<p>Using delegates for running TensorFlow Lite models is recommended, but not
+required. For more information about using delegates with TensorFlow Lite, see
+<a href="https://www.tensorflow.org/lite/performance/delegates">TensorFlow Lite Delegates</a>.</p>
+<h3>Prepare data for the model</h3>
+<p>In your Android app, your code provides data to the model for interpretation by
+transforming existing data such as raw text into a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/Tensor">Tensor</a>
+data format that can be processed by your model. The data in a Tensor you pass
+to a model must have specific dimensions, or shape, that matches the format of
+data used to train the model.</p>
+<p>This text classification app accepts a
+<a href="https://developer.android.com/reference/java/lang/String.html">string</a> as
+input, and the models are trained exclusively on an English language corpus.
+Special characters and non-English words are ignored during inference.</p>
+<p>To provide text data to the model:</p>
+<ol>
+<li>
+<p>Ensure that the <code>initClassifier</code> function contains the code for the delegate
+    and models, as explained in the
+    <a href="#initialize_models">Initialize the ML models</a> and
+    <a href="#hardware_acceleration">Enable hardware acceleration</a> sections.</p>
+</li>
+<li>
+<p>Use the <code>init</code> block to call the <code>initClassifier</code> function. In the example
+    application, the <code>init</code> is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p><code>init {
+  initClassifier()
+}</code></p>
+</li>
+</ol>
+<h3>Run predictions</h3>
+<p>In your Android app, once you have initialized either a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/text/nlclassifier/BertNLClassifier">BertNLClassifier</a>
+or
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/text/nlclassifier/NLClassifier">NLClassifier</a>
+object, you can begin feeding input text for the model to categorize as
+"positive" or "negative".</p>
+<p>To run predictions:</p>
+<ol>
+<li>
+<p>Create a <code>classify</code> function, which uses the selected classifier
+    (<code>currentModel</code>) and measures the time taken to classify the input text
+    (<code>inferenceTime</code>). In the example application, the <code>classify</code> function is
+    located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/TextClassificationHelper.kt">TextClassificationHelper.kt</a>:</p>
+<p>```
+fun classify(text: String) {
+  executor = ScheduledThreadPoolExecutor(1)</p>
+<p>executor.execute {
+    val results: List<Category>
+    // inferenceTime is the amount of time, in milliseconds, that it takes to
+    // classify the input text.
+    var inferenceTime = SystemClock.uptimeMillis()</p>
+<pre><code>// Use the appropriate classifier based on the selected model
+if(currentModel == MOBILEBERT) {
+  results = bertClassifier.classify(text)
+} else {
+  results = nlClassifier.classify(text)
+}
+
+inferenceTime = SystemClock.uptimeMillis() - inferenceTime
+
+listener.onResult(results, inferenceTime)
+</code></pre>
+<p>}
+}
+```</p>
+</li>
+<li>
+<p>Pass the results from <code>classify</code> to the listener object.</p>
+<p><code>fun classify(text: String) {
+  ...
+  listener.onResult(results, inferenceTime)
+}</code></p>
+</li>
+</ol>
+<h3>Handle model output</h3>
+<p>After you input a line of text, the model produces a prediction score, expressed
+as a Float, between 0 and 1 for the 'positive' and 'negative' categories.</p>
+<p>To get the prediction results from the model:</p>
+<ol>
+<li>
+<p>Create an <code>onResult</code> function for the listener object to handle the output.
+    In the example application, the listener object is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/app/src/main/java/org/tensorflow/lite/examples/textclassification/MainActivity.kt">MainActivity.kt</a></p>
+<p>```
+private val listener = object : TextClassificationHelper.TextResultsListener {
+  override fun onResult(results: List<Category>, inferenceTime: Long) {
+    runOnUiThread {
+      activityMainBinding.bottomSheetLayout.inferenceTimeVal.text =
+        String.format("%d ms", inferenceTime)</p>
+<pre><code>  adapter.resultsList = results.sortedByDescending {
+    it.score
+  }
+
+  adapter.notifyDataSetChanged()
+}
+</code></pre>
+<p>}
+  ...
+}
+```</p>
+</li>
+<li>
+<p>Add an <code>onError</code> function to the listener object to handle errors:</p>
+<p><code>private val listener = object : TextClassificationHelper.TextResultsListener {
+    ...
+    override fun onError(error: String) {
+      Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+    }
+  }</code></p>
+</li>
+</ol>
+<p>Once the model has returned a set of prediction results, your application can
+act on those predictions by presenting the result to your user or executing
+additional logic. The example application lists the prediction scores in the
+user interface.</p>
+<h2>Next steps</h2>
+<ul>
+<li>Train and implement the models from scratch with the
+    <a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_classification">Text classification with TensorFlow Lite Model Maker</a>
+    tutorial.</li>
+<li>Explore more
+    <a href="https://www.tensorflow.org/text">text processing tools for TensorFlow</a>.</li>
+<li>Download other BERT models on
+    <a href="https://tfhub.dev/google/collections/bert/1">TensorFlow Hub</a>.</li>
+<li>Explore various uses of TensorFlow Lite in the <a href="../../examples">examples</a>.</li>
+<li>Learn more about using machine learning models with TensorFlow Lite in the
+    <a href="../../models">Models</a> section.</li>
+<li>Learn more about implementing machine learning in your mobile application in
+    the <a href="../../guide">TensorFlow Lite Developer Guide</a>.</li>
+</ul>

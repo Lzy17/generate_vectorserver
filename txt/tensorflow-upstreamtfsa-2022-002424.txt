@@ -1,0 +1,50 @@
+<h2>TFSA-2022-002: Heap OOB read in shape inference for <code>ReverseSequence</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21728</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/ops/array_ops.cc#L1636-L1671">implementation of shape inference for <code>ReverseSequence</code></a> does not fully validate the value of <code>batch_dim</code> and can result in a heap OOB read:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def test():
+  y = tf.raw_ops.ReverseSequence(
+    input = ['aaa','bbb'],
+    seq_lengths = [1,1,1],
+    seq_dim = -10,
+    batch_dim = -10 )
+  return y</p>
+<p>test()
+```</p>
+<p>There is a check to make sure the value of <code>batch_dim</code> does not go over the rank of the input, but there is no check for negative values:</p>
+<p>```cc
+  const int32_t input_rank = c-&gt;Rank(input);
+  if (batch_dim &gt;= input_rank) {
+    return errors::InvalidArgument(
+        "batch_dim must be &lt; input rank: ", batch_dim, " vs. ", input_rank);
+  }
+  // ...</p>
+<p>DimensionHandle batch_dim_dim = c-&gt;Dim(input, batch_dim);
+```</p>
+<p>Negative dimensions are allowed in some cases to mimic Python's negative indexing (i.e., indexing from the end of the array), however if the value is too negative then <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/framework/shape_inference.h#L415-L428">the implementation of <code>Dim</code></a> would access elements before the start of an array:</p>
+<p>```cc
+  DimensionHandle Dim(ShapeHandle s, int64_t idx) {
+    if (!s.Handle() || s-&gt;rank_ == kUnknownRank) {
+      return UnknownDim();
+    }
+    return DimKnownRank(s, idx);
+  }</p>
+<p>static DimensionHandle DimKnownRank(ShapeHandle s, int64_t idx) {
+    CHECK_NE(s-&gt;rank_, kUnknownRank);
+    if (idx &lt; 0) {
+      return s-&gt;dims_[s-&gt;dims_.size() + idx];
+    }
+    return s-&gt;dims_[idx];
+  }
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/37c01fb5e25c3d80213060460196406c43d31995">37c01fb5e25c3d80213060460196406c43d31995</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

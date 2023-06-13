@@ -1,0 +1,22 @@
+<h2>TFSA-2021-167: Code injection in <code>saved_model_cli</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41228</p>
+<h3>Impact</h3>
+<p>TensorFlow's <code>saved_model_cli</code> tool is vulnerable to a code injection as it <a href="https://github.com/tensorflow/tensorflow/blob/87462bfac761435a46641ff2f10ad0b6e5414a4b/tensorflow/python/tools/saved_model_cli.py#L524-L550">calls <code>eval</code> on user supplied strings</a></p>
+<p><code>python
+def preprocess_input_exprs_arg_string(input_exprs_str):
+  ...
+  for input_raw in filter(bool, input_exprs_str.split(';')):
+    ...
+    input_key, expr = input_raw.split('=', 1)
+    input_dict[input_key] = eval(expr)
+  ...</code></p>
+<p>This can be used by attackers to run arbitrary code on the plaform where the CLI tool runs.</p>
+<p>However, given that the tool is always run manually, the impact of this is not severe. We have patched this by adding a <code>safe</code> flag which defaults to <code>True</code> and an explicit warning for users.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8b202f08d52e8206af2bdb2112a62fafbc546ec7">8b202f08d52e8206af2bdb2112a62fafbc546ec7</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Omer Kaspi from Vdoo.</p>

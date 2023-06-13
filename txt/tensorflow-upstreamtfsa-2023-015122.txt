@@ -1,0 +1,16 @@
+<h2>TFSA-2023-015: Segmentation fault in tfg-translate</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25671</p>
+<h3>Impact</h3>
+<p>Out-of-bounds access due to mismatched integer type sizes in ValueMap::Manager::GetValueOrCreatePlaceholder. Bug with tfg-translate call to InitMlir. The problem happens with generic functions, as it is already handled for non-generic functions. This is because they, unlike non-generic functions, are using the "old importer". A better long-term solution may be to have the "new importer" handle generic functions.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub
+- commit <a href="https://github.com/tensorflow/tensorflow/commit/760322a71ac9033e122ef1f4b1c62813021e5938">760322a71ac9033e122ef1f4b1c62813021e5938</a>.
+- commit <a href="https://github.com/tensorflow/tensorflow/commit/2eedc8f676d2c3b8be9492e547b2bc814c10b367">2eedc8f676d2c3b8be9492e547b2bc814c10b367</a></p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by r3pwnx</p>
+<h3>Affiliation</h3>
+<p>360 AIVul</p>

@@ -1,0 +1,40 @@
+<h2>TFSA-2021-099: Invalid validation in <code>QuantizeAndDequantizeV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29610</p>
+<h3>Impact</h3>
+<p>The validation in <code>tf.raw_ops.QuantizeAndDequantizeV2</code> allows invalid values for
+<code>axis</code> argument:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([0.0], shape=[1], dtype=float)
+input_min = tf.constant(-10.0)
+input_max = tf.constant(-10.0)</p>
+<p>tf.raw_ops.QuantizeAndDequantizeV2(
+  input=input_tensor, input_min=input_min, input_max=input_max,
+  signed_input=False, num_bits=1, range_given=False, round_mode='HALF_TO_EVEN',
+  narrow_range=False, axis=-2)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/eccb7ec454e6617738554a255d77f08e60ee0808/tensorflow/core/kernels/quantize_and_dequantize_op.cc#L74-L77">validation</a>
+uses <code>||</code> to mix two different conditions:</p>
+<p><code>cc
+OP_REQUIRES(ctx,
+  (axis_ == -1 || axis_ &lt; input.shape().dims()),
+  errors::InvalidArgument(...));</code></p>
+<p>If <code>axis_ &lt; -1</code> the condition in <code>OP_REQUIRES</code> will still be true, but this
+value of <code>axis_</code> results in heap underflow. This allows attackers to read/write
+to other data on the heap.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c5b0d5f8ac19888e46ca14b0e27562e7fbbee9a9">c5b0d5f8ac19888e46ca14b0e27562e7fbbee9a9</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

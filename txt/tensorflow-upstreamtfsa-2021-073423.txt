@@ -1,0 +1,36 @@
+<h2>TFSA-2021-073: Division by zero in padding computation in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29585</p>
+<h3>Impact</h3>
+<p>The TFLite computation for size of output after padding,
+<a href="https://github.com/tensorflow/tensorflow/blob/0c9692ae7b1671c983569e5d3de5565843d500cf/tensorflow/lite/kernels/padding.h#L43-L55"><code>ComputeOutSize</code></a>,
+does not check that the <code>stride</code> argument is not 0 before doing the division.</p>
+<p><code>cc
+inline int ComputeOutSize(TfLitePadding padding, int image_size,
+                          int filter_size, int stride, int dilation_rate = 1) {
+  int effective_filter_size = (filter_size - 1) * dilation_rate + 1;
+  switch (padding) {
+    case kTfLitePaddingSame:
+      return (image_size + stride - 1) / stride;
+    case kTfLitePaddingValid:
+      return (image_size + stride - effective_filter_size) / stride;
+    default:
+      return 0;
+  }
+}</code></p>
+<p>Users can craft special models such that <code>ComputeOutSize</code> is called with
+<code>stride</code> set to 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/49847ae69a4e1a97ae7f2db5e217c77721e37948">49847ae69a4e1a97ae7f2db5e217c77721e37948</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

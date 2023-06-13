@@ -1,0 +1,32 @@
+<h2>TFSA-2021-098: Incomplete validation in <code>SparseReshape</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29611</p>
+<h3>Impact</h3>
+<p>Incomplete validation in <code>SparseReshape</code> results in a denial of service based on
+a <code>CHECK</code>-failure.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_indices = tf.constant(41, shape=[1, 1], dtype=tf.int64)
+input_shape = tf.zeros([11], dtype=tf.int64)
+new_shape = tf.zeros([1], dtype=tf.int64)</p>
+<p>tf.raw_ops.SparseReshape(input_indices=input_indices,
+    input_shape=input_shape,
+    new_shape=new_shape)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/e87b51ce05c3eb172065a6ea5f48415854223285/tensorflow/core/kernels/sparse_reshape_op.cc#L40">implementation</a>
+has no validation that the input arguments specify a valid sparse tensor.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/1d04d7d93f4ed3854abf75d6b712d72c3f70d6b6">1d04d7d93f4ed3854abf75d6b712d72c3f70d6b6</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2 and TensorFlow 2.3.3, as these are the only affected
+versions.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

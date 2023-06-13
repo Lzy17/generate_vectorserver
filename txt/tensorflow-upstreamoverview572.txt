@@ -1,0 +1,56 @@
+<h1>TensorFlow Lite inference with metadata</h1>
+<p>Inferencing <a href="../models/convert/metadata.md">models with metadata</a> can be as easy as
+just a few lines of code. TensorFlow Lite metadata contains a rich description
+of what the model does and how to use the model. It can empower code generators
+to automatically generate the inference code for you, such as using the
+<a href="codegen.md#mlbinding">Android Studio ML Binding feature</a> or
+<a href="codegen.md#codegen">TensorFlow Lite Android code generator</a>. It can also be
+used to configure your custom inference pipeline.</p>
+<h2>Tools and libraries</h2>
+<p>TensorFlow Lite provides varieties of tools and libraries to serve different
+tiers of deployment requirements as follows:</p>
+<h3>Generate model interface with Android code generators</h3>
+<p>There are two ways to automatically generate the necessary Android wrapper code
+for TensorFlow Lite model with metadata:</p>
+<ol>
+<li>
+<p><a href="codegen.md#mlbinding">Android Studio ML Model Binding</a> is tooling available
+    within Android Studio to import TensorFlow Lite model through a graphical
+    interface. Android Studio will automatically configure settings for the
+    project and generate wrapper classes based on the model metadata.</p>
+</li>
+<li>
+<p><a href="codegen.md#codegen">TensorFlow Lite Code Generator</a> is an executable that
+    generates model interface automatically based on the metadata. It currently
+    supports Android with Java. The wrapper code removes the need to interact
+    directly with <code>ByteBuffer</code>. Instead, developers can interact with the
+    TensorFlow Lite model with typed objects such as <code>Bitmap</code> and <code>Rect</code>.
+    Android Studio users can also get access to the codegen feature through
+    <a href="codegen.md#mlbinding">Android Studio ML Binding</a>.</p>
+</li>
+</ol>
+<h3>Leverage out-of-box APIs with the TensorFlow Lite Task Library</h3>
+<p><a href="task_library/overview.md">TensorFlow Lite Task Library</a> provides optimized
+ready-to-use model interfaces for popular machine learning tasks, such as image
+classification, question and answer, etc. The model interfaces are specifically
+designed for each task to achieve the best performance and usability. Task
+Library works cross-platform and is supported on Java, C++, and Swift.</p>
+<h3>Build custom inference pipelines with the TensorFlow Lite Support Library</h3>
+<p><a href="lite_support.md">TensorFlow Lite Support Library</a> is a cross-platform library
+that helps to customize model interface and build inference pipelines. It
+contains varieties of util methods and data structures to perform pre/post
+processing and data conversion. It is also designed to match the behavior of
+TensorFlow modules, such as TF.Image and TF.Text, ensuring consistency from
+training to inferencing.</p>
+<h2>Explore pretrained models with metadata</h2>
+<p>Browse
+<a href="https://www.tensorflow.org/lite/guide/hosted_models">TensorFlow Lite hosted models</a>
+and <a href="https://tfhub.dev/s?deployment-format=lite">TensorFlow Hub</a> to download
+pretrained models with metadata for both vision and text tasks. Also see
+different options of
+<a href="../models/convert/metadata.md#visualize-the-metadata">visualizing the metadata</a>.</p>
+<h2>TensorFlow Lite Support GitHub repo</h2>
+<p>Visit the
+<a href="https://github.com/tensorflow/tflite-support">TensorFlow Lite Support GitHub repo</a>
+for more examples and source code. Let us know your feedback by creating a
+<a href="https://github.com/tensorflow/tflite-support/issues/new">new GitHub issue</a>.</p>

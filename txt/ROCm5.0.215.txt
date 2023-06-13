@@ -1,0 +1,11 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>Fixed Defects</h3>
+<p>The following defects are fixed in the ROCm v5.0.2 release.</p>
+<h4>Issue with hostcall Facility in HIP Runtime</h4>
+<p>In ROCm v5.0, when using the “assert()” call in a HIP kernel, the compiler may sometimes fail to emit kernel metadata related to the hostcall facility, which results in incomplete initialization of the hostcall facility in the HIP runtime. This can cause the HIP kernel to crash when it attempts to execute the “assert()” call.</p>
+<p>The root cause was an incorrect check in the compiler to determine whether the hostcall facility is required by the kernel. This is fixed in the ROCm v5.0.2 release.</p>
+<p>The resolution includes a compiler change, which emits the required metadata by default, unless the compiler can prove that the hostcall facility is not required by the kernel. This ensures that the “assert()” call never fails.</p>
+<p>Note:
+This fix may lead to breakage in some OpenMP offload use cases, which use print inside a target region and result in an abort in device code. The issue will be fixed in a future release.
+Compatibility Matrix Updates to ROCm Deep Learning Guide</p>
+<p>The compatibility matrix in the AMD Deep Learning Guide is updated for ROCm v5.0.2.</p>

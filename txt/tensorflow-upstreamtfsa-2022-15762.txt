@@ -1,0 +1,17 @@
+<h2>TFSA-2022-157: <code>MirrorPadGrad</code> heap oob</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41895</p>
+<h3>Impact</h3>
+<p>If <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/image/mirror_pad_op.cc"><code>MirrorPadGrad</code></a> is given outsize input <code>paddings</code>, TensorFlow will give a heap OOB error.</p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.MirrorPadGrad(input=[1],
+             paddings=[[0x77f00000,0xa000000]],
+             mode = 'REFLECT')</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/717ca98d8c3bba348ff62281fdf38dcb5ea1ec92">717ca98d8c3bba348ff62281fdf38dcb5ea1ec92</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian from Qihoo 360 AIVul Team. </p>

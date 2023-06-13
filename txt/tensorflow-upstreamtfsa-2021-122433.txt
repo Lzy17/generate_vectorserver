@@ -1,0 +1,40 @@
+<h2>TFSA-2021-122: Incorrect validation of <code>SaveV2</code> inputs</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37648</p>
+<h3>Impact</h3>
+<p>The code for <code>tf.raw_ops.SaveV2</code> does not properly validate the inputs and an
+attacker can trigger a null pointer dereference:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.SaveV2(
+  prefix=['tensorflow'],
+  tensor_name=['v'],
+  shape_and_slices=[],
+  tensors=[1,2,3])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/kernels/save_restore_v2_ops.cc">implementation</a>
+uses <code>ValidateInputs</code> to  check that the input arguments are valid. This
+validation would have caught the illegal state represented by the reproducer
+above.</p>
+<p>However, the validation uses <code>OP_REQUIRES</code> which translates to setting the
+<code>Status</code> object of the current <code>OpKernelContext</code> to an error status, followed by
+an empty <code>return</code> statement which just terminates the execution of the function
+it is present in. However, this does not mean that the kernel execution is
+finalized: instead, execution continues from the next line in <code>Compute</code> that
+follows the call to <code>ValidateInputs</code>. This is equivalent to lacking the
+validation.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/9728c60e136912a12d99ca56e106b7cce7af5986">9728c60e136912a12d99ca56e106b7cce7af5986</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

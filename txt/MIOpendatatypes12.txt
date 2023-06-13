@@ -1,0 +1,25 @@
+<h1>Datatypes</h1>
+<p>MIOpen contains several datatypes at different levels of support. The enumerated datatypes are shown below:</p>
+<p><code>typedef enum {
+    miopenHalf     = 0,
+    miopenFloat    = 1,
+    miopenInt32    = 2,
+    miopenInt8     = 3,
+    miopenInt8x4   = 4,
+    miopenBFloat16 = 5,
+} miopenDataType_t;</code></p>
+<p>Of these types only <code>miopenFloat</code> and <code>miopenHalf</code> are fully supported across all layers in MIOpen. Please see the individual layers in API reference section for specific datatype support and limitations.</p>
+<p>Type descriptions:
+ * <code>miopenHalf</code> - 16-bit floating point
+ * <code>miopenFloat</code> - 32-bit floating point
+ * <code>miopenInt32</code> - 32-bit integer, used primarily for <code>int8</code> convolution outputs
+ * <code>miopenInt8</code> - 8-bit integer, currently only supported by <code>int8</code> convolution forward path, tensor set, tensor copy, tensor cast, tensor transform, tensor transpose, and im2col.
+ * <code>miopenInt8x4</code> - 8-bit 4 element vector type used primarily with <code>int8</code> convolutions forward path.
+ * <code>miopenBFloat16</code> - brain float fp-16 (8-bit exponent, 7-bit fraction), currently only supported by convolutions, tensor set, and tensor copy.</p>
+<p>Note: In addition to the standard datatypes above, pooling contains its own indexing datatypes:
+<code>typedef enum {
+    miopenIndexUint8  = 0,
+    miopenIndexUint16 = 1,
+    miopenIndexUint32 = 2,
+    miopenIndexUint64 = 3,
+} miopenIndexType_t;</code></p>

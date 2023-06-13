@@ -1,0 +1,209 @@
+<h1>TensorFlow Lite Delegates</h1>
+<h2>Introduction</h2>
+<p><strong>Delegates</strong> enable hardware acceleration of TensorFlow Lite models by
+leveraging on-device accelerators such as the GPU and
+<a href="https://en.wikipedia.org/wiki/Digital_signal_processor">Digital Signal Processor (DSP)</a>.</p>
+<p>By default, TensorFlow Lite utilizes CPU kernels that are optimized for the
+<a href="https://developer.arm.com/documentation/dht0002/a/Introducing-NEON/NEON-architecture-overview/NEON-instructions">ARM Neon</a>
+instruction set. However, the CPU is a multi-purpose processor that isn't
+necessarily optimized for the heavy arithmetic typically found in Machine
+Learning models (for example, the matrix math involved in convolution and dense
+layers).</p>
+<p>On the other hand, most modern mobile phones contain chips that are better at
+handling these heavy operations. Utilizing them for neural network operations
+provides huge benefits in terms of latency and power efficiency. For example,
+GPUs can provide upto a
+<a href="https://blog.tensorflow.org/2020/08/faster-mobile-gpu-inference-with-opencl.html">5x speedup</a>
+in latency, while the
+<a href="https://developer.qualcomm.com/software/hexagon-dsp-sdk/dsp-processor">Qualcomm® Hexagon DSP</a>
+has shown to reduce power consumption upto 75% in our experiments.</p>
+<p>Each of these accelerators have associated APIs that enable custom computations,
+such as <a href="https://www.khronos.org/opencl/">OpenCL</a> or
+<a href="https://www.khronos.org/opengles/">OpenGL ES</a> for mobile GPU and the
+<a href="https://developer.qualcomm.com/software/hexagon-dsp-sdk">Qualcomm® Hexagon SDK</a>
+for DSP. Typically, you would have to write a lot of custom code to run a neural
+network through these interfaces. Things get even more complicated when you
+consider that each accelerator has its pros &amp; cons and cannot execute every
+operation in a neural network. TensorFlow Lite's Delegate API solves this
+problem by acting as a bridge between the TFLite runtime and these lower-level
+APIs.</p>
+<p><img alt="runtime with delegates" src="images/delegate_runtime.png" /></p>
+<h2>Choosing a Delegate</h2>
+<p>TensorFlow Lite supports multiple delegates, each of which is optimized for
+certain platform(s) and particular types of models. Usually, there will be
+multiple delegates applicable to your use-case, depending on two major criteria:
+the <em>Platform</em> (Android or iOS?) you target, and the <em>Model-type</em>
+(floating-point or quantized?) that you are trying to accelerate.</p>
+<h3>Delegates by Platform</h3>
+<h4>Cross-platform (Android &amp; iOS)</h4>
+<ul>
+<li><strong>GPU delegate</strong> - The GPU delegate can be used on both Android and iOS. It
+    is optimized to run 32-bit and 16-bit float based models where a GPU is
+    available. It also supports 8-bit quantized models and provides GPU
+    performance on par with their float versions. For details on the GPU
+    delegate, see <a href="gpu_advanced.md">TensorFlow Lite on GPU</a>. For step-by-step
+    tutorials on using the GPU delegate with Android and iOS, see
+    <a href="gpu.md">TensorFlow Lite GPU Delegate Tutorial</a>.</li>
+</ul>
+<h4>Android</h4>
+<ul>
+<li><strong>NNAPI delegate for newer Android devices</strong> - The NNAPI delegate can be
+    used to accelerate models on Android devices with GPU, DSP and / or NPU
+    available. It is available in Android 8.1 (API 27+) or higher. For an
+    overview of the NNAPI delegate, step-by-step instructions and best
+    practices, see <a href="nnapi.md">TensorFlow Lite NNAPI delegate</a>.</li>
+<li><strong>Hexagon delegate for older Android devices</strong> - The Hexagon delegate can be
+    used to accelerate models on Android devices with Qualcomm Hexagon DSP. It
+    can be used on devices running older versions of Android that do not support
+    NNAPI. See <a href="hexagon_delegate.md">TensorFlow Lite Hexagon delegate</a> for more
+    detail.</li>
+</ul>
+<h4>iOS</h4>
+<ul>
+<li><strong>Core ML delegate for newer iPhones and iPads</strong> - For newer iPhones and
+    iPads where Neural Engine is available, you can use Core ML delegate to
+    accelerate inference for 32-bit or 16-bit floating-point models. Neural
+    Engine is available Apple mobile devices with A12 SoC or higher. For an
+    overview of the Core ML delegate and step-by-step instructions, see
+    <a href="coreml_delegate.md">TensorFlow Lite Core ML delegate</a>.</li>
+</ul>
+<h3>Delegates by model type</h3>
+<p>Each accelerator is designed with a certain bit-width of data in mind. If you
+provide a floating-point model to a delegate that only supports 8-bit quantized
+operations (such as the <a href="hexagon_delegate.md">Hexagon delegate</a>), it will reject
+all its operations and the model will run entirely on the CPU. To avoid such
+surprises, the table below provides an overview of delegate support based on
+model type:</p>
+<p><strong>Model Type</strong>                                                                                          | <strong>GPU</strong> | <strong>NNAPI</strong> | <strong>Hexagon</strong> | <strong>CoreML</strong>
+------------------------------------------------------------------------------------------------------- | ------- | --------- | ----------- | ----------
+Floating-point (32 bit)                                                                                 | Yes     | Yes       | No          | Yes
+<a href="post_training_float16_quant.ipynb">Post-training float16 quantization</a>                                 | Yes     | No        | No          | Yes
+<a href="post_training_quant.ipynb">Post-training dynamic range quantization</a>                                   | Yes     | Yes       | No          | No
+<a href="post_training_integer_quant.ipynb">Post-training integer quantization</a>                                 | Yes     | Yes       | Yes         | No
+<a href="http://www.tensorflow.org/model_optimization/guide/quantization/training">Quantization-aware training</a> | Yes     | Yes       | Yes         | No</p>
+<h3>Validating performance</h3>
+<p>The information in this section acts as a rough guideline for shortlisting the
+delegates that could improve your application. However, it is important to note
+that each delegate has a pre-defined set of operations it supports, and may
+perform differently depending on the model and device; for example, the
+<a href="nnapi.md">NNAPI delegate</a> may choose to use Google's Edge-TPU on a Pixel phone
+while utilizing a DSP on another device. Therefore, it is usually recommended
+that you perform some benchmarking to gauge how useful a delegate is for your
+needs. This also helps justify the binary size increase associated with
+attaching a delegate to the TensorFlow Lite runtime.</p>
+<p>TensorFlow Lite has extensive performance and accuracy-evaluation tooling that
+can empower developers to be confident in using delegates in their application.
+These tools are discussed in the next section.</p>
+<h2>Tools for Evaluation</h2>
+<h3>Latency &amp; memory footprint</h3>
+<p>TensorFlow Lite’s
+<a href="https://www.tensorflow.org/lite/performance/measurement">benchmark tool</a> can be
+used with suitable parameters to estimate model performance, including average
+inference latency, initialization overhead, memory footprint, etc. This tool
+supports multiple flags to figure out the best delegate configuration for your
+model. For instance, <code>--gpu_backend=gl</code> can be specified with <code>--use_gpu</code> to
+measure GPU execution with OpenGL. The complete list of supported delegate
+parameters is defined in the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/delegates/README.md#tflite-delegate-registrar">detailed documentation</a>.</p>
+<p>Here’s an example run for a quantized model with GPU via <code>adb</code>:</p>
+<p><code>adb shell /data/local/tmp/benchmark_model \
+  --graph=/data/local/tmp/mobilenet_v1_224_quant.tflite \
+  --use_gpu=true</code></p>
+<p>You can download pre-built version of this tool for Android, 64-bit ARM
+architecture
+<a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model.apk">here</a>
+(<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/android">more details</a>).</p>
+<h3>Accuracy &amp; correctness</h3>
+<p>Delegates usually perform computations at a different precision than their CPU
+counterparts. As a result, there is an (usually minor) accuracy tradeoff
+associated with utilizing a delegate for hardware acceleration. Note that this
+isn't <em>always</em> true; for example, since the GPU uses floating-point precision to
+run quantized models, there might be a slight precision improvement (for e.g.,
+&lt;1% Top-5 improvement in ILSVRC image classification).</p>
+<p>TensorFlow Lite has two types of tooling to measure how accurately a delegate
+behaves for a given model: <em>Task-Based</em> and <em>Task-Agnostic</em>. All the tools
+described in this section support the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/delegates/README.md#tflite-delegate-registrar">advanced delegation parameters</a>
+used by the benchmarking tool from the previous section. Note that the
+sub-sections below focus on <em>delegate evaluation</em> (Does the delegate perform the
+same as the CPU?) rather than model evaluation (Is the model itself good for the
+task?).</p>
+<h4>Task-Based Evaluation</h4>
+<p>TensorFlow Lite has tools to evaluate correctness on two image-based tasks:</p>
+<ul>
+<li>
+<p><a href="http://image-net.org/challenges/LSVRC/2012/">ILSVRC 2012</a> (Image
+    Classification) with
+    <a href="https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Precision_at_K">top-K accuracy</a></p>
+</li>
+<li>
+<p><a href="https://cocodataset.org/#detection-2020">COCO Object Detection (w/ bounding boxes)</a>
+    with
+    <a href="https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision">mean Average Precision (mAP)</a></p>
+</li>
+</ul>
+<p>Prebuilt binaries of these tools (Android, 64-bit ARM architecture), along with
+documentation can be found here:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_imagenet_image_classification">ImageNet Image Classification</a>
+    (<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/evaluation/tasks/imagenet_image_classification">More details</a>)</li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_coco_object_detection">COCO Object Detection</a>
+    (<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/evaluation/tasks/coco_object_detection">More details</a>)</li>
+</ul>
+<p>The example below demonstrates
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/evaluation/tasks/imagenet_image_classification">image classification evaluation</a>
+with NNAPI utilizing Google's Edge-TPU on a Pixel 4:</p>
+<p><code>adb shell /data/local/tmp/run_eval \
+  --model_file=/data/local/tmp/mobilenet_quant_v1_224.tflite \
+  --ground_truth_images_path=/data/local/tmp/ilsvrc_images \
+  --ground_truth_labels=/data/local/tmp/ilsvrc_validation_labels.txt \
+  --model_output_labels=/data/local/tmp/model_output_labels.txt \
+  --output_file_path=/data/local/tmp/accuracy_output.txt \
+  --num_images=0 # Run on all images. \
+  --use_nnapi=true \
+  --nnapi_accelerator_name=google-edgetpu</code></p>
+<p>The expected output is a list of Top-K metrics from 1 to 10:</p>
+<p><code>Top-1 Accuracy: 0.733333
+Top-2 Accuracy: 0.826667
+Top-3 Accuracy: 0.856667
+Top-4 Accuracy: 0.87
+Top-5 Accuracy: 0.89
+Top-6 Accuracy: 0.903333
+Top-7 Accuracy: 0.906667
+Top-8 Accuracy: 0.913333
+Top-9 Accuracy: 0.92
+Top-10 Accuracy: 0.923333</code></p>
+<h4>Task-Agnostic Evaluation</h4>
+<p>For tasks where there isn't an established on-device evaluation tool, or if you
+are experimenting with custom models, TensorFlow Lite has the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/evaluation/tasks/inference_diff">Inference Diff</a>
+tool. (Android, 64-bit ARM binary architecture binary
+<a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_inference_diff">here</a>)</p>
+<p>Inference Diff compares TensorFlow Lite execution (in terms of latency &amp;
+output-value deviation) in two settings:</p>
+<ul>
+<li>Single-threaded CPU Inference</li>
+<li>User-defined Inference - defined by
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/delegates/README.md#tflite-delegate-registrar">these parameters</a></li>
+</ul>
+<p>To do so, the tool generates random Gaussian data and passes it through two
+TFLite Interpreters - one running single-threaded CPU kernels, and the other
+parameterized by the user's arguments.</p>
+<p>It measures the latency of both, as well as the absolute difference between the
+output tensors from each Interpreter, on a per-element basis.</p>
+<p>For a model with a single output tensor, the output might look like this:</p>
+<p><code>Num evaluation runs: 50
+Reference run latency: avg=84364.2(us), std_dev=12525(us)
+Test run latency: avg=7281.64(us), std_dev=2089(us)
+OutputDiff[0]: avg_error=1.96277e-05, std_dev=6.95767e-06</code></p>
+<p>What this means is that for the output tensor at index <code>0</code>, the elements from
+the CPU output different from the delegate output by an average of <code>1.96e-05</code>.</p>
+<p>Note that interpreting these numbers requires deeper knowledge of the model, and
+what each output tensor signifies. If its a simple regression that determines
+some sort of score or embedding, the difference should be low (otherwise it's an
+error with the delegate). However, outputs like the 'detection class' one from
+SSD models is a little harder to interpret. For example, it might show a
+difference using this tool, but that may not mean something really wrong with
+the delegate: consider two (fake) classes: "TV (ID: 10)", "Monitor (ID:20)" - If
+a delegate is slightly off the golden truth and shows monitor instead of TV, the
+output diff for this tensor might be something as high as 20-10 = 10.</p>

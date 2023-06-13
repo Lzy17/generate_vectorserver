@@ -1,0 +1,33 @@
+<h2>TFSA-2021-061: Overflow/denial of service in <code>tf.raw_ops.ReverseSequence</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29575</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.ReverseSequence</code> allows for stack overflow
+and/or <code>CHECK</code>-fail based denial of service.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.zeros([1, 1, 1], dtype=tf.int32)
+seq_lengths = tf.constant([0], shape=[1], dtype=tf.int32)</p>
+<p>tf.raw_ops.ReverseSequence(
+    input=input, seq_lengths=seq_lengths, seq_dim=-2, batch_dim=0)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/5b3b071975e01f0d250c928b2a8f901cd53b90a7/tensorflow/core/kernels/reverse_sequence_op.cc#L114-L118">implementation</a>
+fails to validate that <code>seq_dim</code> and <code>batch_dim</code> arguments are valid.</p>
+<p>Negative values for <code>seq_dim</code> can result in stack overflow or <code>CHECK</code>-failure,
+depending on the version of Eigen code used to implement the operation. Similar
+behavior can be exhibited by invalid values of <code>batch_dim</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ecf768cbe50cedc0a45ce1ee223146a3d3d26d23">ecf768cbe50cedc0a45ce1ee223146a3d3d26d23</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

@@ -1,0 +1,34 @@
+<h2>TFSA-2020-015: Heap buffer overflow due to invalid splits in RaggedCountSparseOutput</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15201</p>
+<h3>Impact</h3>
+<p>The <code>RaggedCountSparseOutput</code> implementation does not validate that the input
+arguments form a valid ragged tensor. In particular, there is no validation that
+the values in the <code>splits</code> tensor generate a valid partitioning of the <code>values</code>
+tensor. Hence, this code is prone to <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/count_ops.cc#L248-L251">heap buffer
+overflow</a>:
+<code>cc
+    for (int idx = 0; idx &lt; num_values; ++idx) {
+      while (idx &gt;= splits_values(batch_idx)) {
+        batch_idx++;
+      }
+      // ...
+    }</code></p>
+<p>If <code>split_values</code> does not end with a value at least <code>num_values</code> then the
+<code>while</code> loop condition will trigger a read outside of the bounds of
+<code>split_values</code> once <code>batch_idx</code> grows too large.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/3cbb917b4714766030b28eba9fb41bb97ce9ee02">3cbb917b4714766030b28eba9fb41bb97ce9ee02</a>
+and will release a patch release.</p>
+<p>We recommend users to upgrade to TensorFlow 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

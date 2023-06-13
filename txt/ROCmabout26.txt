@@ -1,0 +1,55 @@
+<h1>About ROCm Documentation</h1>
+<p>ROCm documentation is made available under open source <a href="licensing.md">licenses</a>.
+Documentation is built using open source toolchains. Contributions to our
+documentation is encouraged and welcome. As a contributor, please familiarize
+yourself with our documentation toolchain.</p>
+<h2>ReadTheDocs</h2>
+<p><a href="https://docs.readthedocs.io/en/stable/">ReadTheDocs</a> is our front end for the
+our documentation. By front end, this is the tool that serves our HTML based
+documentation to our end users.</p>
+<h2>Doxygen</h2>
+<p><a href="https://www.doxygen.nl/">Doxygen</a> is the most common inline code documentation
+standard. ROCm projects are use Doxygen for public API documentation (unless the
+upstream project is using a different tool).</p>
+<h2>Sphinx</h2>
+<p><a href="https://www.sphinx-doc.org/en/master/">Sphinx</a> is a documentation generator
+originally used for python. It is now widely used in the Open Source community.
+Originally, sphinx supported RST based documentation. Markdown support is now
+available. ROCm documentation plans to default to markdown for new projects.
+Existing projects using RST are under no obligation to convert to markdown. New
+projects that believe markdown is not suitable should contact the documentation
+team prior to selecting RST.</p>
+<h3>MyST</h3>
+<p><a href="https://myst-tools.org/docs/spec">Markedly Structured Text (MyST)</a> is an extended
+flavor of Markdown (<a href="https://commonmark.org/">CommonMark</a>) influenced by reStructuredText (RST) and Sphinx.
+It is integrated via <a href="https://myst-parser.readthedocs.io/en/latest/"><code>myst-parser</code></a>.
+A cheat sheet that showcases how to use the MyST syntax is available over at <a href="https://jupyterbook.org/en/stable/reference/cheatsheet.html">the Jupyter
+reference</a>.</p>
+<h3>Sphinx Theme</h3>
+<p>ROCm is using the
+<a href="https://sphinx-book-theme.readthedocs.io/en/latest/">Sphinx Book Theme</a>. This
+theme is used by Jupyter books. ROCm documentation applies some customization
+include a header and footer on top of the Sphinx Book Theme. A future custom
+ROCm theme will be part of our documentation goals.</p>
+<h3>Sphinx Design</h3>
+<p>Sphinx Design is an extension for sphinx based websites that add design
+functionality. Please see the documentation
+<a href="https://sphinx-design.readthedocs.io/en/latest/index.html">here</a>. ROCm
+documentation uses sphinx design for grids, cards, and synchronized tabs.
+Other features may be used in the future.</p>
+<h3>Sphinx External TOC</h3>
+<p>ROCm uses the
+<a href="https://sphinx-external-toc.readthedocs.io/en/latest/intro.html">sphinx-external-toc</a>
+for our navigation. This tool allows a YAML file based left navigation menu. This
+tool was selected due to its flexibility that allows scripts to operate on the
+YAML file. Please transition to this file for the project's navigation. You can
+see the <code>_toc.yml.in</code> file in this repository in the docs/sphinx folder for an
+example.</p>
+<h3>Breathe</h3>
+<p>Sphinx uses <a href="https://www.breathe-doc.org/">Breathe</a> to integrate Doxygen
+content.</p>
+<h2><code>rocm-docs-core</code> pip package</h2>
+<p><a href="https://github.com/RadeonOpenCompute/rocm-docs-core">rocm-docs-core</a> is an AMD
+maintained project that applies customization for our documentation. This
+project is the tool most ROCm repositories will use as part of the documentation
+build.</p>

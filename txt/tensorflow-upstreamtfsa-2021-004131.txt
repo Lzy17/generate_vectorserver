@@ -1,0 +1,34 @@
+<h2>TFSA-2021-004: Reference binding to null pointer in <code>MatrixDiag*</code> ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29515</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/4c4f420e68f1cfaf8f4b6e8e3eb857e9e4c3ff33/tensorflow/core/kernels/linalg/matrix_diag_op.cc#L195-L197"><code>MatrixDiag*</code>
+operations</a>
+does not validate that the tensor arguments are non-empty:</p>
+<p><code>cc
+      num_rows = context-&gt;input(2).flat&lt;int32&gt;()(0);
+      num_cols = context-&gt;input(3).flat&lt;int32&gt;()(0);
+      padding_value = context-&gt;input(4).flat&lt;T&gt;()(0);</code></p>
+<p>Thus, users can trigger null pointer dereferences if any of the above tensors
+are null:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>d = tf.convert_to_tensor([],dtype=tf.float32)
+p = tf.convert_to_tensor([],dtype=tf.float32)
+tf.raw_ops.MatrixDiagV2(diagonal=d, k=0, num_rows=0, num_cols=0, padding_value=p)
+```</p>
+<p>Changing from <code>tf.raw_ops.MatrixDiagV2</code> to <code>tf.raw_ops.MatrixDiagV3</code> still reproduces the issue.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/a7116dd3913c4a4afd2a3a938573aa7c785fdfc6">a7116dd3913c4a4afd2a3a938573aa7c785fdfc6</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ye Zhang and Yakun Zhang of Baidu
+X-Team.</p>

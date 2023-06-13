@@ -1,0 +1,35 @@
+<h2>TFSA-2020-008: Data corruption due to dimension mismatch in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15208</p>
+<h3>Impact</h3>
+<p>When determining the common dimension size of two tensors, <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/lite/kernels/internal/types.h#L437-L442">TFLite uses a
+<code>DCHECK</code></a>
+which is no-op outside of debug compilation modes:
+<code>cc
+// Get common shape dim, DCHECKing that they all agree.
+inline int MatchingDim(const RuntimeShape&amp; shape1, int index1,
+                       const RuntimeShape&amp; shape2, int index2) {
+  TFLITE_DCHECK_EQ(shape1.Dims(index1), shape2.Dims(index2));
+  return shape1.Dims(index1);
+}</code></p>
+<p>Since the function always returns the dimension of the first tensor, malicious
+attackers can craft cases where this is larger than that of the second tensor.
+In turn, this would result in reads/writes outside of bounds since the
+interpreter will wrongly assume that there is enough data in both tensors.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/8ee24e7949a20">8ee24e7949a20</a>
+and will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

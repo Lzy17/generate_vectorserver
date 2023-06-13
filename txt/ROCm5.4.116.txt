@@ -1,0 +1,40 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>What's New in This Release</h3>
+<h4>HIP Enhancements</h4>
+<p>The ROCm v5.4.1 release consists of the following new HIP API:</p>
+<h5>New HIP API - hipLaunchHostFunc</h5>
+<p>The following new HIP API is introduced in the ROCm v5.4.1 release.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>This is a pre-official version (beta) release of the new APIs.</p>
+</blockquote>
+<p><code>h
+hipError_t hipLaunchHostFunc(hipStream_t stream, hipHostFn_t fn, void* userData);</code></p>
+<p>This swaps the stream capture mode of a thread.</p>
+<p><code>text
+@param [in] mode - Pointer to mode value to swap with the current mode</code></p>
+<p>This parameter returns <code>#hipSuccess</code>, <code>#hipErrorInvalidValue</code>.</p>
+<p>For more information, refer to the HIP API documentation at /bundle/HIP_API_Guide/page/modules.html.</p>
+<h3>Deprecations and Warnings</h3>
+<h4>HIP Perl Scripts Deprecation</h4>
+<p>The <code>hipcc</code> and <code>hipconfig</code> Perl scripts are deprecated. In a future release, compiled binaries will be available as <code>hipcc.bin</code> and <code>hipconfig.bin</code> as replacements for the Perl scripts.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>There will be a transition period where the Perl scripts and compiled binaries are available  before the scripts are removed. There will be no functional difference between the Perl scripts and their compiled binary counterpart. No user action is required. Once these are available, users can optionally switch to <code>hipcc.bin</code> and <code>hipconfig.bin</code>. The <code>hipcc</code>/<code>hipconfig</code> soft link will be assimilated to point from <code>hipcc</code>/<code>hipconfig</code> to the respective compiled binaries as the default option.</p>
+</blockquote>
+<h3>IFWI Fixes</h3>
+<p>These defects were identified and documented as known issues in previous ROCm releases and are fixed in this release.
+AMD Instinct™ MI200 Firmware IFWI Maintenance Update #3</p>
+<p>This IFWI release fixes the following issue in AMD Instinct™ MI210/MI250 Accelerators.</p>
+<p>After prolonged periods of operation, certain MI200 Instinct™ Accelerators may perform in a degraded way resulting in application failures.</p>
+<p>In this package, AMD delivers a new firmware version for MI200 GPU accelerators and a firmware installation tool – AMD FW FLASH 1.2.</p>
+<p>| GPU   | Production Part Number | SKU | IFWI Name |
+|-------|------------|--------|---------------|
+| MI210 | 113-D673XX | D67302 | D6730200V.110 |
+| MI210 | 113-D673XX | D67301 | D6730100V.073 |
+| MI250 | 113-D652XX | D65209 | D6520900.073  |
+| MI250 | 113-D652XX | D65210 | D6521000.073  |</p>
+<p>Instructions on how to download and apply MI200 maintenance updates are available at:</p>
+<p><a href="https://www.amd.com/en/support/server-accelerators/amd-instinct/amd-instinct-mi-series/amd-instinct-mi210">https://www.amd.com/en/support/server-accelerators/amd-instinct/amd-instinct-mi-series/amd-instinct-mi210</a></p>
+<h4>AMD Instinct™ MI200 SRIOV Virtualization Support</h4>
+<p>Maintenance update #3, combined with ROCm 5.4.1, now provides SRIOV virtualization support for all AMD Instinct™ MI200 devices.</p>

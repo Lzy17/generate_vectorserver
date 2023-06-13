@@ -1,0 +1,36 @@
+<h2>TFSA-2021-177: Use after free / memory leak in <code>CollectiveReduceV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41220</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/kernels/collective_ops.cc#L604-L615">async implementation</a> of <code>CollectiveReduceV2</code> suffers from a memory leak and a use after free:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.CollectiveReduceV2(
+  input=[],
+  group_size=[-10, -10, -10],
+  group_key=[-10, -10],
+  instance_key=[-10],
+  ordering_token=[],
+  merge_op='Mul',
+  final_op='Div')
+```</p>
+<p>This occurs due to the asynchronous computation and the fact that objects that have been <code>std::move()</code>d from are still accessed:</p>
+<p><code>cc
+auto done_with_cleanup = [col_params, done = std::move(done)]() {
+  done();
+  col_params-&gt;Unref();
+};
+OP_REQUIRES_OK_ASYNC(c,
+                     FillCollectiveParams(col_params, REDUCTION_COLLECTIVE,
+                                          /*group_size*/ c-&gt;input(1),
+                                          /*group_key*/ c-&gt;input(2),
+                                          /*instance_key*/ c-&gt;input(3)),
+                     done);</code></p>
+<p>Here, <code>done</code> is already moved from by the time <code>OP_REQUIRES_OK_ASYNC</code> macro needs to invoke it in case of errors. In this case, we get an undefined behavior, which can manifest via crashes, <code>std::bad_alloc</code> throws or just memory leaks.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ca38dab9d3ee66c5de06f11af9a4b1200da5ef75">ca38dab9d3ee66c5de06f11af9a4b1200da5ef75</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, as this version is the only one that is also affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

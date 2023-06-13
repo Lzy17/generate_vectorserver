@@ -1,0 +1,212 @@
+<h1>GPU acceleration delegate with Interpreter API</h1>
+<p>Using graphics processing units (GPUs) to run your machine learning (ML) models
+can dramatically improve the performance and the user experience
+of your ML-enabled applications. On Android devices, you can enable</p>
+<p><a href="../../performance/delegates"><em>delegate</em></a> and one of the following APIs:</p>
+<ul>
+<li>Interpreter API - this guide</li>
+<li>Task library API - <a href="./gpu_task">guide</a></li>
+<li>Native (C/C++) API - <a href="./gpu_native">guide</a></li>
+</ul>
+<p>This page describes how to enable GPU acceleration for TensorFlow Lite models in
+Android apps using the Interpreter API.
+For more information about using the GPU delegate for
+TensorFlow Lite, including best practices and advanced techniques, see the
+<a href="../../performance/gpu">GPU delegates</a> page.</p>
+<h2>Use GPU with TensorFlow Lite with Google Play services</h2>
+<p>The TensorFlow Lite <a href="https://tensorflow.org/lite/api_docs/java/org/tensorflow/lite/InterpreterApi">Interpreter API</a>
+provides a set of general purpose APIs for building a machine learning
+applications. This section describes how to use the GPU accelerator delegate
+with these APIs with TensorFlow Lite with Google Play services.</p>
+<p><a href="../play_services">TensorFlow Lite with Google Play services</a> is the recommended
+path to use TensorFlow Lite on Android. If your application is targeting devices
+not running Google Play, see the
+<a href="#standalone">GPU with Interpreter API and standalone TensorFlow Lite</a>
+section.</p>
+<h3>Add project dependencies</h3>
+<p>To enable access to the GPU delegate, add
+<code>com.google.android.gms:play-services-tflite-gpu</code> to your app's <code>build.gradle</code>
+file:</p>
+<p><code>dependencies {
+    ...
+    implementation 'com.google.android.gms:play-services-tflite-java:16.0.1'
+    implementation 'com.google.android.gms:play-services-tflite-gpu:16.1.0'
+}</code></p>
+<h3>Enable GPU acceleration</h3>
+<p>Then initialize TensorFlow Lite with Google Play services with the GPU support:</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Kotlin</h3>
+      <p><pre class="prettyprint lang-kotlin">
+    val useGpuTask = TfLiteGpu.isGpuDelegateAvailable(context)
+
+    val interpreterTask = useGpuTask.continueWith { useGpuTask ->
+      TfLite.initialize(context,
+          TfLiteInitializationOptions.builder()
+          .setEnableGpuDelegateSupport(useGpuTask.result)
+          .build())
+      }
+      </pre></p>
+    </section>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+    Task<boolean> useGpuTask = TfLiteGpu.isGpuDelegateAvailable(context);
+
+    Task<Options> interpreterOptionsTask = useGpuTask.continueWith({ task ->
+      TfLite.initialize(context,
+      TfLiteInitializationOptions.builder()
+        .setEnableGpuDelegateSupport(true)
+        .build());
+    });
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>You can finally initialize the interpreter passing a <code>GpuDelegateFactory</code>
+through <code>InterpreterApi.Options</code>:</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Kotlin</h3>
+      <p><pre class="prettyprint lang-kotlin">
+
+    val options = InterpreterApi.Options()
+      .setRuntime(TfLiteRuntime.FROM_SYSTEM_ONLY)
+      .addDelegateFactory(GpuDelegateFactory())
+
+    val interpreter = InterpreterApi(model, options)
+
+    // Run inference
+    writeToInput(input)
+    interpreter.run(input, output)
+    readFromOutput(output)
+      </pre></p>
+    </section>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+
+    Options options = InterpreterApi.Options()
+      .setRuntime(TfLiteRuntime.FROM_SYSTEM_ONLY)
+      .addDelegateFactory(new GpuDelegateFactory());
+
+    Interpreter interpreter = new InterpreterApi(model, options);
+
+    // Run inference
+    writeToInput(input);
+    interpreter.run(input, output);
+    readFromOutput(output);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>Note: The GPU delegate must be created on the same thread that runs it.
+Otherwise, you may see the following error, <code>TfLiteGpuDelegate Invoke:
+GpuDelegate must run on the same thread where it was initialized.</code></p>
+<p>The GPU delegate can also be used with ML model binding in Android Studio.
+For more information, see
+<a href="../../inference_with_metadata/codegen#acceleration">Generate model interfaces using metadata</a>.</p>
+<h2>Use GPU with standalone TensorFlow Lite {:#standalone}</h2>
+<p>If your application is targets devices which are not running Google Play,
+it is possible to bundle the GPU delegate to your application and use it
+with the standalone version of TensorFlow Lite.</p>
+<h3>Add project dependencies</h3>
+<p>To enable access to the GPU delegate, add
+<code>org.tensorflow:tensorflow-lite-gpu-delegate-plugin</code> to your app's <code>build.gradle</code>
+file:</p>
+<p><code>dependencies {
+    ...
+    implementation 'org.tensorflow:tensorflow-lite'
+    implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin'
+}</code></p>
+<h3>Enable GPU acceleration</h3>
+<p>Then run TensorFlow Lite on GPU with <code>TfLiteDelegate</code>. In Java, you can specify
+the <code>GpuDelegate</code> through <code>Interpreter.Options</code>.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Kotlin</h3>
+      <p><pre class="prettyprint lang-kotlin">
+      import org.tensorflow.lite.Interpreter
+      import org.tensorflow.lite.gpu.CompatibilityList
+      import org.tensorflow.lite.gpu.GpuDelegate
+
+      val compatList = CompatibilityList()
+
+      val options = Interpreter.Options().apply{
+          if(compatList.isDelegateSupportedOnThisDevice){
+              // if the device has a supported GPU, add the GPU delegate
+              val delegateOptions = compatList.bestOptionsForThisDevice
+              this.addDelegate(GpuDelegate(delegateOptions))
+          } else {
+              // if the GPU is not supported, run on 4 threads
+              this.setNumThreads(4)
+          }
+      }
+
+      val interpreter = Interpreter(model, options)
+
+      // Run inference
+      writeToInput(input)
+      interpreter.run(input, output)
+      readFromOutput(output)
+      </pre></p>
+    </section>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+      import org.tensorflow.lite.Interpreter;
+      import org.tensorflow.lite.gpu.CompatibilityList;
+      import org.tensorflow.lite.gpu.GpuDelegate;
+
+      // Initialize interpreter with GPU delegate
+      Interpreter.Options options = new Interpreter.Options();
+      CompatibilityList compatList = CompatibilityList();
+
+      if(compatList.isDelegateSupportedOnThisDevice()){
+          // if the device has a supported GPU, add the GPU delegate
+          GpuDelegate.Options delegateOptions = compatList.getBestOptionsForThisDevice();
+          GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
+          options.addDelegate(gpuDelegate);
+      } else {
+          // if the GPU is not supported, run on 4 threads
+          options.setNumThreads(4);
+      }
+
+      Interpreter interpreter = new Interpreter(model, options);
+
+      // Run inference
+      writeToInput(input);
+      interpreter.run(input, output);
+      readFromOutput(output);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<h3>Quantized models {:#quantized-models}</h3>
+<p>Android GPU delegate libraries support quantized models by default. You do not
+have to make any code changes to use quantized models with the GPU delegate. The
+following section explains how to disable quantized support for testing or
+experimental purposes.</p>
+<h4>Disable quantized model support</h4>
+<p>The following code shows how to <strong><em>disable</em></strong> support for quantized models.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+GpuDelegate delegate = new GpuDelegate(new GpuDelegate.Options().setQuantizedModelsAllowed(false));
+
+Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>For more information about running quantized models with GPU acceleration,
+see <a href="../../performance/gpu#quantized-models">GPU delegate</a> overview.</p>

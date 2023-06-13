@@ -1,0 +1,38 @@
+<h2>TFSA-2021-054: Heap OOB access in <code>Dilation2DBackpropInput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29566</p>
+<h3>Impact</h3>
+<p>An attacker can write outside the bounds of heap allocated arrays by passing
+invalid arguments to <code>tf.raw_ops.Dilation2DBackpropInput</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([1.1] * 81, shape=[3, 3, 3, 3], dtype=tf.float32)
+filter = tf.constant([], shape=[0, 0, 3], dtype=tf.float32)
+out_backprop = tf.constant([1.1] * 1062, shape=[3, 2, 59, 3], dtype=tf.float32)</p>
+<p>tf.raw_ops.Dilation2DBackpropInput(
+  input=input_tensor, filter=filter, out_backprop=out_backprop,
+  strides=[1, 40, 1, 1], rates=[1, 56, 56, 1], padding='VALID')
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/afd954e65f15aea4d438d0a219136fc4a63a573d/tensorflow/core/kernels/dilation_ops.cc#L321-L322">implementation</a>
+does not validate before writing to the output array.</p>
+<p><code>cc
+in_backprop(b, h_in_max, w_in_max, d) += out_backprop(b, h_out, w_out, d);</code></p>
+<p>The values for <code>h_out</code> and <code>w_out</code> are guaranteed to be in range for
+<code>out_backprop</code> (as they are loop indices bounded by the size of the array).
+However, there are no similar guarantees relating <code>h_in_max</code>/<code>w_in_max</code> and
+<code>in_backprop</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/3f6fe4dfef6f57e768260b48166c27d148f3015f">3f6fe4dfef6f57e768260b48166c27d148f3015f</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

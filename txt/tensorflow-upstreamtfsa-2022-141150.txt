@@ -1,0 +1,26 @@
+<h2>TFSA-2022-141: Integer overflow in math ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36015</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ops/math_ops.cc"><code>RangeSize</code></a> receives values that do not fit into an <code>int64_t</code>, it crashes.
+```cpp
+  auto size = (std::is_integral<T>::value
+                   ? ((Eigen::numext::abs(limit - start) +
+                       Eigen::numext::abs(delta) - T(1)) /
+                      Eigen::numext::abs(delta))
+                   : (Eigen::numext::ceil(
+                         Eigen::numext::abs((limit - start) / delta))));</p>
+<p>// This check does not cover all cases.
+  if (size &gt; std::numeric_limits<int64_t>::max()) {
+    return errors::InvalidArgument("Requires ((limit - start) / delta) &lt;= ",
+                                   std::numeric_limits<int64_t>::max());
+  }</p>
+<p>c-&gt;set_output(0, c-&gt;Vector(static_cast<int64_t>(size)));
+  return OkStatus();
+}
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/37e64539cd29fcfb814c4451152a60f5d107b0f0">37e64539cd29fcfb814c4451152a60f5d107b0f0</a>.
+The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

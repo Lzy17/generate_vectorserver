@@ -1,0 +1,27 @@
+<h2>TFSA-2022-080: Segfault if <code>tf.histogram_fixed_width</code> is called with NaN values</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29211</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/histogram_op.cc"><code>tf.histogram_fixed_width</code></a> is vulnerable to a crash when the values array contain <code>NaN</code> elements:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>tf.histogram_fixed_width(values=np.nan, value_range=[1,2])
+```</p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/histogram_op.cc#L35-L74">implementation</a> assumes that all floating point operations are defined and then converts a floating point result to an integer index:</p>
+<p><code>cc
+index_to_bin.device(d) =
+    ((values.cwiseMax(value_range(0)) - values.constant(value_range(0)))
+         .template cast&lt;double&gt;() /
+     step)
+        .cwiseMin(nbins_minus_1)
+        .template cast&lt;int32&gt;();</code></p>
+<p>If <code>values</code> contains <code>NaN</code> then the result of the division is still <code>NaN</code> and the cast to <code>int32</code> would result in a crash.</p>
+<p>This only occurs on the CPU implementation.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/e57fd691c7b0fd00ea3bfe43444f30c1969748b5">e57fd691c7b0fd00ea3bfe43444f30c1969748b5</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/45770">GitHub issue</a>.</p>
