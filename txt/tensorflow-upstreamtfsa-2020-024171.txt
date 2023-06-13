@@ -1,0 +1,37 @@
+<h2>TFSA-2020-024: Memory leak in <code>dlpack.to_dlpack</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15192</p>
+<h3>Impact</h3>
+<p>If a user passes a list of strings to <code>dlpack.to_dlpack</code> there is a memory leak
+following an expected <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/c/eager/dlpack.cc#L100-L104">validation failure</a>:
+<code>cc
+      status-&gt;status = tensorflow::errors::InvalidArgument(
+          DataType_Name(static_cast&lt;DataType&gt;(data_type)),
+          " is not supported by dlpack");</code></p>
+<p>The allocated memory is
+<a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/c/eager/dlpack.cc#L256">from</a>:
+<code>cc
+  auto* tf_dlm_tensor_ctx = new TfDlManagedTensorCtx(tensor_ref);</code></p>
+<p>The issue occurs because the <code>status</code> argument during validation failures <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/c/eager/dlpack.cc#L265-L267">is not
+properly checked</a>:
+<code>cc
+  dlm_tensor-&gt;dl_tensor.data = TFE_TensorHandleDevicePointer(h, status);
+  dlm_tensor-&gt;dl_tensor.dtype = GetDlDataType(data_type, status);</code></p>
+<p>Since each of the above methods can return an error status, the <code>status</code> value
+must be checked before continuing.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/22e07fb204386768e5bcbea563641ea11f96ceb8">22e07fb204386768e5bcbea563641ea11f96ceb8</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 2.2.1 or 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-023.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

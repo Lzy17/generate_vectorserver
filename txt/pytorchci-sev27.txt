@@ -1,0 +1,22 @@
+<hr />
+<p>name: "⚠️ CI SEV"
+about: Tracking incidents for PyTorch's CI infra.</p>
+<hr />
+<blockquote>
+<p>NOTE: Remember to label this issue with "<code>ci: sev</code>"</p>
+</blockquote>
+<p><strong>MERGE BLOCKING</strong> <!-- remove this line if you don't want this SEV to block merges --></p>
+<h2>Current Status</h2>
+<p><em>Status could be: preemptive, ongoing, mitigated, closed. Also tell people if they need to take action to fix it (i.e. rebase)</em>.</p>
+<h2>Error looks like</h2>
+<p><em>Provide some way users can tell that this SEV is causing their issue.</em></p>
+<h2>Incident timeline (all times pacific)</h2>
+<p><em>Include when the incident began, when it was detected, mitigated, root caused, and finally closed.</em></p>
+<h2>User impact</h2>
+<p><em>How does this affect users of PyTorch CI?</em></p>
+<h2>Root cause</h2>
+<p><em>What was the root cause of this issue?</em></p>
+<h2>Mitigation</h2>
+<p><em>How did we mitigate the issue?</em></p>
+<h2>Prevention/followups</h2>
+<p><em>How do we prevent issues like this in the future?</em></p>

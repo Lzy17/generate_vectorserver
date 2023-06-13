@@ -1,0 +1,26 @@
+<h1>Overview</h1>
+<p>Our goal is to add ROCm to TensorFlow's list of Community Supported Builds.  To accomplish this, we need to provide a plan on how to set up the builds, how to run the tests, and how we'll support the process.  </p>
+<h1>Build infrastructure</h1>
+<p>We currently use Jenkins CI to build and test all of the commits to our ROCm fork of TensorFlow.  </p>
+<p>Going forward, we'll also use it to build and test the upstream TensorFlow repo.  We have significantly increased our CI worker node pool in order to be able to handle the increase in the number of jobs associated with the upstream repo.  </p>
+<h1>Build+test plan</h1>
+<p>We will run three types of builds:</p>
+<ul>
+<li>Continuous master branch build+test cycles:  watching for regressions in new commits</li>
+<li>Nightly artifact builds:  building and testing WHL files every night</li>
+<li>Release-specific artifact builds:  building and testing WHL files every release</li>
+</ul>
+<p>For the master branch builds, we'll use a webhook to notify our CI setup when a new commit exists, and that will trigger a new build+test cycle.  Again, we have multiple CI worker nodes, so we should be able to minimize the number of commits per build.  For testing, we typically run ci_build's <code>rocm/run_py3_core.sh</code> script.</p>
+<p>Nightly WHL builds will be scheduled every night using Jenkins.  Release-specific WHL builds will be manually scheduled whenever a new TensorFlow release occurs.  Each of these builds will also be checked with the <code>run_py3_core.sh</code> script.  </p>
+<h1>Ongoing support</h1>
+<p>The community supported builds for ROCm will be maintained by the following team members:  </p>
+<ul>
+<li>Jeff Poznanovic (<code>parallelo</code>, <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#106;&#101;&#102;&#102;&#114;&#101;&#121;&#46;&#112;&#111;&#122;&#110;&#97;&#110;&#111;&#118;&#105;&#99;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;">&#106;&#101;&#102;&#102;&#114;&#101;&#121;&#46;&#112;&#111;&#122;&#110;&#97;&#110;&#111;&#118;&#105;&#99;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;</a>)</li>
+<li>Peng Sun (<code>sunway513</code>, <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#112;&#101;&#110;&#103;&#46;&#115;&#117;&#110;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;">&#112;&#101;&#110;&#103;&#46;&#115;&#117;&#110;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;</a>)</li>
+<li>Jack Chung (<code>whchung</code>, <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#119;&#104;&#99;&#104;&#117;&#110;&#103;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;">&#119;&#104;&#99;&#104;&#117;&#110;&#103;&#64;&#97;&#109;&#100;&#46;&#99;&#111;&#109;</a>)</li>
+</ul>
+<p>Our installation docs can currently be found here:  </p>
+<ul>
+<li><a href="https://rocm.github.io/ROCmInstall.html">ROCm details</a></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/tensorflow-upstream/blob/develop-upstream/rocm_docs/tensorflow-install-basic.md">TensorFlow details</a></li>
+</ul>

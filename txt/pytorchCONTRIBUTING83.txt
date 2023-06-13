@@ -1,0 +1,63 @@
+<h1>Contributing to PyTorch Distributed</h1>
+<p>Please go through PyTorch's top level <a href="../../CONTRIBUTING.md">Contributing Guide</a> before proceeding with this guide.</p>
+<p><a href="https://pytorch.org/tutorials//beginner/dist_overview.html">PyTorch Distributed Overview</a> is a great starting point with a lot of tutorials, documentation and design docs covering PyTorch Distributed. We would highly recommend going through some of that material before you start working on PyTorch Distributed.</p>
+<p>In this document, we mostly focus on some of the code structure for PyTorch distributed and implementation details.</p>
+<h2>C10D and DistributedDataParallel</h2>
+<p>The figure below demonstrates building blocks of the c10d and DDP package and shows how typically an application is layered on top. Most parts of the distributed package are implemented in C++ and then bound to the Python frontend (see <a href="../csrc/distributed/c10d/init.cpp">c10d/init.cpp</a>).</p>
+<p><img alt="C10D_ARCH" src="../../docs/source/_static/img/pt_distributed_arch.png" /></p>
+<h3>Process Groups</h3>
+<p>Process groups (PG) take care of communications across processes. It is up to users to decide how to place processes, e.g., on the same machine or across machines. PG exposes a set of communication APIs, e.g., send, recv, broadcast, allgather, allreduce, etc.</p>
+<p>Source Code: <a href="../csrc/distributed/c10d/ProcessGroup.cpp">ProcessGroup.cpp</a> and  <a href="../csrc/distributed/c10d/ProcessGroup.hpp">ProcessGroup.hpp</a></p>
+<h4>Process Group Backends</h4>
+<p>We currently offer three backends for Process Groups: <a href="../csrc/distributed/c10d/ProcessGroupGloo.hpp">ProcessGroupGloo.hpp</a>, <a href="../csrc/distributed/c10d/ProcessGroupMPI.hpp">ProcessGroupMPI.hpp</a> and <a href="../csrc/distributed/c10d/ProcessGroupNCCL.hpp">ProcessGroupNCCL.hpp</a></p>
+<h4>Store</h4>
+<p>Processes discover each other through a rendezvous process on a common Store (See <a href="../csrc/distributed/c10d/Store.hpp">Store.hpp</a> for the interface and <a href="../csrc/distributed/c10d/FileStore.hpp">FileStore.hpp</a>, <a href="../csrc/distributed/c10d/TCPStore.hpp">TCPStore.hpp</a> and <a href="../csrc/distributed/c10d/PrefixStore.hpp">PrefixStore.hpp</a> for implementations.)</p>
+<h3>Distributed Data Parallel</h3>
+<p>DDP is implemented as a module in <a href="../nn/parallel/distributed.py">distributed.py</a> with some of the core functions implemented in <a href="../csrc/distributed/c10d/reducer.cpp">reducer.cpp</a> and <a href="../csrc/distributed/c10d/reducer.cpp">comm.cpp</a>. Gradients synchronizations occur in backward pass, triggered as autograd hooks.</p>
+<h3>Onboarding Tasks</h3>
+<p>A list of onboarding tasks can be found <a href="https://github.com/pytorch/pytorch/issues?q=is%3Aopen+is%3Aissue+label%3A%22module%3A+distributed%22+label%3A%22topic%3A+bootcamp%22">here</a> and <a href="https://github.com/pytorch/pytorch/issues?q=is%3Aopen+is%3Aissue+label%3A%22module%3A+distributed%22+label%3Apt_distributed_rampup">here</a>.</p>
+<h2>RPC Framework</h2>
+<p>The figure below demonstrates the overall architecture of the RPC framework.</p>
+<p><img alt="RPC_ARCH" src="../../docs/source/_static/img/rpc_arch.png" /></p>
+<p>The top level APIs for the RPC framework can found in <a href="rpc/api.py">rpc/api.py</a> and majority of the code is actually written in C++. The pybind entrypoints can be found in <a href="../csrc/distributed/rpc/init.cpp">rpc/init.cpp</a>.</p>
+<p>The RPC framework consists of several additional components:</p>
+<h3>RPC Agents</h3>
+<p>The core C++ interface of the RPC framework can be found in <a href="../csrc/distributed/rpc/rpc_agent.h">rpc_agent.h</a> and the TensorPipe implementation can be found at <a href="../csrc/distributed/rpc/tensorpipe_agent.h">tensorpipe_agent.h</a>.</p>
+<p><a href="../csrc/distributed/rpc/request_callback.h">request_callback.h</a> and <a href="../csrc/distributed/rpc/request_callback_impl.h">request_callback_impl.h</a> deal with how to handle RPC calls on remote servers.</p>
+<h3>Remote Reference (RRef)</h3>
+<p>Most of the APIs for RRefs can be found in <a href="rpc/api.py">rpc/api.py</a>. The C++ interface can be found in <a href="../../aten/src/ATen/core/rref_interface.h">rref_interface.h</a> and implementations in <a href="../csrc/distributed/rpc/rref_impl.h">rref_impl.h</a> and <a href="../csrc/distributed/rpc/rref_context.h">rref_context.h</a>.</p>
+<h3>Distributed Autograd</h3>
+<p>The top level APIs for distributed autograd can be found in <a href="autograd/__init__.py">distributed/autograd/init.py</a> and <a href="../csrc/distributed/autograd/init.cpp">distributed/autograd/init.cpp</a>.</p>
+<p>The core engine for executing a distributed backward pass can be found in <a href="../csrc/distributed/autograd/engine/dist_engine.h">dist_engine.h</a></p>
+<h3>Distributed Optimizer</h3>
+<p>The distributed optimizer is completely written in Python and can be found at <a href="optim/optimizer.py">optimizer.py</a></p>
+<h3>Onboarding Tasks</h3>
+<p>A list of onboarding tasks can be found <a href="https://github.com/pytorch/pytorch/issues?q=is%3Aopen+is%3Aissue+label%3Apt_distributed_rampup+">here</a>.</p>
+<h2>Running unit tests</h2>
+<p>All the unit tests can be found under the <a href="../../test/distributed">test/distributed</a> directory and RPC tests in particular are under <a href="../../test/distributed/rpc">test/distributed/rpc</a>. A few examples on how to run unit tests:</p>
+<p>```</p>
+<h1>Run the c10d unit tests.</h1>
+<p>python test/distributed/test_c10d_common.py
+python test/distributed/test_c10d_gloo.py
+python test/distributed/test_c10d_nccl.py</p>
+<h1>Run the Store tests.</h1>
+<p>python test/distributed/test_store.py</p>
+<h1>Run Process Group Wrapper tests.</h1>
+<p>python test/distributed/test_pg_wrapper.py</p>
+<h1>Run distributed tests, including tests for Distributed Data Parallel.</h1>
+<p>python test/run_test.py --verbose -i distributed/test_distributed_spawn</p>
+<h1>Run a single test in the test_distributed_spawn test suite.</h1>
+<p>touch /tmp/barrier &amp;&amp; TEMP_DIR="/tmp" BACKEND="nccl" WORLD_SIZE="2" python test/distributed/test_distributed_spawn.py -v TestDistBackendWithSpawn.test_ddp_profiling_torch_profiler</p>
+<h1>Run the RPC test suite for the TensorPipeAgent.</h1>
+<p>python test/distributed/rpc/test_tensorpipe_agent.py
+python test/distributed/rpc/cuda/test_tensorpipe_agent.py</p>
+<h1>Run the RPC test suite for the FaultyAgent</h1>
+<p>python test/distributed/rpc/test_faulty_agent.py</p>
+<h1>Run a specific test method. Uses pytest (pip install pytest).</h1>
+<h1>ProcessGroup gloo/nccl test</h1>
+<p>pytest -vs test/distributed/test_c10d_common.py -k test_multi_limit_single_dtype</p>
+<h1>RPC test</h1>
+<p>pytest -vs test/distributed/rpc/test_tensorpipe_agent.py -k test_get_worker_infos
+```</p>
+<p>Note that the RPC framework is by default only tested with filesystem <a href="https://pytorch.org/docs/stable/distributed.html#initialization">initialization</a>. To run tests with TCP initialization, set the
+environment variable <code>RPC_INIT_WITH_TCP=1</code> before running your test command.</p>

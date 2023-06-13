@@ -1,0 +1,87 @@
+<h1>How to write tests using FileCheck</h1>
+<h2>What is FileCheck</h2>
+<p>FileCheck can be seen as an advanced version of grep. We use it for writing
+small annotated unit tests for optimization passes. FileCheck used in PyTorch is
+inspired by <a href="https://llvm.org/docs/CommandGuide/FileCheck.html">LLVM FileCheck
+Tool</a>, but is not the same.
+FileCheck is available for writing both C++ and python tests.</p>
+<h2>How does it work</h2>
+<p>Let's look at a test written with FileCheck. The following test verifies that
+CSE pass removes one out of two similar <code>aten::mul</code> nodes. Here is how the test
+looks like:</p>
+<p><code>python
+def test_cse():
+    input_str = """graph(%a : Tensor, %b : Tensor):
+      # CHECK: aten::mul
+      %x : Tensor = aten::mul(%a, %b)
+      # Check that the second aten::mul is removed by CSE.
+      # CHECK-NOT: aten::mul
+      %y : Tensor = aten::mul(%a, %b)
+      # CHECK: return
+      return (%x, %y)
+      """
+    parsed = parse_ir(input_str)
+    optimized = run_cse(parsed)
+    FileCheck().run(input_str, optimized)</code></p>
+<p>Let's look in detail at how it works. First, the input string is parsed by
+<code>parse_ir</code>. At that stage all annotations are ignored since they are written in
+comments, so this is what parser essentially sees:</p>
+<p><code>graph(%a : Tensor, %b : Tensor):
+      %x : Tensor = aten::mul(%a, %b)
+      %y : Tensor = aten::mul(%a, %b)
+      return (%x, %y)</code></p>
+<p>We then run CSE on the parsed IR and expect it to remove the second <code>aten::mul</code>,
+which is redundant. After CSE our IR looks like this:</p>
+<p><code>graph(%a : Tensor, %b : Tensor):
+      %x : Tensor = aten::mul(%a, %b)
+      return (%x, %x)</code></p>
+<p>And now we run <code>FileCheck</code> passing to it both original input string and the
+optimized IR. From the input string <code>FileCheck</code> ignores everything except <code>#
+CHECK</code> pragmas and essentially it sees the input string like this:</p>
+<p><code># CHECK: aten::mul       (1)
+      # CHECK-NOT: aten::mul   (2)
+      # CHECK: return          (3)</code></p>
+<p>It then checks that the optimized IR satisfies the specified annotations. It
+first finds string <code>%x : Tensor = aten::mul(%a, %b)</code> matching the annotation (1),
+then it finds string <code>return (%x, %x)</code> matching the annotation (3), and since
+there were no lines matching <code>aten::mul</code> after the match (1) and before the
+match (3), the annotation (2) is also satisfied.</p>
+<p>One could also register FileCheck annotations using a builder API. To generate
+annotations from the example above one would write:
+<code>python
+      FileCheck().check("aten::mul")     \
+                 .check_not("aten::mul") \
+                 .check("return")        \
+                 .run(optimized)</code></p>
+<h2>Supported pragmas</h2>
+<ul>
+<li><code>CHECK: &lt;pattern&gt;</code>
+  Scans the input until <code>PATTERN</code> is found. Fails if the pattern is not found.</li>
+<li><code>CHECK-NEXT: &lt;pattern&gt;</code>
+  Scans the input on the line immediately following the previous CHECK until
+  <code>PATTERN</code> is found. Fails if the pattern is not found on that line.</li>
+<li><code>CHECK-NOT: &lt;pattern&gt;</code>
+  Scans the input and fails if <code>PATTERN</code> is found on any line. The scan stops when
+  a match for a next <code>CHECK</code> is found.</li>
+<li><code>CHECK-SAME: &lt;pattern&gt;</code>
+  Checks that PATTERN is found in the line of the last match.</li>
+<li><code>CHECK-COUNT-&lt;num&gt;: &lt;pattern&gt;</code>
+  Scans the input and succeeds when a line containing at least <code>NUM</code> entries of
+  <code>PATTERN</code> is found.</li>
+<li><code>CHECK-COUNT-EXACTLY-&lt;num&gt;: &lt;pattern&gt;</code>
+  Scans the input and succeeds when a line containing exactly <code>NUM</code> entries of
+  <code>PATTERN</code> is found.</li>
+<li><code>CHECK-DAG: pattern</code>
+  Works similar to the usual <code>CHECK</code> pragma, but also matches if there exists a
+  way to reorder the CHECK-DAG pragmas to satisfy all patterns.
+  For example the following pattern:
+  <code># CHECK: foo
+  # CHECK-DAG: bar
+  # CHECK-DAG: ham
+  # CHECK: end</code>
+  would match the following input (note that <code>ham</code> and <code>bar</code> are swapped):
+  <code>foo
+  ham
+  bar
+  end</code></li>
+</ul>

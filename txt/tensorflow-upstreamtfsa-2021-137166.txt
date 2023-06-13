@@ -1,0 +1,37 @@
+<h2>TFSA-2021-137: Heap OOB in boosted trees</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37664</p>
+<h3>Impact</h3>
+<p>An attacker can read from outside of bounds of heap allocated data by sending
+specially crafted illegal arguments to
+<code>BoostedTreesSparseCalculateBestFeatureSplit</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.BoostedTreesSparseCalculateBestFeatureSplit(
+  node_id_range=[0,10],
+  stats_summary_indices=[[1, 2, 3, 0x1000000]],
+  stats_summary_values=[1.0],
+  stats_summary_shape=[1,1,1,1],
+  l1=l2=[1.0],
+  tree_complexity=[0.5],
+  min_node_weight=[1.0],
+  logits_dimension=3,
+  split_type='inequality')
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/84d053187cb80d975ef2b9684d4b61981bca0c41/tensorflow/core/kernels/boosted_trees/stats_ops.cc">implementation</a>
+needs to validate that each value in <code>stats_summary_indices</code> is in range.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/e84c975313e8e8e38bb2ea118196369c45c51378">e84c975313e8e8e38bb2ea118196369c45c51378</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

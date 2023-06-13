@@ -1,0 +1,27 @@
+<h2>TFSA-2021-106: Crash in <code>tf.strings.substr</code> due to <code>CHECK</code>-fail</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29617</p>
+<h3>Impact</h3>
+<p>An attacker can cause a denial of service via <code>CHECK</code>-fail in
+<code>tf.strings.substr</code> with invalid arguments:</p>
+<p><code>python
+import tensorflow as tf
+tf.strings.substr(input='abc', len=1, pos=[1,-1])</code></p>
+<p><code>python
+import tensorflow as tf
+tf.strings.substr(input='abc', len=1, pos=[1,2])</code></p>
+<h3>Patches</h3>
+<p>We have received a patch for the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/890f7164b70354c57d40eda52dcdd7658677c09f">890f7164b70354c57d40eda52dcdd7658677c09f</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported in
+<a href="https://github.com/tensorflow/issues/46900">#46900</a> and fixed in
+<a href="https://github.com/tensorflow/issues/46974">#46974</a>.</p>

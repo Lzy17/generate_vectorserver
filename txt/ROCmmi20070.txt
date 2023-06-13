@@ -1,0 +1,392 @@
+<h1>MI200 High Performance Computing and Tuning Guide</h1>
+<h2>System Settings</h2>
+<p>This chapter reviews system settings that are required to configure the system
+for AMD Instinct MI250 accelerators and improve the performance of the GPUs. It
+is advised to configure the system for the best possible host configuration
+according to the "High Performance Computing (HPC) Tuning Guide for AMD EPYC
+7003 Series Processors."</p>
+<p>Configure the system BIOS settings as explained in {ref}<code>bios_settings</code> and
+enact the below given settings via the command line as explained in
+{ref}<code>os_settings</code>:</p>
+<ul>
+<li>Core C states</li>
+<li>IOMMU (if needed)</li>
+</ul>
+<p>(bios_settings)=</p>
+<h3>System BIOS Settings</h3>
+<p>For maximum MI250 GPU performance on systems with AMD EPYC™ 7003-series
+processors (codename "Milan") and AMI System BIOS, the following configuration
+of system BIOS settings has been validated. These settings must be used for the
+qualification process and should be set as default values for the system BIOS.
+Analogous settings for other non-AMI System BIOS providers could be set
+similarly. For systems with Intel processors, some settings may not apply or be
+available as listed in {numref}<code>mi200-bios</code>.</p>
+<p>```{list-table} Recommended settings for the system BIOS in a GIGABYTE platform.
+:header-rows: 1
+:name: mi200-bios</p>
+<p>*
+  - BIOS Setting Location
+  - Parameter
+  - Value
+  - Comments
+*
+  - Advanced / PCI Subsystem Settings
+  - Above 4G Decoding
+  - Enabled
+  - GPU Large BAR Support
+*
+  - Advanced / PCI Subsystem Settings
+  - SR-IOV Support
+  - Disabled
+  - Disable Single Root IO Virtualization
+*
+  - AMD CBS / CPU Common Options
+  - Global C-state Control
+  - Auto
+  - Global Core C-States
+*
+  - AMD CBS / CPU Common Options
+  - CCD/Core/Thread Enablement
+  - Accept
+  - Global Core C-States
+*
+  - AMD CBS / CPU Common Options / Performance
+  - SMT Control
+  - Disable
+  - Global Core C-States
+*
+  - AMD CBS / DF Common Options / Memory Addressing
+  - NUMA nodes per socket
+  - NPS 1,2,4
+  - NUMA Nodes (NPS)
+*
+  - AMD CBS / DF Common Options / Memory Addressing
+  - Memory interleaving
+  - Auto
+  - Numa Nodes (NPS)
+*
+  - AMD CBS / DF Common Options / Link
+  - 4-link xGMI max speed
+  - 18 Gbps
+  - Set AMD CPU xGMI speed to highest rate supported
+*
+  - AMD CBS / NBIO Common Options
+  - IOMMU
+  - Disable
+  -
+*
+  - AMD CBS / NBIO Common Options
+  - PCIe Ten Bit Tag Support
+  - Auto
+  -
+*
+  - AMD CBS / NBIO Common Options
+  - Preferred IO
+  - Bus
+  -
+*
+  - AMD CBS / NBIO Common Options
+  - Preferred IO Bus
+  - "Use lspci to find pci device id"
+  -
+*
+  - AMD CBS / NBIO Common Options
+  - Enhanced Preferred IO Mode
+  - Enable
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - Determinism Control
+  - Manual
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - Determinism Slider
+  - Power
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - cTDP Control
+  - Manual
+  - Set cTDP to the maximum supported by the installed CPU
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - cTDP
+  - 280
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - Package Power Limit Control
+  - Manual
+  - Set Package Power Limit to the maximum supported by the installed CPU
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - Package Power Limit
+  - 280
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - xGMI Link Width Control
+  - Manual
+  - Set AMD CPU xGMI width to 16 bits
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - xGMI Force Link Width
+  - 2
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - xGMI Force Link Width Control
+  - Force
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - APBDIS
+  - 1
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - DF C-states
+  - Enabled
+  -
+*
+  - AMD CBS / NBIO Common Options / SMU Common Options
+  - Fixed SOC P-state
+  - P0
+  -
+*
+  - AMD CBS / UMC Common Options / DDR4 Common Options
+  - Enforce POR
+  - Accept
+  -
+*
+  - AMD CBS / UMC Common Options / DDR4 Common Options / Enforce POR
+  - Overclock
+  - Enabled
+  -
+*
+  - AMD CBS / UMC Common Options / DDR4 Common Options / Enforce POR
+  - Memory Clock Speed
+  - 1600 MHz
+  - Set to max Memory Speed, if using 3200 MHz DIMMs
+*
+  - AMD CBS / UMC Common Options / DDR4 Common Options / DRAM Controller
+    Configuration / DRAM Power Options
+  - Power Down Enable
+  - Disabled
+  - RAM Power Down
+*
+  - AMD CBS / Security
+  - TSME
+  - Disabled
+  - Memory Encryption
+```</p>
+<h4>NBIO Link Clock Frequency</h4>
+<p>The NBIOs (4x per AMD EPYC™ processor) are the serializers/deserializers (also
+known as "SerDes") that convert and prepare the I/O signals for the processor's
+128 external I/O interface lanes (32 per NBIO).</p>
+<p>LCLK (short for link clock frequency) controls the link speed of the internal
+bus that connects the NBIO silicon with the data fabric. All data between the
+processor and its PCIe lanes flow to the data fabric based on these LCLK
+frequency settings. The link clock frequency of the NBIO components need to be
+forced to the maximum frequency for optimal PCIe performance.</p>
+<p>For AMD EPYC™ 7003 series processors, configuring all NBIOs to be in "Enhanced
+Preferred I/O" mode is sufficient to enable highest link clock frequency for the
+NBIO components.</p>
+<h4>Memory Configuration</h4>
+<p>For setting the memory addressing modes (see {numref}<code>mi200-bios</code>), especially
+the number of NUMA nodes per socket/processor (NPS), follow the guidance of the
+"High Performance Computing (HPC) Tuning Guide for AMD EPYC 7003 Series
+Processors" to provide the optimal configuration for host side computation. For
+most HPC workloads, NPS=4 is the recommended value.</p>
+<p>(os_settings)=</p>
+<h3>Operating System Settings</h3>
+<h4>CPU Core State - "C States"</h4>
+<p>There are several Core-States, or C-states that an AMD EPYC CPU can idle within:</p>
+<ul>
+<li>C0: active. This is the active state while running an application.</li>
+<li>C1: idle</li>
+<li>C2: idle and power gated. This is a deeper sleep state and will have a
+       greater latency when moving back to the C0 state, compared to when the
+       CPU is coming out of C1.</li>
+</ul>
+<p>Disabling C2 is important for running with a high performance, low-latency
+network. To disable power-gating on all cores run the following on Linux
+systems:</p>
+<p><code>shell
+cpupower idle-set -d 2</code></p>
+<p>Note that the <code>cpupower</code> tool must be installed, as it is not part of the base
+packages of most Linux® distributions. The package needed varies with the
+respective Linux distribution.</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>shell
+sudo apt install linux-tools-common</code></p>
+<p>:::</p>
+<p>:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>shell
+sudo yum install cpupowerutils</code></p>
+<p>:::</p>
+<p>:::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES</p>
+<p><code>shell
+sudo zypper install cpupower</code></p>
+<p>:::
+::::</p>
+<h4>AMD-IOPM-UTIL</h4>
+<p>This section applies to AMD EPYC™ 7002 processors to optimize advanced
+Dynamic Power Management (DPM) in the I/O logic (see NBIO description above)
+for performance. Certain I/O workloads may benefit from disabling this power
+management. This utility disables DPM for all PCI-e root complexes in the
+system and locks the logic into the highest performance operational mode.</p>
+<p>Disabling I/O DPM will reduce the latency and/or improve the throughput of
+low-bandwidth messages for PCI-e InfiniBand NICs and GPUs. Other workloads
+with low-bandwidth bursty PCI-e I/O characteristics may benefit as well if
+multiple such PCI-e devices are installed in the system.</p>
+<p>The actions of the utility do not persist across reboots. There is no need to
+change any existing firmware settings when using this utility. The "Preferred
+I/O" and "Enhanced Preferred I/O" settings should remain unchanged at enabled.</p>
+<p><code>``{tip}
+The recommended method to use the utility is either to create a system
+start-up script, for example, a one-shot</code>systemd<code>service unit, or run the
+utility when starting up a job scheduler on the system. The installer
+packages (see
+[Power Management Utility](https://developer.amd.com/iopm-utility/)) will
+create and enable a</code>systemd<code>service unit for you. This service unit is
+configured to run in one-shot mode. This means that even when the service
+unit runs as expected, the status of the service unit will show inactive.
+This is the expected behavior when the utility runs normally. If the service
+unit shows failed, the utility did not run as expected. The output in either
+case can be shown with the</code>systemctl status` command.</p>
+<p>Stopping the service unit has no effect since the utility does not leave
+anything running. To undo the effects of the utility, disable the service
+unit with the <code>systemctl disable</code> command and reboot the system.</p>
+<p>The utility does not have any command-line options, and it must be run with
+super-user permissions.
+```</p>
+<h4>Systems with 256 CPU Threads - IOMMU Configuration</h4>
+<p>For systems that have 256 logical CPU cores or more (e.g., 64-core AMD EPYC™
+7763 in a dual-socket configuration and SMT enabled), setting the Input-Output
+Memory Management Unit (IOMMU) configuration to "disabled" can limit the number
+of available logical cores to 255. The reason is that the Linux® kernel disables
+X2APIC in this case and falls back to Advanced Programmable Interrupt Controller
+(APIC), which can only enumerate a maximum of 255 (logical) cores.</p>
+<p>If SMT is enabled by setting "CCD/Core/Thread Enablement &gt; SMT Control" to
+"enable", the following steps can be applied to the system to enable all
+(logical) cores of the system:</p>
+<ul>
+<li>In the server BIOS, set IOMMU to "Enabled".</li>
+<li>When configuring the Grub boot loader, add the following arguments for the
+  Linux kernel: <code>amd_iommu=on iommu=pt</code></li>
+<li>Update Grub to use the modified configuration:</li>
+</ul>
+<p><code>shell
+  sudo grub2-mkconfig -o /boot/grub2/grub.cfg</code></p>
+<ul>
+<li>Reboot the system.</li>
+<li>Verify IOMMU passthrough mode by inspecting the kernel log via <code>dmesg</code>:</li>
+</ul>
+<p><code>none
+  [...]
+  [   0.000000] Kernel command line: [...] amd_iommu=on iommu=pt
+     [...]</code></p>
+<p>Once the system is properly configured, the AMD ROCm platform can be
+installed.</p>
+<h2>System Management</h2>
+<p>For a complete guide on how to install/manage/uninstall ROCm on Linux, refer to
+<a href="../../deploy/linux/index.md">Deploy ROCm on Linux</a>. For verifying that the
+installation was successful, refer to
+{ref}<code>verifying-kernel-mode-driver-installation</code> and
+<a href="../../reference/validation_tools.md">Validation Tools</a>. Should verification
+fail, consult the <a href="../system_debugging.md">System Debugging Guide</a>.</p>
+<p>(mi200-hw-verification)=</p>
+<h3>Hardware Verification with ROCm</h3>
+<p>The AMD ROCm™ platform ships with tools to query the system structure. To query
+the GPU hardware, the <code>rocm-smi</code> command is available. It can show available
+GPUs in the system with their device ID and their respective firmware (or VBIOS)
+versions:</p>
+<p>:::{figure-md} mi200-smi-showhw</p>
+<p><img src="../../data/how_to/tuning_guides/image.008.png" alt="rocm-smi --showhw output on an 8*MI200 system."></p>
+<p><code>rocm-smi --showhw</code> output on an 8*MI200 system.
+:::</p>
+<p>To see the system structure, the localization of the GPUs in the system, and the
+fabric connections between the system components, use:</p>
+<p>:::{figure-md} mi200-smi-showtopo</p>
+<p><img src="../../data/how_to/tuning_guides/image.009.png" alt="rocm-smi --showtopo output on an 8*MI200 system."></p>
+<p><code>rocm-smi --showtopo</code> output on an 8*MI200 system.
+:::</p>
+<ul>
+<li>The first block of the output shows the distance between the GPUs similar to
+  what the <code>numactl</code> command outputs for the NUMA domains of a system. The
+  weight is a qualitative measure for the "distance" data must travel to reach
+  one GPU from another one. While the values do not carry a special (physical)
+  meaning, the higher the value the more hops are needed to reach the
+  destination from the source GPU.</li>
+<li>The second block has a matrix named "Hops between two GPUs", where 1 means the
+  two GPUs are directly connected with XGMI, 2 means both GPUs are linked to the
+  same CPU socket and GPU communications will go through the CPU, and 3 means
+  both GPUs are linked to different CPU sockets so communications will go
+  through both CPU sockets. This number is one for all GPUs in this case since
+  they are all connected to each other through the Infinity Fabric links.</li>
+<li>The third block outputs the link types between the GPUs. This can either be
+  "XGMI" for AMD Infinity Fabric links or "PCIE" for PCIe Gen4 links.</li>
+<li>The fourth block reveals the localization of a GPU with respect to the NUMA
+  organization of the shared memory of the AMD EPYC processors.</li>
+</ul>
+<p>To query the compute capabilities of the GPU devices, use <code>rocminfo</code> command. It
+lists specific details about the GPU devices, including but not limited to the
+number of compute units, width of the SIMD pipelines, memory information, and
+instruction set architecture:</p>
+<p>:::{figure-md} mi200-rocminfo</p>
+<p><img src="../../data/how_to/tuning_guides/image.010.png" alt="rocminfo output fragment on an 8*MI200 system."></p>
+<p><code>rocminfo</code> output fragment on an 8*MI200 system.
+:::</p>
+<p>For a complete list of architecture (LLVM target) names, refer to
+<a href="../../release/gpu_os_support.md">GPU OS Support</a>.</p>
+<h3>Testing Inter-device Bandwidth</h3>
+<p>{numref}<code>mi100-hw-verification</code> showed the <code>rocm-smi --showtopo</code> command to show
+how the system structure and how the GPUs are located and connected in this
+structure. For more details, the <code>rocm-bandwidth-test</code> can run benchmarks to
+show the effective link bandwidth between the components of the system.</p>
+<p>The ROCm Bandwidth Test program can be installed with the following
+package-manager commands:</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>shell
+sudo apt install rocm-bandwidth-test</code></p>
+<p>:::</p>
+<p>:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>shell
+sudo yum install rocm-bandwidth-test</code></p>
+<p>:::</p>
+<p>:::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES</p>
+<p><code>shell
+sudo zypper install rocm-bandwidth-test</code></p>
+<p>:::
+::::</p>
+<p>Alternatively, the source code can be downloaded and built from
+<a href="https://github.com/RadeonOpenCompute/rocm_bandwidth_test">source</a>.</p>
+<p>The output will list the available compute devices (CPUs and GPUs), including
+their device ID and PCIe ID:</p>
+<p>:::{figure-md} mi200-bandwidth-test-1</p>
+<p><img src="../../data/how_to/tuning_guides/image.011.png" alt="rocm-bandwidth-test output fragment on an 8*MI200 system listing devices."></p>
+<p><code>rocm-bandwidth-test</code> output fragment on an 8*MI200 system listing devices.
+:::</p>
+<p>The output will also show a matrix that contains a "1" if a device can
+communicate to another device (CPU and GPU) of the system and it will show the
+NUMA distance (similar to <code>rocm-smi</code>):</p>
+<p>:::{figure-md} mi200-bandwidth-test-2</p>
+<p><img src="../../data/how_to/tuning_guides/image.012.png" alt="rocm-bandwidth-test output fragment on an 8*MI200 system showing inter-device access matrix and NUMA distances."></p>
+<p><code>rocm-bandwidth-test</code> output fragment on an 8*MI200 system showing inter-device access matrix and NUMA distances.
+:::</p>
+<p>The output also contains the measured bandwidth for unidirectional and
+bidirectional transfers between the devices (CPU and GPU):</p>
+<p>:::{figure-md} mi200-bandwidth-test-3</p>
+<p><img src="../../data/how_to/tuning_guides/image.013.png" alt="rocm-bandwidth-test output fragment on an 8*MI200 system showing uni- and bidirectional bandwidths."></p>
+<p><code>rocm-bandwidth-test</code> output fragment on an 8*MI200 system showing uni- and bidirectional bandwidths.
+:::</p>

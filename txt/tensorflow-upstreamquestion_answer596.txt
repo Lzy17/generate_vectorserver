@@ -1,0 +1,480 @@
+<h1>Answering questions with Android</h1>
+<p><img alt="Question answering example app in Android" src="../../examples/bert_qa/images/screenshot.gif" />{: .attempt-right width="250px"}</p>
+<p>This tutorial shows you how to build an Android application using TensorFlow
+Lite to provide answers to questions structured in natural language text. The
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/bert_qa/android">example application</a>
+uses the <em>BERT question answerer</em>
+(<a href="../../inference_with_metadata/task_library/bert_question_answerer"><code>BertQuestionAnswerer</code></a>)
+API within the
+<a href="../../inference_with_metadata/task_library/overview#supported_tasks">Task library for natural language (NL)</a>
+to enable Question answering machine learning models. The application is
+designed for a physical Android device but can also run on a device emulator.</p>
+<p>If you are updating an existing project, you can use the example application as
+a reference or template. For instructions on how to add question answering to an
+existing application, refer to
+<a href="#modify_applications">Updating and modifying your application</a>.</p>
+<h2>Question answering overview</h2>
+<p><em>Question answering</em> is the machine learning task of answering questions posed
+in natural language. A trained question answering model receives a text passage
+and question as input, and attempts to answer the question based on its
+interpretation of the information within the passage.</p>
+<p>A Question answering model is trained on a question answering dataset, which
+consists of a reading comprehension dataset along with question-answer pairs
+based on different segments of text.</p>
+<p>For more information on how the models in this tutorial are generated, refer to
+the
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/question_answer">BERT Question Answer with TensorFlow Lite Model Maker</a>
+tutorial.</p>
+<h2>Models and dataset</h2>
+<p>The example app uses the Mobile BERT Q&amp;A
+(<a href="https://tfhub.dev/tensorflow/lite-model/mobilebert/1/metadata/1"><code>mobilebert</code></a>)
+model, which is a lighter and faster version of
+<a href="https://arxiv.org/abs/1810.04805">BERT</a> (Bidirectional Encoder Representations
+from Transformers). For more information on <code>mobilebert</code>, see the
+<a href="https://arxiv.org/abs/2004.02984">MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices</a>
+research paper.</p>
+<p>The <code>mobilebert</code> model was trained using the Stanford Question Answering Dataset
+(<a href="https://rajpurkar.github.io/SQuAD-explorer/">SQuAD</a>) dataset, a reading
+comprehension dataset consisting of articles from Wikipedia and a set of
+question-answer pairs for each article.</p>
+<h2>Setup and run the example app</h2>
+<p>To setup the question answering application, download the example app from
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/bert_qa/android">GitHub</a>
+and run it using <a href="https://developer.android.com/studio/">Android Studio</a>.</p>
+<h3>System requirements</h3>
+<ul>
+<li><strong><a href="https://developer.android.com/studio/index.html">Android Studio</a></strong>
+    version 2021.1.1 (Bumblebee) or higher.</li>
+<li>Android SDK version 31 or higher</li>
+<li>Android device with a minimum OS version of SDK 21 (Android 7.0 - Nougat)
+    with
+    <a href="https://developer.android.com/studio/debug/dev-options">developer mode</a>
+    enabled, or an Android Emulator.</li>
+</ul>
+<h3>Get the example code</h3>
+<p>Create a local copy of the example code. You will use this code to create a
+project in Android Studio and run the example application.</p>
+<p>To clone and setup the example code:</p>
+<ol>
+<li>Clone the git repository
+    <pre class="devsite-click-to-copy">
+    git clone https://github.com/tensorflow/examples.git
+    </pre></li>
+<li>Optionally, configure your git instance to use sparse checkout, so you have only
+    the files for the question answering example app:
+    <pre class="devsite-click-to-copy">
+    cd examples
+    git sparse-checkout init --cone
+    git sparse-checkout set lite/examples/bert_qa/android
+    </pre></li>
+</ol>
+<h3>Import and run the project</h3>
+<p>Create a project from the downloaded example code, build the project, and then
+run it.</p>
+<p>To import and build the example code project:</p>
+<ol>
+<li>Start <a href="https://developer.android.com/studio">Android Studio</a>.</li>
+<li>From the Android Studio, select <strong>File &gt; New &gt; Import Project</strong>.</li>
+<li>Navigate to the example code directory containing the build.gradle file
+    (<code>.../examples/lite/examples/bert_qa/android/build.gradle</code>) and select that
+    directory.</li>
+<li>If Android Studio requests a Gradle Sync, choose OK.</li>
+<li>Ensure that your Android device is connected to your computer and developer
+    mode is enabled. Click the green <code>Run</code> arrow.</li>
+</ol>
+<p>If you select the correct directory, Android Studio creates a new project and
+builds it. This process can take a few minutes, depending on the speed of your
+computer and if you have used Android Studio for other projects. When the build
+completes, the Android Studio displays a <code>BUILD SUCCESSFUL</code> message in the
+<strong>Build Output</strong> status panel.</p>
+<p>To run the project:</p>
+<ol>
+<li>From Android Studio, run the project by selecting <strong>Run &gt; Run…</strong>.</li>
+<li>Select an attached Android device (or emulator) to test the app.</li>
+</ol>
+<h3>Using the application</h3>
+<p>After running the project in Android Studio, the application automatically opens
+on the connected device or device emulator.</p>
+<p>To use the Question answerer example app:</p>
+<ol>
+<li>Choose a topic from the list of subjects.</li>
+<li>Choose a suggested question or enter your own in the text box.</li>
+<li>Toggle the orange arrow to run the model.</li>
+</ol>
+<p>The application attempts to identify the answer to the question from the passage
+text. If the model detects an answer within the passage, the application
+highlights the relevant span of text for the user.</p>
+<p>You now have a functioning question answering application. Use the following
+sections to better understand how the example application works, and how to
+implement question answering features in your production applications:</p>
+<ul>
+<li>
+<p><a href="#how_it_works">How the application works</a> - A walkthrough of the structure
+    and key files of the example application.</p>
+</li>
+<li>
+<p><a href="#modify_applications">Modify your application</a> - Instructions on adding
+    question answering to an existing application.</p>
+</li>
+</ul>
+<h2>How the example app works {:#how_it_works}</h2>
+<p>The application uses the <code>BertQuestionAnswerer</code> API within the
+<a href="../../inference_with_metadata/task_library/overview#supported_tasks">Task library for natural language (NL)</a>
+package. The MobileBERT model was trained using the TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/question_answer">Model Maker</a>.
+The application runs on CPU by default, with the option of hardware acceleration
+using the GPU or NNAPI delegate.</p>
+<p>The following files and directories contain the crucial code for this
+application:</p>
+<ul>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt">BertQaHelper.kt</a> -
+    Initializes the question answerer and handles the model and delegate
+    selection.</li>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/fragments/QaFragment.kt">QaFragment.kt</a> -
+    Handles and formats the results.</li>
+<li><a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/MainActivity.kt">MainActivity.kt</a> -
+    Provides the organizing logic of the app.</li>
+</ul>
+<h2>Modify your application {:#modify_applications}</h2>
+<p>The following sections explain the key steps to modify your own Android app to
+run the model shown in the example app. These instructions use the example app
+as a reference point. The specific changes needed for your own app may vary from
+the example app.</p>
+<h3>Open or create an Android project</h3>
+<p>You need an Android development project in Android Studio to follow along with
+the rest of these instructions. Follow the instructions below to open an
+existing project or create a new one.</p>
+<p>To open an existing Android development project:</p>
+<ul>
+<li>In Android Studio, select <em>File &gt; Open</em> and select an existing project.</li>
+</ul>
+<p>To create a basic Android development project:</p>
+<ul>
+<li>Follow the instructions in Android Studio to
+    <a href="https://developer.android.com/studio/projects/create-project">Create a basic project</a>.</li>
+</ul>
+<p>For more information on using Android Studio, refer to the
+<a href="https://developer.android.com/studio/intro">Android Studio documentation</a>.</p>
+<h3>Add project dependencies</h3>
+<p>In your own application, add specific project dependencies to run TensorFlow
+Lite machine learning models and access utility functions. These functions
+convert data such as strings into a tensor data format that can be processed by
+the model. The following instructions explain how to add the required project
+and module dependencies to your own Android app project.</p>
+<p>To add module dependencies:</p>
+<ol>
+<li>
+<p>In the module that uses TensorFlow Lite, update the module's <code>build.gradle</code>
+    file to include the following dependencies.</p>
+<p>In the example application, the dependencies are located in
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/build.gradle">app/build.gradle</a>:</p>
+<p>```
+dependencies {
+  ...
+  // Import tensorflow library
+  implementation 'org.tensorflow:tensorflow-lite-task-text:0.3.0'</p>
+<p>// Import the GPU delegate plugin Library for GPU inference
+  implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
+  implementation 'org.tensorflow:tensorflow-lite-gpu:2.9.0'
+}
+```</p>
+<p>The project must include the Text task library
+(<code>tensorflow-lite-task-text</code>).</p>
+<p>If you want to modify this app to run on a graphics processing unit (GPU),
+the GPU library (<code>tensorflow-lite-gpu-delegate-plugin</code>) provides the
+infrastructure to run the app on GPU, and Delegate (<code>tensorflow-lite-gpu</code>)
+provides the compatibility list.</p>
+</li>
+<li>
+<p>In Android Studio, sync the project dependencies by selecting: <strong>File &gt; Sync
+    Project with Gradle Files</strong>.</p>
+</li>
+</ol>
+<h3>Initialize the ML models {:#initialize_models}</h3>
+<p>In your Android app, you must initialize the TensorFlow Lite machine learning
+model with parameters before running predictions with the model.</p>
+<p>A TensorFlow Lite model is stored as a <code>*.tflite</code> file. The model file contains
+the prediction logic and typically includes
+<a href="../../models/convert/metadata">metadata</a> about how to interpret prediction
+results. Typically, model files are stored in the <code>src/main/assets</code> directory of
+your development project, as in the code example:</p>
+<ul>
+<li><code>&lt;project&gt;/src/main/assets/mobilebert_qa.tflite</code></li>
+</ul>
+<p>Note: The example app uses a
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/download_models.gradle"><code>download_model.gradle</code></a>
+file to download the
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/bert_question_answerer">mobilebert_qa</a>
+model and
+<a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/bert_qa/contents_from_squad.json">passage text</a>
+at build time. This approach is not required for a production app.</p>
+<p>For convenience and code readability, the example declares a companion object
+that defines the settings for the model.</p>
+<p>To initialize the model in your app:</p>
+<ol>
+<li>
+<p>Create a companion object to define the settings for the model. In the
+    example application, this object is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L100-L106">BertQaHelper.kt</a>:</p>
+<p><code>companion object {
+    private const val BERT_QA_MODEL = "mobilebert.tflite"
+    private const val TAG = "BertQaHelper"
+    const val DELEGATE_CPU = 0
+    const val DELEGATE_GPU = 1
+    const val DELEGATE_NNAPI = 2
+}</code></p>
+</li>
+<li>
+<p>Create the settings for the model by building a <code>BertQaHelper</code> object, and
+    construct a TensorFlow Lite object with <code>bertQuestionAnswerer</code>.</p>
+<p>In the example application, this is located in the
+<code>setupBertQuestionAnswerer()</code> function within
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L41-L76">BertQaHelper.kt</a>:</p>
+<p>```
+class BertQaHelper(
+    ...
+) {
+    ...
+    init {
+        setupBertQuestionAnswerer()
+    }</p>
+<pre><code>fun clearBertQuestionAnswerer() {
+    bertQuestionAnswerer = null
+}
+
+private fun setupBertQuestionAnswerer() {
+    val baseOptionsBuilder = BaseOptions.builder().setNumThreads(numThreads)
+    ...
+    val options = BertQuestionAnswererOptions.builder()
+        .setBaseOptions(baseOptionsBuilder.build())
+        .build()
+
+    try {
+        bertQuestionAnswerer =
+            BertQuestionAnswerer.createFromFileAndOptions(context, BERT_QA_MODEL, options)
+    } catch (e: IllegalStateException) {
+        answererListener
+            ?.onError("Bert Question Answerer failed to initialize. See error logs for details")
+        Log.e(TAG, "TFLite failed to load model with error: " + e.message)
+    }
+}
+...
+}
+</code></pre>
+<p>```</p>
+</li>
+</ol>
+<h3>Enable hardware acceleration (optional) {:#hardware_acceleration}</h3>
+<p>When initializing a TensorFlow Lite model in your app, you should consider using
+hardware acceleration features to speed up the prediction calculations of the
+model. TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/performance/delegates">delegates</a> are software
+modules that accelerate the execution of machine learning models using
+specialized processing hardware on a mobile device, such as graphics processing
+unit (GPUs) or tensor processing units (TPUs).</p>
+<p>To enable hardware acceleration in your app:</p>
+<ol>
+<li>
+<p>Create a variable to define the delegate that the application will use. In
+    the example application, this variable is located early in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L31">BertQaHelper.kt</a>:</p>
+<p><code>var currentDelegate: Int = 0</code></p>
+</li>
+<li>
+<p>Create a delegate selector. In the example application, the delegate
+    selector is located in the <code>setupBertQuestionAnswerer</code> function within
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L48-L62">BertQaHelper.kt</a>:</p>
+<p><code>when (currentDelegate) {
+    DELEGATE_CPU -&gt; {
+        // Default
+    }
+    DELEGATE_GPU -&gt; {
+        if (CompatibilityList().isDelegateSupportedOnThisDevice) {
+            baseOptionsBuilder.useGpu()
+        } else {
+            answererListener?.onError("GPU is not supported on this device")
+        }
+    }
+    DELEGATE_NNAPI -&gt; {
+        baseOptionsBuilder.useNnapi()
+    }
+}</code></p>
+</li>
+</ol>
+<p>Using delegates for running TensorFlow Lite models is recommended, but not
+required. For more information about using delegates with TensorFlow Lite, see
+<a href="https://www.tensorflow.org/lite/performance/delegates">TensorFlow Lite Delegates</a>.</p>
+<h3>Prepare data for the model</h3>
+<p>In your Android app, your code provides data to the model for interpretation by
+transforming existing data such as raw text into a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/Tensor">Tensor</a>
+data format that can be processed by your model. The Tensor you pass to a model
+must have specific dimensions, or shape, that matches the format of data used to
+train the model. This question answering app accepts
+<a href="https://developer.android.com/reference/java/lang/String.html">strings</a> as
+inputs for both the text passage and question. The model does not recognize
+special characters and non-English words.</p>
+<p>To provide passage text data to the model:</p>
+<ol>
+<li>
+<p>Use the <code>LoadDataSetClient</code> object to load the passage text data to the app.
+    In the example application, this is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/dataset/LoadDataSetClient.kt#L25-L45">LoadDataSetClient.kt</a></p>
+<p><code>fun loadJson(): DataSet? {
+    var dataSet: DataSet? = null
+    try {
+        val inputStream: InputStream = context.assets.open(JSON_DIR)
+        val bufferReader = inputStream.bufferedReader()
+        val stringJson: String = bufferReader.use { it.readText() }
+        val datasetType = object : TypeToken&lt;DataSet&gt;() {}.type
+        dataSet = Gson().fromJson(stringJson, datasetType)
+    } catch (e: IOException) {
+        Log.e(TAG, e.message.toString())
+    }
+    return dataSet
+}</code></p>
+</li>
+<li>
+<p>Use the <code>DatasetFragment</code> object to list the titles for each passage of text
+    and start the <strong>TFL Question and Answer</strong> screen. In the example
+    application, this is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/fragments/DatasetFragment.kt">DatasetFragment.kt</a>:</p>
+<p><code>class DatasetFragment : Fragment() {
+    ...
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val client = LoadDataSetClient(requireActivity())
+        client.loadJson()?.let {
+            titles = it.getTitles()
+        }
+        ...
+    }
+   ...
+}</code></p>
+</li>
+<li>
+<p>Use the <code>onCreateViewHolder</code> function within the <code>DatasetAdapter</code> object to
+    present the titles for each passage of text. In the example application,
+    this is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/fragments/DatasetAdapter.kt">DatasetAdapter.kt</a>:</p>
+<p><code>override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    val binding = ItemDatasetBinding.inflate(
+        LayoutInflater.from(parent.context),
+        parent,
+        false
+    )
+    return ViewHolder(binding)
+}</code></p>
+</li>
+</ol>
+<p>To provide user questions to the model:</p>
+<ol>
+<li>
+<p>Use the <code>QaAdapter</code> object to provide the question to the model. In the
+    example application, this is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/fragments/QaAdapter.kt">QaAdapter.kt</a>:</p>
+<p>```
+class QaAdapter(private val question: List<String>, private val select: (Int) -&gt; Unit) :
+  RecyclerView.Adapter<QaAdapter.ViewHolder>() {</p>
+<p>inner class ViewHolder(private val binding: ItemQuestionBinding) :
+      RecyclerView.ViewHolder(binding.root) {
+      init {
+          binding.tvQuestionSuggestion.setOnClickListener {
+              select.invoke(adapterPosition)
+          }
+      }</p>
+<pre><code>  fun bind(question: String) {
+      binding.tvQuestionSuggestion.text = question
+  }
+</code></pre>
+<p>}
+  ...
+}
+```</p>
+</li>
+</ol>
+<h3>Run predictions</h3>
+<p>In your Android app, once you have initialized a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/text/qa/BertQuestionAnswerer">BertQuestionAnswerer</a>
+object, you can begin inputting questions in the form of natural language text
+to the model. The model attempts to identify the answer within the text passage.</p>
+<p>To run predictions:</p>
+<ol>
+<li>
+<p>Create an <code>answer</code> function, which runs the model and measures the time
+    taken to identify the answer (<code>inferenceTime</code>). In the example application,
+    the <code>answer</code> function is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L78-L98">BertQaHelper.kt</a>:</p>
+<p>```
+fun answer(contextOfQuestion: String, question: String) {
+    if (bertQuestionAnswerer == null) {
+        setupBertQuestionAnswerer()
+    }</p>
+<pre><code>var inferenceTime = SystemClock.uptimeMillis()
+
+val answers = bertQuestionAnswerer?.answer(contextOfQuestion, question)
+inferenceTime = SystemClock.uptimeMillis() - inferenceTime
+answererListener?.onResults(answers, inferenceTime)
+</code></pre>
+<p>}
+```</p>
+</li>
+<li>
+<p>Pass the results from <code>answer</code> to the listener object.</p>
+<p><code>interface AnswererListener {
+    fun onError(error: String)
+    fun onResults(
+        results: List&lt;QaAnswer&gt;?,
+        inferenceTime: Long
+    )
+}</code></p>
+</li>
+</ol>
+<h3>Handle model output</h3>
+<p>After you input a question, the model provides a maximum of five possible
+answers within the passage.</p>
+<p>To get the results from the model:</p>
+<ol>
+<li>
+<p>Create an <code>onResult</code> function for the listener object to handle the output.
+    In the example application, the listener object is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/BertQaHelper.kt#L92-L98">BertQaHelper.kt</a></p>
+<p><code>interface AnswererListener {
+    fun onError(error: String)
+    fun onResults(
+        results: List&lt;QaAnswer&gt;?,
+        inferenceTime: Long
+    )
+}</code></p>
+</li>
+<li>
+<p>Highlight sections of the passage based on the results. In the example
+    application, this is located in
+    <a href="https://github.com/tensorflow/examples/blob/master/lite/examples/bert_qa/android/app/src/main/java/org/tensorflow/lite/examples/bertqa/fragments/QaFragment.kt#L199-L208">QaFragment.kt</a>:</p>
+<p>```
+override fun onResults(results: List<QaAnswer>?, inferenceTime: Long) {
+    results?.first()?.let {
+        highlightAnswer(it.text)
+    }</p>
+<pre><code>fragmentQaBinding.tvInferenceTime.text = String.format(
+    requireActivity().getString(R.string.bottom_view_inference_time),
+    inferenceTime
+)
+</code></pre>
+<p>}
+```</p>
+</li>
+</ol>
+<p>Once the model has returned a set of results, your application can act on those
+predictions by presenting the result to your user or executing additional logic.</p>
+<h2>Next steps</h2>
+<ul>
+<li>Train and implement the models from scratch with the
+    <a href="https://www.tensorflow.org/lite/models/modify/model_maker/question_answer">Question Answer with TensorFlow Lite Model Maker</a>
+    tutorial.</li>
+<li>Explore more
+    <a href="https://www.tensorflow.org/text">text processing tools for TensorFlow</a>.</li>
+<li>Download other BERT models on
+    <a href="https://tfhub.dev/google/collections/bert/1">TensorFlow Hub</a>.</li>
+<li>Explore various uses of TensorFlow Lite in the <a href="../../examples">examples</a>.</li>
+</ul>

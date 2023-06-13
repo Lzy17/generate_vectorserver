@@ -1,0 +1,10 @@
+<h2>TFSA-2021-191: Segfault while copying constant resource tensor</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41204</p>
+<h3>Impact</h3>
+<p>During TensorFlow's Grappler optimizer phase, constant folding might attempt to deep copy a resource tensor. This results in a segfault, as these tensors are supposed to not change.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/7731e8dfbe4a56773be5dc94d631611211156659">7731e8dfbe4a56773be5dc94d631611211156659</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

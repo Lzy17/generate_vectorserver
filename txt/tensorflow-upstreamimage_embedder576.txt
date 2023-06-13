@@ -1,0 +1,120 @@
+<h1>Integrate image embedders</h1>
+<p>Image embedders allow embedding images into a high-dimensional feature vector
+representing the semantic meaning of an image, which can then be compared with
+the feature vector of other images to evaluate their semantic similarity.</p>
+<p>As opposed to
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/image_searcher">image search</a>,
+the image embedder allows computing the similarity between images on-the-fly
+instead of searching through a predefined index built from a corpus of images.</p>
+<p>Use the Task Library <code>ImageEmbedder</code> API to deploy your custom image embedder
+into your mobile apps.</p>
+<h2>Key features of the ImageEmbedder API</h2>
+<ul>
+<li>
+<p>Input image processing, including rotation, resizing, and color space
+    conversion.</p>
+</li>
+<li>
+<p>Region of interest of the input image.</p>
+</li>
+<li>
+<p>Built-in utility function to compute the
+    <a href="https://en.wikipedia.org/wiki/Cosine_similarity">cosine similarity</a> between
+    feature vectors.</p>
+</li>
+</ul>
+<h2>Supported image embedder models</h2>
+<p>The following models are guaranteed to be compatible with the <code>ImageEmbedder</code>
+API.</p>
+<ul>
+<li>
+<p>Feature vector models from the
+    <a href="https://tfhub.dev/google/collections/image/1">Google Image Modules collection on TensorFlow Hub</a>.</p>
+</li>
+<li>
+<p>Custom models that meet the
+    <a href="#model-compatibility-requirements">model compatibility requirements</a>.</p>
+</li>
+</ul>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+ImageEmbedderOptions options:
+options.mutable_model_file_with_metadata()-&gt;set_file_name(model_path);
+options.set_l2_normalize(true);
+std::unique_ptr<ImageEmbedder> image_embedder = ImageEmbedder::CreateFromOptions(options).value();</p>
+<p>// Create input frame_buffer_1 and frame_buffer_2 from your inputs <code>image_data1</code>, <code>image_data2</code>, <code>image_dimension1</code> and <code>image_dimension2</code>.
+// See more information here: tensorflow_lite_support/cc/task/vision/utils/frame_buffer_common_utils.h
+std::unique_ptr<FrameBuffer> frame_buffer_1 = CreateFromRgbRawBuffer(
+      image_data1, image_dimension1);
+std::unique_ptr<FrameBuffer> frame_buffer_2 = CreateFromRgbRawBuffer(
+      image_data2, image_dimension2);</p>
+<p>// Run inference on two images.
+const EmbeddingResult result_1 = image_embedder-&gt;Embed(<em>frame_buffer_1);
+const EmbeddingResult result_2 = image_embedder-&gt;Embed(</em>frame_buffer_2);</p>
+<p>// Compute cosine similarity.
+double similarity = ImageEmbedder::CosineSimilarity(
+    result_1.embeddings[0].feature_vector(),
+    result_2.embeddings[0].feature_vector());
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/vision/image_embedder.h">source code</a>
+for more options to configure <code>ImageEmbedder</code>.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install TensorFlow Lite Support Pypi package.</h3>
+<p>You can install the TensorFlow Lite Support Pypi package using the following
+command:</p>
+<p><code>sh
+pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python
+from tflite_support.task import vision</p>
+<h1>Initialization.</h1>
+<p>image_embedder = vision.ImageEmbedder.create_from_file(model_path)</p>
+<h1>Run inference on two images.</h1>
+<p>image_1 = vision.TensorImage.create_from_file('/path/to/image1.jpg')
+result_1 = image_embedder.embed(image_1)
+image_2 = vision.TensorImage.create_from_file('/path/to/image2.jpg')
+result_2 = image_embedder.embed(image_2)</p>
+<h1>Compute cosine similarity.</h1>
+<p>feature_vector_1 = result_1.embeddings[0].feature_vector
+feature_vector_2 = result_2.embeddings[0].feature_vector
+similarity = image_embedder.cosine_similarity(
+    result_1.embeddings[0].feature_vector, result_2.embeddings[0].feature_vector)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/vision/image_embedder.py">source code</a>
+for more options to configure <code>ImageEmbedder</code>.</p>
+<h2>Example results</h2>
+<p>Cosine similarity between normalized feature vectors return a score between -1
+and 1. Higher is better, i.e. a cosine similarity of 1 means the two vectors are
+identical.</p>
+<p><code>Cosine similarity: 0.954312</code></p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/examples/task/vision/desktop#imageembedder">CLI demo tool for ImageEmbedder</a>
+with your own model and test data.</p>
+<h2>Model compatibility requirements</h2>
+<p>The <code>ImageEmbedder</code> API expects a TFLite model with optional, but strongly
+recommended
+<a href="https://www.tensorflow.org/lite/models/convert/metadata">TFLite Model Metadata</a>.</p>
+<p>The compatible image embedder models should meet the following requirements:</p>
+<ul>
+<li>
+<p>An input image tensor (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>image input of size <code>[batch x height x width x channels]</code>.</li>
+<li>batch inference is not supported (<code>batch</code> is required to be 1).</li>
+<li>only RGB inputs are supported (<code>channels</code> is required to be 3).</li>
+<li>if type is kTfLiteFloat32, NormalizationOptions are required to be
+    attached to the metadata for input normalization.</li>
+</ul>
+</li>
+<li>
+<p>At least one output tensor (kTfLiteUInt8/kTfLiteFloat32)</p>
+<ul>
+<li>with <code>N</code> components corresponding to the <code>N</code> dimensions of the returned
+    feature vector for this output layer.</li>
+<li>Either 2 or 4 dimensions, i.e. <code>[1 x N]</code> or <code>[1 x 1 x 1 x N]</code>.</li>
+</ul>
+</li>
+</ul>

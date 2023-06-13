@@ -1,0 +1,88 @@
+<h1>AMD ROCm™ Documentation</h1>
+<p>:::::{grid} 1 1 3 3
+:gutter: 1</p>
+<p>::::{grid-item}
+:::{dropdown} <a href="rocm">What is ROCm?</a>
+ROCm is an open-source stack for GPU computation. ROCm is primarily
+Open-Source Software (OSS) that allows developers the freedom to customize and
+tailor their GPU software for their own needs while collaborating with a
+community of other developers, and helping each other find solutions in an
+agile, flexible, rapid and secure manner. <a href="rocm">more...</a></p>
+<p>::::</p>
+<p>::::{grid-item}
+:::{dropdown} Deploy ROCm</p>
+<ul>
+<li>{doc}<code>/deploy/linux/index</code></li>
+<li>{doc}<code>/deploy/docker</code></li>
+</ul>
+<p>:::
+::::</p>
+<p>::::{grid-item}
+:::{dropdown} <a href="release">Release Info</a></p>
+<ul>
+<li><a href="release">Release Notes</a></li>
+<li><a href="release/gpu_os_support">GPU and OS Support</a></li>
+<li><a href="https://github.com/RadeonOpenCompute/ROCm/labels/Verified%20Issue">Known Issues</a></li>
+<li><a href="release/compatibility">Compatibility</a></li>
+<li><a href="release/licensing">Licensing</a></li>
+</ul>
+<p>:::
+::::</p>
+<p>:::::</p>
+<p>::::{grid} 1 2 2 2
+:class-container: rocm-doc-grid</p>
+<p>:::{grid-item-card}
+:padding: 2
+<a href="reference/all">APIs and Reference</a>
+^^^</p>
+<ul>
+<li><a href="reference/compilers">Compilers and Development Tools</a></li>
+<li><a href="reference/hip">HIP</a></li>
+<li><a href="reference/openmp/openmp">OpenMP</a></li>
+<li><a href="reference/gpu_libraries/math">Math Libraries</a></li>
+<li><a href="reference/gpu_libraries/c++_primitives">C++ Primitives Libraries</a></li>
+<li><a href="reference/gpu_libraries/communication">Communication Libraries</a></li>
+<li><a href="reference/ai_tools">AI Libraries</a></li>
+<li><a href="reference/computer_vision">Computer Vision</a></li>
+<li><a href="reference/management_tools">Management Tools</a></li>
+<li><a href="reference/validation_tools">Validation Tools</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card}
+:padding: 2
+<a href="understand/all">Understand ROCm</a>
+^^^</p>
+<ul>
+<li><a href="understand/compiler_disambiguation">Compiler Disambiguation</a></li>
+<li><a href="understand/cmake_packages">Using CMake</a></li>
+<li><a href="understand/file_reorg">Linux Folder Structure Reorganization</a></li>
+<li><a href="understand/gpu_isolation">GPU Isolation Techniques</a></li>
+<li><a href="understand/gpu_arch">GPU Architecture</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card}
+:padding: 2
+<a href="how_to/all">How to Guides</a>
+^^^</p>
+<ul>
+<li><a href="how_to/tuning_guides/index">System Tuning for Various Architectures</a></li>
+<li><a href="how_to/gpu_aware_mpi">GPU Aware MPI</a></li>
+<li><a href="how_to/deep_learning_rocm">Setting up for Deep Learning with ROCm</a></li>
+<li><a href="how_to/magma_install/magma_install">Magma Installation</a></li>
+<li><a href="how_to/pytorch_install/pytorch_install">PyTorch Installation</a></li>
+<li><a href="how_to/tensorflow_install/tensorflow_install">TensorFlow Installation</a></li>
+<li><a href="how_to/system_debugging.md">System Level Debugging</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card}
+:padding: 2
+<a href="examples/all">Tutorials &amp; Examples</a>
+^^^</p>
+<ul>
+<li><a href="https://github.com/amd/rocm-examples">Examples</a></li>
+<li><a href="examples/machine_learning/all">ML, DL, and AI</a></li>
+<li><a href="examples/machine_learning/pytorch_inception"></a></li>
+<li><a href="examples/machine_learning/migraphx_optimization"></a></li>
+</ul>
+<p>:::
+::::</p>

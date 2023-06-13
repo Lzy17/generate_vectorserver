@@ -1,0 +1,25 @@
+<h2>TFSA-2021-090: Division by zero in TFLite's implementation of hashtable lookup</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29604</p>
+<h3>Impact</h3>
+<p>The TFLite implementation of hashtable lookup is <a href="https://github.com/tensorflow/tensorflow/blob/1a8e885b864c818198a5b2c0cbbeca5a1e833bc8/tensorflow/lite/kernels/hashtable_lookup.cc#L114-L115">vulnerable to a division by
+zero
+error</a>:</p>
+<p><code>cc
+const int num_rows = SizeOfDimension(value, 0);
+const int row_bytes = value-&gt;bytes / num_rows;</code></p>
+<p>An attacker can craft a model such that <code>values</code>'s first dimension would be 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/5117e0851348065ed59c991562c0ec80d9193db2">5117e0851348065ed59c991562c0ec80d9193db2</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

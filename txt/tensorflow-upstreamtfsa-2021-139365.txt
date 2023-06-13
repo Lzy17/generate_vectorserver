@@ -1,0 +1,49 @@
+<h2>TFSA-2021-139: Incomplete validation in MKL requantization</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37665</p>
+<h3>Impact</h3>
+<p>Due to incomplete validation in MKL implementation of requantization, an
+attacker can trigger undefined behavior via binding a reference to a null
+pointer or can access data outside the bounds of heap allocated arrays:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.RequantizationRangePerChannel(
+  input=[],
+  input_min=[0,0,0,0,0],
+  input_max=[1,1,1,1,1],
+  clip_value_max=1)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/mkl/mkl_requantization_range_per_channel_op.cc">implementation</a>
+does not validate the dimensions of the <code>input</code> tensor.</p>
+<p>A similar issue occurs in <code>MklRequantizePerChannelOp</code>:</p>
+<p>```python
+import tensorflow as tf
+from tensorflow.python.ops import gen_math_ops</p>
+<p>gen_math_ops.requantize_per_channel(
+  input=[],
+  input_min=[-100,-100,-100,-100,-100],
+  input_max=[-100,-100,-100],
+  requested_output_min=[-100,-100,-100,-100,-100],
+  requested_output_max=[],
+  out_type=tf.int)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/mkl/mkl_requantize_per_channel_op.cc">implementation</a>
+does not perform full validation for all the input arguments.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/9e62869465573cb2d9b5053f1fa02a81fce21d69">9e62869465573cb2d9b5053f1fa02a81fce21d69</a>
+and in the Github commit
+<a href="https://github.com/tensorflow/tensorflow/commit/203214568f5bc237603dbab6e1fd389f1572f5c9">203214568f5bc237603dbab6e1fd389f1572f5c9</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

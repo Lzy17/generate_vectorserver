@@ -1,0 +1,77 @@
+<h1>How to contribute</h1>
+<p>We'd love to have your patches and contributions! Here are some guidelines. In general, we follow the <a href="../../CONTRIBUTING.md">TensorFlow contributing guidelines</a>, but have some <a href="STYLE_GUIDE.md">AutoGraph-specific style guidelines</a>. More details below.</p>
+<h3>Note to active contributors</h3>
+<p>In preparation for TF 2.0, we moved the code base of AutoGraph from
+<code>tensorflow/contrib/autograph</code> to <code>tensorflow/python/autograph</code>. The move
+does not impact functionality, and AutoGraph will remain accessible under
+<code>tensorflow.contrib.autograph</code> until <code>tensorflow.contrib</code> is retired.</p>
+<h2>TensorFlow Code of Conduct</h2>
+<p>Please review and follow the <a href="../../CODE_OF_CONDUCT.md">TensorFlow Code of Conduct</a>.</p>
+<h2>Contributor License Agreement</h2>
+<p>Contributions to this project must be accompanied by a Contributor License
+Agreement. You (or your employer) retain the copyright to your contribution;
+this simply gives us permission to use and redistribute your contributions as
+part of the project. Head over to <a href="https://cla.developers.google.com/">https://cla.developers.google.com/</a> to see
+your current agreements on file or to sign a new one.</p>
+<p>You generally only need to submit a CLA once, so if you've already submitted one
+(even if it was for a different project), you probably don't need to do it
+again.</p>
+<h2>Code reviews</h2>
+<p>All submissions, including submissions by project members, require review. We
+use GitHub pull requests for this purpose. Consult <a href="https://help.github.com/articles/about-pull-requests/">GitHub
+Help</a> for more
+information on using pull requests.</p>
+<p>After a pull request is approved, we merge it. Note our merging process differs
+from GitHub in that we pull and submit the change into an internal version
+control system. This system automatically pushes a git commit to the GitHub
+repository (with credit to the original author) and closes the pull request.</p>
+<h2>Style</h2>
+<p>See the <a href="STYLE_GUIDE.md">AutoGraph style guide</a>.</p>
+<h2>Unit tests</h2>
+<p>Please include unit tests when contributing new features
+(<a href="converters/continue_statements_test.py">example here</a>), as they help to prove
+that your code works correctly, and guard against future breaking changes to
+lower the maintenance cost.</p>
+<p>It's also helpful to check that any
+changes you propose do not break existing unit tests. You can run tests using the command,</p>
+<p><code>shell
+bazel test --config=opt --copt=-O3 --copt=-march=native \
+  //tensorflow/contrib/autograph/...</code></p>
+<p>from the root of the <code>tensorflow</code> repository. For more details see the <a href="../../CONTRIBUTING.md">main TensorFlow Contributing File</a></p>
+<h2>Developer info</h2>
+<h3>Module structure</h3>
+<p>The graph below describes the dependencies between AutoGraph modules (not to be mistaken with the directory structure for these modules, which is flat):</p>
+<p>```dot
+digraph d_modules {
+  autograph [style=filled];
+  converters;
+  core;
+  impl;
+  lang;
+  operators;</p>
+<p>autograph -&gt; impl
+  autograph -&gt; lang</p>
+<p>impl -&gt; converters
+  impl -&gt; core
+  impl -&gt; operators</p>
+<p>lang -&gt; operators</p>
+<p>converters -&gt; core
+  converters -&gt; lang
+}
+```</p>
+<p><code>autograph</code> is the sole user-visible module.</p>
+<p>A short description of the modules:</p>
+<ul>
+<li><code>autograph</code>: the main module imported by the user and by the generated code; only contains declarations</li>
+<li><code>impl</code>: high level code and the implementation of the api frontend</li>
+<li><code>core</code>: base classes for the AutoGraph source code transformation logic; see in particular <code>converter.py</code></li>
+<li><code>lang</code>: special user-visible functions that serve as extensions to the Python language</li>
+<li><code>converters</code>: collection of source code transformation modules specialized for particular AutoGraph features</li>
+<li><code>operators</code>: collection of operators that AutoGraph overloads; these correspond to Python operators as well as Python syntactic structures, like control flow</li>
+</ul>
+<p>There are two additional modules, <code>pyct</code> and <code>utils</code>. These are independent of AutoGraph:</p>
+<ul>
+<li><code>pyct</code>: a general purpose Python source code transformation library</li>
+<li><code>utils</code>: the kitchen sync; deprecated</li>
+</ul>
+<p>Note: we have a long term plan to factor out an implementation of <code>impl</code> and <code>converters</code> that is independent of autograph, into a general purpose Python operator overloading library.</p>

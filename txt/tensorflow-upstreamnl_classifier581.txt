@@ -1,0 +1,195 @@
+<h1>Integrate Natural language classifier</h1>
+<p>The Task Library's <code>NLClassifier</code> API classifies input text into different
+categories, and is a versatile and configurable API that can handle most text
+classification models.</p>
+<h2>Key features of the NLClassifier API</h2>
+<ul>
+<li>
+<p>Takes a single string as input, performs classification with the string and
+    outputs <Label, Score> pairs as classification results.</p>
+</li>
+<li>
+<p>Optional Regex Tokenization available for input text.</p>
+</li>
+<li>
+<p>Configurable to adapt different classification models.</p>
+</li>
+</ul>
+<h2>Supported NLClassifier models</h2>
+<p>The following models are guaranteed to be compatible with the <code>NLClassifier</code>
+API.</p>
+<ul>
+<li>
+<p>The <a href="../../examples/text_classification/overview">movie review
+    sentiment classification</a> model.</p>
+</li>
+<li>
+<p>Models with <code>average_word_vec</code> spec created by
+    <a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_classification">TensorFlow Lite Model Maker for text Classification</a>.</p>
+</li>
+<li>
+<p>Custom models that meet the
+    <a href="#model-compatibility-requirements">model compatibility requirements</a>.</p>
+</li>
+</ul>
+<h2>Run inference in Java</h2>
+<p>See the
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/text_classification/android/lib_task_api/src/main/java/org/tensorflow/lite/examples/textclassification/client/TextClassificationClient.java">Text Classification reference app</a>
+for an example of how to use <code>NLClassifier</code> in an Android app.</p>
+<h3>Step 1: Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> model file to the assets directory of the Android module
+where the model will be run. Specify that the file should not be compressed, and
+add the TensorFlow Lite library to the module’s <code>build.gradle</code> file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import the Task Vision Library dependency (NNAPI is included)
+implementation 'org.tensorflow:tensorflow-lite-task-text:0.3.0'
+// Import the GPU delegate plugin Library for GPU inference
+implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.3.0'
+</code></pre>
+<p>}
+```</p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>
+<h3>Step 2: Run inference using the API</h3>
+<p>```java
+// Initialization, use NLClassifierOptions to configure input and output tensors
+NLClassifierOptions options =
+    NLClassifierOptions.builder()
+        .setBaseOptions(BaseOptions.builder().useGpu().build())
+        .setInputTensorName(INPUT_TENSOR_NAME)
+        .setOutputScoreTensorName(OUTPUT_SCORE_TENSOR_NAME)
+        .build();
+NLClassifier classifier =
+    NLClassifier.createFromFileAndOptions(context, modelFile, options);</p>
+<p>// Run inference
+List<Category> results = classifier.classify(input);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/java/src/java/org/tensorflow/lite/task/text/nlclassifier/NLClassifier.java">source code</a>
+for more options to configure <code>NLClassifier</code>.</p>
+<h2>Run inference in Swift</h2>
+<h3>Step 1: Import CocoaPods</h3>
+<p>Add the TensorFlowLiteTaskText pod in Podfile</p>
+<p><code>target 'MySwiftAppWithTaskAPI' do
+  use_frameworks!
+  pod 'TensorFlowLiteTaskText', '~&gt; 0.2.0'
+end</code></p>
+<h3>Step 2: Run inference using the API</h3>
+<p>```swift
+// Initialization
+var modelOptions:TFLNLClassifierOptions = TFLNLClassifierOptions()
+modelOptions.inputTensorName = inputTensorName
+modelOptions.outputScoreTensorName = outputScoreTensorName
+let nlClassifier = TFLNLClassifier.nlClassifier(
+      modelPath: modelPath,
+      options: modelOptions)</p>
+<p>// Run inference
+let categories = nlClassifier.classify(text: input)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/ios/task/text/nlclassifier/Sources/TFLNLClassifier.h">source code</a>
+for more details.</p>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+NLClassifierOptions options;
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_path);
+std::unique_ptr<NLClassifier> classifier = NLClassifier::CreateFromOptions(options).value();</p>
+<p>// Run inference with your input, <code>input_text</code>.
+std::vector<core::Category> categories = classifier-&gt;Classify(input_text);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/text/nlclassifier/nl_classifier.h">source code</a>
+for more details.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install the pip package</h3>
+<p><code>pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python</p>
+<h1>Imports</h1>
+<p>from tflite_support.task import text</p>
+<h1>Initialization</h1>
+<p>classifier = text.NLClassifier.create_from_file(model_path)</p>
+<h1>Run inference</h1>
+<p>text_classification_result = classifier.classify(text)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/text/nl_classifier.py">source code</a>
+for more options to configure <code>NLClassifier</code>.</p>
+<h2>Example results</h2>
+<p>Here is an example of the classification results of the
+<a href="https://www.tensorflow.org/lite/examples/text_classification/overview">movie review model</a>.</p>
+<p>Input: "What a waste of my time."</p>
+<p>Output:</p>
+<p><code>category[0]: 'Negative' : '0.81313'
+category[1]: 'Positive' : '0.18687'</code></p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/examples/task/text/desktop/README.md#nlclassifier">CLI demo tool for NLClassifier</a>
+with your own model and test data.</p>
+<h2>Model compatibility requirements</h2>
+<p>Depending on the use case, the <code>NLClassifier</code> API can load a TFLite model with
+or without <a href="../../models/convert/metadata">TFLite Model Metadata</a>. See examples
+of creating metadata for natural language classifiers using the
+<a href="../../models/convert/metadata_writer_tutorial.ipynb#nl_classifiers">TensorFlow Lite Metadata Writer API</a>.</p>
+<p>The compatible models should meet the following requirements:</p>
+<ul>
+<li>
+<p>Input tensor: (kTfLiteString/kTfLiteInt32)</p>
+<ul>
+<li>Input of the model should be either a kTfLiteString tensor raw input
+    string or a kTfLiteInt32 tensor for regex tokenized indices of raw input
+    string.</li>
+<li>If input type is kTfLiteString, no
+    <a href="../../models/convert/metadata">Metadata</a> is required for the model.</li>
+<li>If input type is kTfLiteInt32, a <code>RegexTokenizer</code> needs to be set up in
+    the input tensor's
+    <a href="https://www.tensorflow.org/lite/models/convert/metadata_writer_tutorial#natural_language_classifiers">Metadata</a>.</li>
+</ul>
+</li>
+<li>
+<p>Output score tensor:
+    (kTfLiteUInt8/kTfLiteInt8/kTfLiteInt16/kTfLiteFloat32/kTfLiteFloat64)</p>
+<ul>
+<li>
+<p>Mandatory output tensor for the score of each category classified.</p>
+</li>
+<li>
+<p>If type is one of the Int types, dequantize it to double/float to
+    corresponding platforms</p>
+</li>
+<li>
+<p>Can have an optional associated file in the output tensor's
+    corresponding <a href="../../models/convert/metadata">Metadata</a> for category
+    labels, the file should be a plain text file with one label per line,
+    and the number of labels should match the number of categories as the
+    model outputs. See the
+    <a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/metadata/python/tests/testdata/nl_classifier/labels.txt">example label file</a>.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Output label tensor: (kTfLiteString/kTfLiteInt32)</p>
+<ul>
+<li>
+<p>Optional output tensor for the label for each category, should be of the
+    same length as the output score tensor. If this tensor is not present,
+    the API uses score indices as classnames.</p>
+</li>
+<li>
+<p>Will be ignored if the associated label file is present in output score
+    tensor's Metadata.</p>
+</li>
+</ul>
+</li>
+</ul>

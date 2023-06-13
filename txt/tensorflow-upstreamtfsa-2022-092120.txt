@@ -1,0 +1,23 @@
+<h2>TFSA-2022-092: <code>CHECK</code> failures in <code>UnbatchGradOp</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35952</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/769eddaf479c8debead9a59a72617d6ed6f0fe10/tensorflow/core/kernels/batch_kernels.cc#L891"><code>UnbatchGradOp</code></a> function takes an argument <code>id</code> that is assumed to be a scalar. A nonscalar <code>id</code> can trigger a <code>CHECK</code> failure and crash the program.
+```python
+import numpy as np
+import tensorflow as tf</p>
+<h1><code>id</code> is not scalar</h1>
+<p>tf.raw_ops.UnbatchGrad(original_input= tf.constant([1]),batch_index=tf.constant([[0,0,0 ], ], dtype=tf.int64),grad=tf.constant([1,]),id=tf.constant([1,1,], dtype=tf.int64))
+<code>It also requires its argument `batch_index` to contain three times the number of elements as indicated in its `batch_index.dim_size(0)`. An incorrect `batch_index` can trigger a `CHECK` failure and crash the program.</code>python
+import numpy as np
+import tensorflow as tf</p>
+<h1>batch_index's size is not 3</h1>
+<p>tf.raw_ops.UnbatchGrad(original_input= tf.constant([1]),batch_index=tf.constant([[0,0], ], dtype=tf.int64),grad=tf.constant([1,]),id=tf.constant([1,], dtype=tf.int64))
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/5f945fc6409a3c1e90d6970c9292f805f6e6ddf2">5f945fc6409a3c1e90d6970c9292f805f6e6ddf2</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Kang Hong Jin from Singapore Management University and 刘力源 from the Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology</p>

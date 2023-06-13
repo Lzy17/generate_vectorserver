@@ -1,0 +1,21 @@
+<hr />
+<p>name: TensorFlow Lite Op Request
+about: Use this template for reporting Lite ops you are using or missing
+labels: 'comp:lite'</p>
+<hr />
+<p><strong>System information</strong>
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04):
+- TensorFlow installed from (source or binary):
+- TensorFlow version (or github SHA if from source):</p>
+<p><strong>Provide the text output from tflite_convert</strong></p>
+<p>```</p>
+<h1>Copy and paste here</h1>
+<p>```</p>
+<p><strong>Standalone code to reproduce the issue</strong> 
+Provide a reproducible test case that is the bare minimum necessary to generate
+the problem. If possible, please share a link to Colab/Jupyter/any notebook.</p>
+<p>Also, please include a link to a GraphDef or the model if possible.</p>
+<p><strong>Any other info / logs</strong></p>
+<p>Include any logs or source code that would be helpful to diagnose the problem.
+If including tracebacks, please include the full traceback. Large logs and files
+should be attached.</p>

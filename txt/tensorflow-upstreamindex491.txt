@@ -1,0 +1,22 @@
+<h1>AutoGraph reference</h1>
+<p>This reference document describes the semantics of AutoGraph transformations.</p>
+<p>In <code>@tf.function</code>, AutoGraph allows running Eager-style code as a TensorFlow
+graph.</p>
+<ul>
+<li><a href="intro.md">Introduction</a></li>
+<li><a href="generated_code.md">Interacting with the generated code</a></li>
+<li><a href="debugging.md">Debugging AutoGraph code</a></li>
+<li><a href="control_flow.md">Control flow</a></li>
+<li><a href="functions.md">Functions and function calls</a></li>
+<li><a href="error_handling.md">Error handling</a></li>
+<li><a href="operators.md">Operator semantics</a></li>
+<li><a href="limitations.md">Limitations</a></li>
+<li><a href="common_errors.md">Common errors</a></li>
+</ul>
+<p>Also see:</p>
+<ul>
+<li><a href="https://medium.com/tensorflow/autograph-converts-python-into-tensorflow-graphs-b2a871f87ec7">AutoGraph blog post</a></li>
+<li><a href="https://www.youtube.com/watch?v=NIEgzljyDyI">AutoGraph deep dive</a></li>
+<li><a href="https://www.tensorflow.org/guide/function">tf.function guide</a></li>
+<li><a href="https://www.tensorflow.org/guide/intro_to_graphs">Intro to TF graphs</a></li>
+</ul>

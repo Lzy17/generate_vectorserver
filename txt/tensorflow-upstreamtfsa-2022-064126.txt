@@ -1,0 +1,21 @@
+<h2>TFSA-2022-064: Missing validation causes denial of service via <code>GetSessionTensor</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29191</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/session_ops.cc#L94-L112"><code>tf.raw_ops.GetSessionTensor</code></a> does not fully validate the input arguments. This results in a <code>CHECK</code>-failure which can be used to trigger a denial of service attack:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>handle = tf.constant("[]", shape=[0], dtype=tf.string)
+tf.raw_ops.GetSessionTensor(handle=handle)
+```</p>
+<p>The code assumes <code>handle</code> is a scalar but there is no validation for this:</p>
+<p><code>cc
+    const Tensor&amp; handle = ctx-&gt;input(0);
+    const string&amp; name = handle.scalar&lt;tstring&gt;()();</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/48305e8ffe5246d67570b64096a96f8e315a7281">48305e8ffe5246d67570b64096a96f8e315a7281</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

@@ -1,0 +1,77 @@
+<h1>AutoGraph Style Guide</h1>
+<p>This page contains style decisions that developers should follow when
+contributing code to AutoGraph.</p>
+<h2>TensorFlow Style</h2>
+<p>Follow the <a href="https://www.tensorflow.org/community/contribute/code_style">TensorFlow style
+guide</a>, the <a href="https://www.tensorflow.org/community/contribute/docs">documentation
+guide</a> and the
+<a href="https://google.github.io/styleguide/pyguide.html">Google Python style guide</a>.</p>
+<p>Naming conventions:</p>
+<ol>
+<li>The name is TensorFlow, not Tensorflow.</li>
+<li>The name is AutoGraph, not Autograph.</li>
+</ol>
+<h2>AutoGraph Style</h2>
+<p>Below are AutoGraph-specific conventions. In the event of conflict,
+it supercedes all previous conventions.</p>
+<ol>
+<li>
+<p><strong>Types in docstrings.</strong> Use [PEP 484][https://www.python.org/dev/peps/pep-0484/]
+    notation to describe the type for args, return values and attributes.</p>
+<p>Example:</p>
+<p><code>Args:
+  foo: Dict[str, List[int]], a dictionary of sorts</code></p>
+</li>
+<li>
+<p><strong>Citations in Docstrings.</strong> Write a <code>#### References</code> subsection at the
+    bottom of any docstring with citations. Use ICLR’s bibliography style to
+    write references; for example, order entries by the first author's last
+    name. Add a link to the paper if the publication is open source (ideally,
+    arXiv).</p>
+<p>Write in-paragraph citations in general, e.g., [(Tran and Blei, 2018)][1].
+Write in-text citations when the citation is a noun, e.g., [Tran and Blei
+(2018)][1]. Write citations with more than two authors using et al., e.g.,
+[(Tran et al., 2018)][1]. Separate multiple citations with semicolon, e.g.,
+([Tran and Blei, 2018][1]; [Gelman and Rubin, 1992][2]).</p>
+<p>Examples:</p>
+<p>```none</p>
+<h4>References</h4>
+<h1>technical report</h1>
+<p>[1]: Tony Finch. Incremental calculation of weighted mean and variance.
+     <em>Technical Report</em>, 2009.
+     http://people.ds.cam.ac.uk/fanf2/hermes/doc/antiforgery/stats.pdf</p>
+<h1>journal</h1>
+<p>[2]: Andrew Gelman and Donald B. Rubin. Inference from Iterative Simulation
+     Using Multiple Sequences. <em>Statistical Science</em>, 7(4):457-472, 1992.</p>
+<h1>arXiv preprint</h1>
+<h1>use "et al." for papers with too many authors to maintain</h1>
+<p>[3]: Aaron van den Oord et al. Parallel WaveNet: Fast High-Fidelity Speech
+     Synthesis. <em>arXiv preprint arXiv:1711.10433</em>, 2017.
+     https://arxiv.org/abs/1711.10433</p>
+<h1>conference</h1>
+<p>[4]: Yeming Wen, Paul Vicol, Jimmy Ba, Dustin Tran, and Roger Grosse.
+     Flipout: Efficient Pseudo-Independent Weight Perturbations on
+     Mini-Batches. In <em>International Conference on Learning
+     Representations</em>, 2018.
+     https://arxiv.org/abs/1803.04386
+```</p>
+</li>
+<li>
+<p>Avoid LaTeX in docstrings.</p>
+<ul>
+<li>It is not rendered in many (if not most) editors and can be hard to read
+    for both LaTeX experts and non-experts.</li>
+</ul>
+</li>
+<li>
+<p>Write docstring and comment math using ASCII friendly notation; python using
+    operators. E.g., <code>x**2</code> better than <code>x^2</code>, <code>x[i, j]</code> better than <code>x_{i,j}</code>,
+    <code>sum{ f(x[i]) : i=1...n }</code> better than <code>\sum_{i=1}^n f(x_i)</code> <code>int{sin(x) dx:
+    x in [0, 2 pi]}</code> better than <code>\int_0^{2\pi} sin(x) dx</code>.</p>
+<ul>
+<li>The more we stick to python style, the more someone can
+    copy/paste/execute.</li>
+<li>Python style is usually easier to read as ASCII.</li>
+</ul>
+</li>
+</ol>

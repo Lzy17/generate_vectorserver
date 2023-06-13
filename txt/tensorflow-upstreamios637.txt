@@ -1,0 +1,110 @@
+<h1>iOS quickstart</h1>
+<p>To get started with TensorFlow Lite on iOS, we recommend exploring the following
+example:</p>
+<p><a class="button button-primary" href="https://github.com/tensorflow/examples/tree/master/lite/examples/image_classification/ios">iOS
+image classification example</a></p>
+<p>For an explanation of the source code, you should also read
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/image_classification/ios/README.md">TensorFlow Lite iOS image classification</a>.</p>
+<p>This example app uses
+<a href="https://www.tensorflow.org/lite/examples/image_classification/overview">image classification</a>
+to continuously classify whatever it sees from the device's rear-facing camera,
+displaying the top most probable classifications. It allows the user to choose
+between a floating point or
+<a href="https://www.tensorflow.org/lite/performance/post_training_quantization">quantized</a>
+model and select the number of threads to perform inference on.</p>
+<p>Note: Additional iOS applications demonstrating TensorFlow Lite in a variety of
+use cases are available in <a href="https://www.tensorflow.org/lite/examples">Examples</a>.</p>
+<h2>Add TensorFlow Lite to your Swift or Objective-C project</h2>
+<p>TensorFlow Lite offers native iOS libraries written in
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/swift">Swift</a>
+and
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/objc">Objective-C</a>.
+Start writing your own iOS code using the
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/image_classification/ios">Swift image classification example</a>
+as a starting point.</p>
+<p>The sections below demonstrate how to add TensorFlow Lite Swift or Objective-C
+to your project:</p>
+<h3>CocoaPods developers</h3>
+<p>In your <code>Podfile</code>, add the TensorFlow Lite pod. Then, run <code>pod install</code>.</p>
+<h4>Swift</h4>
+<p><code>ruby
+use_frameworks!
+pod 'TensorFlowLiteSwift'</code></p>
+<h4>Objective-C</h4>
+<p><code>ruby
+pod 'TensorFlowLiteObjC'</code></p>
+<h4>Specifying versions</h4>
+<p>There are stable releases, and nightly releases available for both
+<code>TensorFlowLiteSwift</code> and <code>TensorFlowLiteObjC</code> pods. If you do not specify a
+version constraint as in the above examples, CocoaPods will pull the latest
+stable release by default.</p>
+<p>You can also specify a version constraint. For example, if you wish to depend on
+version 2.10.0, you can write the dependency as:</p>
+<p><code>ruby
+pod 'TensorFlowLiteSwift', '~&gt; 2.10.0'</code></p>
+<p>This will ensure the latest available 2.x.y version of the <code>TensorFlowLiteSwift</code>
+pod is used in your app. Alternatively, if you want to depend on the nightly
+builds, you can write:</p>
+<p><code>ruby
+pod 'TensorFlowLiteSwift', '~&gt; 0.0.1-nightly'</code></p>
+<p>From 2.4.0 version and latest nightly releases, by default
+<a href="https://www.tensorflow.org/lite/performance/gpu">GPU</a> and
+<a href="https://www.tensorflow.org/lite/performance/coreml_delegate">Core ML delegates</a>
+are excluded from the pod to reduce the binary size. You can include them by
+specifying subspec:</p>
+<p><code>ruby
+pod 'TensorFlowLiteSwift', '~&gt; 0.0.1-nightly', :subspecs =&gt; ['CoreML', 'Metal']</code></p>
+<p>This will allow you to use the latest features added to TensorFlow Lite. Note
+that once the <code>Podfile.lock</code> file is created when you run <code>pod install</code> command
+for the first time, the nightly library version will be locked at the current
+date's version. If you wish to update the nightly library to the newer one, you
+should run <code>pod update</code> command.</p>
+<p>For more information on different ways of specifying version constraints, see
+<a href="https://guides.cocoapods.org/using/the-podfile.html#specifying-pod-versions">Specifying pod versions</a>.</p>
+<h3>Bazel developers</h3>
+<p>In your <code>BUILD</code> file, add the <code>TensorFlowLite</code> dependency to your target.</p>
+<h4>Swift</h4>
+<p><code>python
+swift_library(
+  deps = [
+      "//tensorflow/lite/swift:TensorFlowLite",
+  ],
+)</code></p>
+<h4>Objective-C</h4>
+<p><code>python
+objc_library(
+  deps = [
+      "//tensorflow/lite/objc:TensorFlowLite",
+  ],
+)</code></p>
+<h4>C/C++ API</h4>
+<p>Alternatively, you can use
+<a href="https://www.tensorflow.org/code/tensorflow/lite/c/c_api.h">C API</a>
+or <a href="https://tensorflow.org/lite/api_docs/cc">C++ API</a></p>
+<p>```python</p>
+<h1>Using C API directly</h1>
+<p>objc_library(
+  deps = [
+      "//tensorflow/lite/c:c_api",
+  ],
+)</p>
+<h1>Using C++ API directly</h1>
+<p>objc_library(
+  deps = [
+      "//tensorflow/lite:framework",
+  ],
+)
+```</p>
+<h3>Import the library</h3>
+<p>For Swift files, import the TensorFlow Lite module:</p>
+<p><code>swift
+import TensorFlowLite</code></p>
+<p>For Objective-C files, import the umbrella header:</p>
+<p>```objectivec</p>
+<h1>import "TFLTensorFlowLite.h"</h1>
+<p>```</p>
+<p>Or, the module if you set <code>CLANG_ENABLE_MODULES = YES</code> in your Xcode project:</p>
+<p><code>objectivec
+@import TFLTensorFlowLite;</code></p>
+<p>Note: For CocoaPods developers who want to import the Objective-C TensorFlow
+Lite module, you must also include <code>use_frameworks!</code> in your <code>Podfile</code>.</p>

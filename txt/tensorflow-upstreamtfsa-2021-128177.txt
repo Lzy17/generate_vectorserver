@@ -1,0 +1,52 @@
+<h2>TFSA-2021-128: Heap OOB and CHECK fail in <code>ResourceGather</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37654</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a crash via a <code>CHECK</code>-fail in debug builds of TensorFlow
+using <code>tf.raw_ops.ResourceGather</code> or a read from outside the bounds of heap
+allocated data in the same API in a release build:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tensor = tf.constant(value=[[1,2],[3,4],[5,6]],shape=(3,2),dtype=tf.uint32)
+v = tf.Variable(tensor)
+tf.raw_ops.ResourceGather(
+  resource=v.handle,
+  indices=[0],
+  dtype=tf.uint32,
+  batch_dims=10,
+  validate_indices=False)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/f24faa153ad31a4b51578f8181d3aaab77a1ddeb/tensorflow/core/kernels/resource_variable_ops.cc#L660-L668">implementation</a>
+does not check that the <code>batch_dims</code> value that the user supplies is less than
+the rank of the input tensor.</p>
+<p>Since the implementation uses several for loops over the dimensions of <code>tensor</code>,
+this results in reading data from outside the bounds of heap allocated buffer
+backing the tensor:</p>
+<p><code>cc
+    // batch_dims_ = &gt; params.dims() (10 &gt; 2)
+    for (int i = 0; i &lt; batch_dims_; ++i) {
+      result_shape.AddDim(params.dim_size(i));
+    }
+    for (int i = batch_dims_; i &lt; indices.dims(); ++i) {
+      result_shape.AddDim(indices.dim_size(i));
+    }
+    for (int i = batch_dims_ + 1; i &lt; params.dims(); ++i) {
+      result_shape.AddDim(params.dim_size(i));
+    }</code></p>
+<p>In debug mode, <code>.dim_size(i)</code> validates that the argument is less than <code>.dims()</code>
+using a <code>DCHECK</code>. But the <code>DCHECK</code> is a no-op in release builds.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/bc9c546ce7015c57c2f15c168b3d9201de679a1d">bc9c546ce7015c57c2f15c168b3d9201de679a1d</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

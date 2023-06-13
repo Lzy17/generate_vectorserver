@@ -1,0 +1,15 @@
+<h1>Installer Script Uninstallation (Linux)</h1>
+<p>To uninstall all ROCm packages and the kernel-mode driver the following commands
+can be used.</p>
+<p>::::{rubric} Uninstalling Single-Version Install
+::::</p>
+<p><code>console shell
+sudo amdgpu-install --uninstall</code></p>
+<p>::::{rubric} Uninstalling a Specific ROCm Release
+::::</p>
+<p><code>console shell
+sudo amdgpu-install --uninstall --rocmrelease=&lt;release-number&gt;</code></p>
+<p>::::{rubric} Uninstalling all ROCm Releases
+::::</p>
+<p><code>console shell
+sudo amdgpu-install --uninstall --rocmrelease=all</code></p>

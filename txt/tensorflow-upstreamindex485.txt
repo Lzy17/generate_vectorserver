@@ -1,0 +1,169 @@
+<h1>Vectorized map</h1>
+<p><em>See also https://en.wikipedia.org/wiki/Automatic_vectorization</em></p>
+<p>TensorFlow provides in-graph looping constructs like <code>tf.while_loop</code> which are
+similar to loops in other languages: they repeatedly run the loop body, not
+keeping memory contiguous or taking advantage of hardware SIMD. When loop
+iterations are independent, it is much more efficient to batch tensors together:
+a matrix-matrix multiply instead of a loop over vector-matrix multiplies.</p>
+<p><code>tf.vectorized_map</code> provides a <code>tf.map_fn</code>-like API with the efficiency of
+manual batching: while the API matches APIs which are implemented with a
+<code>tf.while_loop</code> like <code>tf.map_fn</code>, <code>tf.vectorized_map</code> is implemented by using
+batch dimensions of ops. This <code>tf.map_fn</code> style is often a more convenient way
+to author models, as opposed to juggling a batch dimension explicitly:</p>
+<p>```python
+def f(args):
+  embeddings, index = args
+  # embeddings [vocab_size, embedding_dim]
+  # index []
+  # desired result: [embedding_dim]
+  return tf.gather(params=embeddings, indices=index)</p>
+<p>@tf.function
+def f_auto_vectorized(embeddings, indices):
+  # embeddings [num_heads, vocab_size, embedding_dim]
+  # indices [num_heads]
+  # desired result: [num_heads, embedding_dim]
+  return tf.vectorized_map(f, [embeddings, indices])</p>
+<p>concrete_vectorized = f_auto_vectorized.get_concrete_function(
+  tf.TensorSpec(shape=[None, 100, 16], dtype=tf.float32),
+  tf.TensorSpec(shape=[None], dtype=tf.int32))
+print(concrete_vectorized.graph.as_graph_def())
+```</p>
+<p>The vectorized graph contains many ops, but no loops. Instead,
+<code>tf.vectorized_map</code> looks at the GatherV2 op and its attributes, and generates
+the equivalent of <code>tf.gather(..., batch_dims=1)</code> without requiring the user to
+know how to tell <code>tf.gather</code> and every other op they use which dimensions are
+batch dimensions.</p>
+<p><code>python
+gdef = concrete_vectorized.graph.as_graph_def()
+print([n for n in gdef.node if n.op == "GatherV2"])</code></p>
+<p>This prints a bunch of gathers related to pfor infrastructure, but at the time
+of writing does include one with a <code>batch_dims</code> attribute of <code>1</code>.</p>
+<h2>Vectorization as a post-trace graph transformation</h2>
+<p><code>tf.vectorized_map</code> currently works as a graph-to-graph transformation
+implemented in Python. This is mostly a historical artifact: it was conceived
+before TensorFlow did op-by-op execution. It is similar to <code>tf.gradients</code>,
+walking the connections in an existing graph and applying op-specific rules
+(defined by <code>RegisterGradient</code> for <code>tf.gradients</code>, <code>RegisterPFor</code> for
+<code>tf.vectorized_map</code>) in order to produce a new graph. While <code>tf.gradients</code> adds
+a backward pass which references tensors in the forward pass (both execute),
+<code>tf.vectorized_map</code> creates a transformed graph which executes in place of the
+original graph.</p>
+<p>For gradients, <code>tf.GradientTape</code> was introduced to provide an op-by-op version
+of gradients, re-using the per-op <code>RegisterGradient</code> definitions. There is no
+equivalent for vectorization. Instead, <code>tf.vectorized_map</code> wraps the function it
+takes as an argument in <code>tf.function</code> in order to create a trace to
+vectorize. This means that the user's function never executes eagerly, and if
+<code>tf.vectorized_map</code> is called executing eagerly that the user's function is
+re-traced and re-vectorized every call to <code>tf.vectorized_map</code>.</p>
+<p>While <code>tf.vectorized_map</code> is the public-facing API, the implementation is
+written in terms of <a href="https://github.com/tensorflow/tensorflow/blob/8b000ce0d5395d399e08791ae9589b41358f651d/tensorflow/python/ops/parallel_for/control_flow_ops.py#L134">an integer-indexed for
+loop</a>. The
+loop does not execute as a regular for loop, but this is a good mental model and
+the implementation makes frequent references to <code>loop_len</code>, i.e. the number of
+iterations for the hypothetical loop. The user-visible outputs should ideally
+match the outputs of an equivalent real for loop, and this is how most of the
+unit tests are written.</p>
+<p>The virtual for loop setup includes a loop-variant integer loop index
+tensor. "Loop-variant" just means a tensor with a different value on each
+iteration; loop-variant tensors are represented with a leading extra dimension
+corresponding to the loop iteration. <code>tf.vectorized_map</code>'s implementation
+<code>tf.gather</code>s a slice of each input using the loop index and then runs the user's
+function on those (loop-variant) values.</p>
+<p>Anything with the loop index in its transitive input is loop-variant and must be
+transformed. Ops like <code>tf.constant</code>, however, create loop-invariant values
+(i.e. their values are the same on each loop iteration). Loop-invariant values
+returned from vectorization may simply be tiled, but more frequently they feed
+into ops with a mix of variant/invariant inputs to produce loop-variant
+values. Converters for ops will sometimes have simpler special cases for
+loop-invariant inputs, e.g. <code>tf.roll</code>'s converter is much simpler if the shift
+amount is loop-invariant (a common case).</p>
+<h2>Defining vectorizations</h2>
+<p>As with gradients, most ops have relatively straightforward definitions and
+function call / control flow operations have complicated special cases. This
+section covers the common cases.</p>
+<p>As with <code>RegisterGradient</code>, converters are defined for op types (with a
+corresponding <code>REGISTER_OP</code> macro in C++, named WithUppercase), not Python
+endpoints. So if the user writes <code>tf.roll</code>, the corresponding
+<a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L2653"><code>RegisterPFor("Roll")</code>
+converter</a>
+is triggered since <code>tf.roll</code> is implemented with the "Roll" op.</p>
+<p>Like gradients, the set of all TensorFlow ops would ideally be closed under
+vectorization (i.e. vectorization would always produce ops which are themselves
+vectorizable). In practice not all ops have pfor converters defined, and those
+that do sometimes assume inputs are loop-invariant. A "fallback converter" runs
+in these cases, adding a <code>tf.while_loop</code> in place of a real vectorization for
+the op. This is safe but generally slower. <code>tf.while_loop</code> can run iterations in
+parallel (non-strict execution), but other benefits of vectorization like
+contiguous memory layouts and SIMD are not available.</p>
+<p>For stateless ops which compute a deterministic value from their inputs, the
+common case, pfor converters take loop-variant inputs with an extra dimension
+("stacked") and emit an op or subgraph which treats this extra stacked dimension
+(the tensor's zeroth dimension) as a batch dimension but otherwise computes the
+same value as the original op. This may involve examining the original op's
+attributes and forwarding them to newly emitted ops.</p>
+<p>The general case for a converter has every input stacked and loop-variant, but
+there are often more efficient special cases when some inputs are loop-invariant
+and so may be handled "unstacked" (with no special zeroth dimension). Some
+converters omit the general case entirely, simply requesting the unstacked input
+and relying on the fallback converter triggering if that fails because the input
+is loop-variant. Others have branches for various combinations of
+stacked/unstacked inputs.</p>
+<p>There are many examples of existing converters, all in
+tensorflow/python/ops/parallel_for/pfor.py (the user-facing APIs are defined in
+control_flow_ops.py in the same directory). Converters can be quite subtle, so
+it is important to use the unit test macros to compare to a ground-truth for
+loop and to ensure that all relevant combinations of loop variant/invariant
+inputs are covered by these tests.</p>
+<h2>Stateful ops</h2>
+<p>Stateful ops and ops with non-deterministic outputs are difficult to deal
+with. One option is to use the fallback <code>tf.while_loop</code> converter for these ops,
+so e.g. <code>tf.print</code> would print <code>loop_len</code> times with the different loop-variant
+values. This makes sense from the "for loop as ground truth" mindset, but it's
+less clear that this satisfies user expectations for <code>tf.vectorized_map</code> (which
+doesn't explicitly mention a loop).</p>
+<p>There isn't a great universal answer for this class of ops. Currently <code>tf.print</code>
+<a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L3505-L3522">prints the full vectorized
+tensors</a> (<a href="https://github.com/tensorflow/tensorflow/blob/8b202f08d52e8206af2bdb2112a62fafbc546ec7/tensorflow/python/ops/parallel_for/control_flow_ops_test.py#L956-L970">example</a>)
+rather than printing <code>loop_len</code> times. Stateful random ops are <a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L3276-L3294">vectorized by
+adding an extra dimension to their output</a> shape attributes, even though this
+gives a different result (but follows the same distribution / independence
+structure). Stateless random ops <a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L3360-L3377">use the <code>tf.while_loop</code> fallback converter</a>
+since users might care more about the exact values; this may want revisiting if
+stateless random ops are used to implement popular APIs.</p>
+<h2>Vectorization of control flow (while_loop, cond) and variants</h2>
+<p>Ops whose execution is defined by a serialized program (generally a FunctionDef
+referenced by name in an attribute) need special handling, since the vectorized
+op will reference a transformed serialized program.</p>
+<p>For function call operations this is relatively straightforward: the converter
+converts the function body and generates a new call operation referencing the
+vectorized function body. (See <code>RegisterPfor("PartitionedCall")</code>; the code is
+pretty readable.)</p>
+<p>Cond (<a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L4499">"If"/"StatelessIf" ops</a>; <a href="https://github.com/tensorflow/tensorflow/blob/8b202f08d52e8206af2bdb2112a62fafbc546ec7/tensorflow/python/ops/parallel_for/control_flow_ops_test.py#L2041-L2053">example</a>) can be a bit more complicated if the Boolean
+condition is loop variant, in which case inputs/outputs must be partitioned
+between the branches and both run (although the ops in one branch could have
+zero-sized inputs if the loop variant condition happened to not trigger that
+branch for any iteration of the virtual for loop). If the condition Boolean is
+loop invariant then cond is very similar to a function call operation, just with
+two function bodies to transform.</p>
+<p><a href="https://github.com/tensorflow/tensorflow/blob/349172cf0ac29ba1346d244a40dc4761b4600f2e/tensorflow/python/ops/parallel_for/pfor.py#L5001">While loop vectorization</a> is fairly complicated. This is unrelated to the
+fallback converter for ops; it triggers when users define a graph with a
+<code>tf.while_loop</code> and then request vectorization for it (although the fallback
+converter can trigger this case when <code>tf.vectorized_map</code> is nested). At a high
+level, while loop conversion is an iterative version of the
+loop-variant-condition cond conversion. Only one while loop runs in the
+vectorized graph, but it keeps track of which iterations of the virtual pfor
+loop are done and only runs the while loop body for corresponding inputs. Once
+all of the iterations of the virtual pfor loop would have finished their
+<code>tf.while_loop</code>s the single vectorized loop terminates.</p>
+<p>While loops accumulate values across iterations in TensorLists (aka
+TensorArrays). These are variant-dtype tensors with a C++ vector of pointers to
+other tensors. A straightforward conversion would simply stack variant tensors,
+so rather than scalar variant-dtype tensors they would have shape
+<code>[loop_len]</code>. However, this would make memory non-contiguous: the tensors across
+each iteration of the virtual pfor loop would be separate Tensor objects in C++,
+and concatenation / splitting would be necessary to push and pop
+tensors. Instead, TensorLists are special-cased to use "internal vectorization":
+the variant representing a vectorized/stacked TensorList remains a scalar, but
+the shape of the tensors it contains has a special zeroth dimension. This makes
+many common operations on vectorized TensorLists more efficient, but leads to
+some complicated special cases when accessing the vectorization dimension.</p>

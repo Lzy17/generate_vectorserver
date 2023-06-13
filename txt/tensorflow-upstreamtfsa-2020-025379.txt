@@ -1,0 +1,35 @@
+<h2>TFSA-2020-025: Undefined behavior in <code>dlpack.to_dlpack</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15191</p>
+<h3>Impact</h3>
+<p>If a user passes an invalid argument to <code>dlpack.to_dlpack</code> the expected
+validations will cause variables to bind to <code>nullptr</code> while setting a <code>status</code>
+variable to the error condition.</p>
+<p>However, this <code>status</code> argument is not <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/c/eager/dlpack.cc#L265-L267">properly
+checked</a>:
+<code>cc
+  dlm_tensor-&gt;dl_tensor.data = TFE_TensorHandleDevicePointer(h, status);
+  dlm_tensor-&gt;dl_tensor.dtype = GetDlDataType(data_type, status);</code></p>
+<p>Hence, code following these methods will <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/c/eager/dlpack.cc#L279-L285">bind references to null
+pointers</a>:
+<code>cc
+  dlm_tensor-&gt;dl_tensor.shape = &amp;(*shape_arr)[0];
+  dlm_tensor-&gt;dl_tensor.strides = &amp;(*stride_arr)[0];</code></p>
+<p>This is undefined behavior and reported as an error if compiling with
+<code>-fsanitize=null</code>.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/22e07fb204386768e5bcbea563641ea11f96ceb8">22e07fb204386768e5bcbea563641ea11f96ceb8</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 2.2.1 or 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-023.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

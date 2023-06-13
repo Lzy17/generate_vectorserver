@@ -1,0 +1,38 @@
+<h1>Math Libraries</h1>
+<p>AMD provides various math domain and support libraries as part of the ROCm.</p>
+<h2>rocLIB vs. hipLIB</h2>
+<p>Several libraries are prefixed with either "roc" or "hip".
+The rocLIB variants (such as rocRAND, rocBLAS) are tested and optimized for AMD hardware using supported toolchains.
+The hipLIB variants (such as hipRAND, hipBLAS) are compatibility layers that provide an interface akin to their
+cuLIB (such as cuRAND, cuBLAS) variants while performing static dispatching of API calls to the appropriate
+vendor libraries as their back-ends. Due to their static dispatch nature, support for either vendor is decided
+at compile-time of the hipLIB in question. For dynamic dispatch between vendor implementations, refer to the
+<a href="https://github.com/GPUOpen-LibrariesAndSDKs/Orochi">Orochi</a> library.</p>
+<p>::::{grid} 1 2 3 3
+:gutter: 1</p>
+<p>:::{grid-item-card} <a href="linear_algebra">Linear Algebra Libraries</a></p>
+<ul>
+<li>{doc}<code>rocBLAS &lt;rocblas:index&gt;</code></li>
+<li>{doc}<code>hipBLAS &lt;hipblas:index&gt;</code></li>
+<li>{doc}<code>hipBLASLt &lt;hipblaslt:index&gt;</code></li>
+<li>{doc}<code>rocALUTION &lt;rocalution:index&gt;</code></li>
+<li>{doc}<code>rocWMMA &lt;rocwmma:index&gt;</code></li>
+<li>{doc}<code>rocSOLVER &lt;rocsolver:index&gt;</code></li>
+<li>{doc}<code>hipSOLVER &lt;hipsolver:index&gt;</code></li>
+<li>{doc}<code>rocSPARSE &lt;rocsparse:index&gt;</code></li>
+<li>{doc}<code>hipSPARSE &lt;hipsparse:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="fft">Fast Fourier Transforms</a></p>
+<ul>
+<li>{doc}<code>rocFFT &lt;rocfft:index&gt;</code></li>
+<li>{doc}<code>hipFFT &lt;hipfft:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} <a href="rand">Random Numbers</a></p>
+<ul>
+<li>{doc}<code>rocRAND &lt;rocrand:index&gt;</code></li>
+<li>{doc}<code>hipRAND &lt;hiprand:index&gt;</code></li>
+</ul>
+<p>:::</p>
+<p>::::</p>

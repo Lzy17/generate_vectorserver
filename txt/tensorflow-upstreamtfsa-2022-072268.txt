@@ -1,0 +1,21 @@
+<h2>TFSA-2022-072: Undefined behavior when users supply invalid resource handles</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29207</p>
+<h3>Impact</h3>
+<p>Multiple TensorFlow operations misbehave in eager mode when the resource handle provided to them is invalid:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.QueueIsClosedV2(handle=[])
+```</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.summary.flush(writer=())
+```</p>
+<p>In graph mode, it would have been impossible to perform these API calls, but migration to TF 2.x eager mode opened up this vulnerability. If the resource handle is empty, then a reference is bound to a null pointer inside TensorFlow codebase (various codepaths). This is undefined behavior.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/a5b89cd68c02329d793356bda85d079e9e69b4e7">a5b89cd68c02329d793356bda85d079e9e69b4e7</a> and GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/dbdd98c37bc25249e8f288bd30d01e118a7b4498">dbdd98c37bc25249e8f288bd30d01e118a7b4498</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Hong Jin from Singapore Management University.</p>

@@ -1,0 +1,155 @@
+<h1>JIT scripting &amp; Autocast</h1>
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#known-limitations">Known limitations</a><ul>
+<li><a href="#diagnostics">Diagnostics</a></li>
+<li><a href="#autocast-decorators">Autocast decorators</a></li>
+<li><a href="#autocast-argument-must-be-a-compile-time-constant">Autocast argument must be a compile-time constant</a></li>
+<li><a href="#uncommon-autocast-usage-patterns-may-not-be-supported">Uncommon autocast usage patterns may not be supported</a></li>
+<li><a href="#limited-support-for-promote-autocast-policy">Limited support for promote autocast policy</a></li>
+<li><a href="#missing-autocast-policies">Missing autocast policies</a></li>
+<li><a href="#mixing-eager-mode-and-scripting-autocast">Mixing eager mode and scripting autocast</a></li>
+<li><a href="#mixing-tracing-and-scripting-autocast-script-calling-traced">Mixing tracing and scripting autocast (script calling traced)</a></li>
+<li><a href="#mixing-tracing-and-scripting-autocast-traced-calling-script">Mixing tracing and scripting autocast (traced calling script)</a></li>
+<li><a href="#disabling-eager-autocast-with-scripted-autocast">Disabling eager autocast with scripted autocast</a></li>
+</ul>
+</li>
+<li><a href="#references">References</a></li>
+</ul>
+<!-- /code_chunk_output -->
+
+<h2>Overview</h2>
+<p><a href="https://pytorch.org/blog/accelerating-training-on-nvidia-gpus-with-pytorch-automatic-mixed-precision/">Autocast</a> (aka Automatic Mixed Precision) is an optimization which helps
+taking advantage of the storage and performance benefits of narrow types
+(float16) while preserving the additional range and numerical precision of
+float32.</p>
+<p>The JIT support for autocast is subject to different constraints compared to the
+eager mode implementation (mostly related to the fact that TorchScript is
+statically typed) and this document attempts to list the known limitations.</p>
+<h2>Usage</h2>
+<p>Explicit <code>with autocast()</code> scopes are supported inside scripted functions and
+modules (subject to the limitations described below):</p>
+<p>```python
+import torch
+from torch.cuda.amp import autocast</p>
+<p>@torch.jit.script
+def func(a, b):
+    with autocast():
+        return torch.mm(a, b)</p>
+<p>a_float32 = torch.rand((8, 8), dtype=torch.float32, device="cuda")
+b_float32 = torch.rand((8, 8), dtype=torch.float32, device="cuda")
+result = func(a_float32, b_float32)
+print(result.dtype) # expecting torch.float16
+```</p>
+<h2>Known limitations</h2>
+<p>This section documents the current set of known limitations. Ideally this list
+will shrink as we advance with the design and implementation, although some of
+the limitations are related to fundamental TorchScript aspects that are not easy
+to change.</p>
+<blockquote>
+<p>One important goal is to avoid surprises (ex. autocast annotations
+silently ignored) and to report sensible diagnostics when something deviates
+from eager mode behavior.</p>
+<p>Please <a href="https://github.com/csarofeen/pytorch/issues/new/choose">report</a> any
+issues not covered here.</p>
+</blockquote>
+<h4>Diagnostics</h4>
+<p>The current Autocast/JIT diagnostics should be improved:
+- Some errors are not specific enough or not actionable
+- Not all the errors point to the Python source location</p>
+<h4>Autocast decorators</h4>
+<p>Using <code>@autocast</code> is not currently supported in script mode (a diagnostic
+will be emitted)</p>
+<p>```python
+@autocast(enabled=True)
+def helper(x):
+    ...</p>
+<p>@torch.jit.script
+def foo(x):
+    return helper(x) # not supported
+```</p>
+<p>Another example</p>
+<p><code>python
+@torch.jit.script
+@autocast() # not supported
+def foo(a, b, c, d):
+    ...</code></p>
+<h4>Autocast argument must be a compile-time constant</h4>
+<p>```python
+@torch.jit.script
+def fn(a, b, use_amp: bool):
+    # runtime values for autocast enable argument are not supported
+    with autocast(enabled=use_amp):
+        return torch.mm(a, b)</p>
+<p>```</p>
+<h4>Uncommon autocast usage patterns may not be supported</h4>
+<p><code>python
+@torch.jit.script
+def fn(a, b, c, d):
+    with autocast(enabled=True) as autocast_instance: # not supported
+        ...
+        with autocast_instance:
+            ...</code></p>
+<h4>Limited support for promote autocast policy</h4>
+<p>For some operations, autocast needs to <a href="https://pytorch.org/docs/stable/amp.html#ops-that-promote-to-the-widest-input-type">promote to the widest argument type</a>.
+When the concrete types are not available, the current implementation will
+conservatively inject a promotion even when it may not be needed.</p>
+<h4>Missing autocast policies</h4>
+<p>Also related to the lack of concrete dtype availability, a few specialized
+autocast policies are not yet supported with JIT scripting:
+- <a href="https://github.com/csarofeen/pytorch/blob/4d8575604ad9fa5fdfc21037490a041d8d43bcae/aten/src/ATen/autocast_mode.cpp#L99">CastPolicy::fp32_append_dtype</a></p>
+<h4>Mixing tracing and scripting autocast (script calling traced)</h4>
+<p>Calling a traced function from a scripted one mostly works, except for the case
+where the traced part uses <code>autocast(False)</code>. After tracing, the <code>autocast</code> is
+stripped from the TorchScript IR so it's effectively ignored:</p>
+<blockquote>
+<p>This is one known limitation where we don't have a way to emit a diagnostic!</p>
+</blockquote>
+<p>```python
+def helper(a, b):
+    with autocast(enabled=False):
+        return torch.mm(a, b) * 2.0</p>
+<p>traced = torch.jit.trace(helper, (x, y))</p>
+<p>@torch.jit.script
+def fn(a, b):
+    with autocast(enabled=True):
+        return traced(a, b)
+```</p>
+<h4>Mixing tracing and scripting autocast (traced calling script)</h4>
+<p>Calling a scripted function from a trace is similar to calling the scripted
+function from eager mode:</p>
+<p>```python
+@torch.jit.script
+def fn(a, b):
+    return torch.mm(a, b)</p>
+<p>def traced(a, b):
+    with autocast(enabled=True):
+        return fn(a, b)</p>
+<h1>running TorchScript with Autocast enabled is not supported</h1>
+<p>torch.jit.trace(traced, (x, y))
+```</p>
+<h4>Disabling eager autocast with scripted autocast</h4>
+<p>If eager-mode autocast is enabled and we try to disable autocasting from
+within a scripted function, autocasting will still occur.</p>
+<p>```python
+@torch.jit.script
+def fn(a, b):
+    with autocast(enabled=False):
+        return torch.mm(a, b)</p>
+<p>x = torch.rand((2, 2), device='cuda', dtype=torch.float)
+y = torch.rand((2, 2), device='cuda', dtype=torch.float)</p>
+<h1>this will print half-precision dtype</h1>
+<p>with autocast(enabled=True):
+    print(fn(x, y).dtype)
+```</p>
+<h2>References</h2>
+<ul>
+<li><a href="https://pytorch.org/docs/stable/amp.html">torch.cuda.amp Package</a></li>
+<li><a href="https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html">Automatic Mixed Precision - Tutorial</a></li>
+<li><a href="https://pytorch.org/docs/stable/notes/amp_examples.html">Automatic Mixed Precision - Examples</a></li>
+</ul>

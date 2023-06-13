@@ -1,0 +1,177 @@
+<h1>TensorFlow Lite operator versions</h1>
+<p>This document describes TensorFlow Lite's op versioning schema. Op versioning
+enables developers to add new functionalities and parameters into existing ops.
+In addition, it guarantees the following:</p>
+<ul>
+<li>Backward compatibility: New TensorFlow Lite implementation should handle an
+    old model file.</li>
+<li>Forward compatibility: Old TensorFlow Lite implementation should handle a
+    new model file produced by new version of converter, as long as no new
+    features are used.</li>
+<li>Forward in-compatibility detection: If an old TensorFlow Lite implementation
+    reads a new model that contains a new version of an op which isn't
+    supported, it should report the error.</li>
+</ul>
+<h2>Example: Adding dilation into depthwise convolution</h2>
+<p>The remainder of this document explains op versioning in TFLite by showing how
+to add dilation parameters to the depthwise convolution operation.</p>
+<p>Knowledge of dilation is not required to understand this document. Note that:</p>
+<ul>
+<li>2 new integer parameters will be added: <code>dilation_width_factor</code> and
+    <code>dilation_height_factor</code>.</li>
+<li>Old depthwise convolution kernels that don't support dilation are equivalent
+    to setting the dilation factors to 1.</li>
+</ul>
+<h3>Change FlatBuffer schema</h3>
+<p>To add new parameters into an op, change the options table in
+<code>lite/schema/schema.fbs</code>.</p>
+<p>For example, the options table of depthwise convolution looks like this:</p>
+<p><code>table DepthwiseConv2DOptions {
+  padding:Padding;
+  stride_w:int;
+  stride_h:int;
+  depth_multiplier:int;
+  fused_activation_function:ActivationFunctionType;
+}</code></p>
+<p>When adding new parameters:</p>
+<ul>
+<li>Add comments indicating which parameters are supported by which version.</li>
+<li>When the new implementation gets the default values for newly added
+    parameters, it should work exactly the same as the old implementation.</li>
+</ul>
+<p>The table will be like this after the new parameters are added:</p>
+<p><code>table DepthwiseConv2DOptions {
+  // Parameters for DepthwiseConv version 1 or above.
+  padding:Padding;
+  stride_w:int;
+  stride_h:int;
+  depth_multiplier:int;
+  fused_activation_function:ActivationFunctionType;
+  // Parameters for DepthwiseConv version 2 or above.
+  dilation_w_factor:int = 1;
+  dilation_h_factor:int = 1;
+}</code></p>
+<p>The file <code>lite/schema/schema_generated.h</code> should be re-generated for the new
+schema.</p>
+<h3>Change C structures and kernel implementation</h3>
+<p>In TensorFlow Lite, the kernel implementation is decoupled from FlatBuffer
+definition. The kernels read the parameter from C structures defined in
+<code>lite/c/builtin_op_data.h</code>.</p>
+<p>The original depthwise convolution parameter is as follows:</p>
+<p><code>typedef struct {
+  TfLitePadding padding;
+  int stride_width;
+  int stride_height;
+  int depth_multiplier;
+  TfLiteFusedActivation activation;
+} TfLiteDepthwiseConvParams;</code></p>
+<p>As with the FlatBuffer schema, add comments indicating which parameters are
+supported starting from which version. The result is seen below:</p>
+<p><code>typedef struct {
+  // Parameters for DepthwiseConv version 1 or above.
+  TfLitePadding padding;
+  int stride_width;
+  int stride_height;
+  int depth_multiplier;
+  TfLiteFusedActivation activation;
+  // Parameters for DepthwiseConv version 2 or above.
+  int dilation_width_factor;
+  int dilation_height_factor;
+} TfLiteDepthwiseConvParams;</code></p>
+<p>Please also change the kernel implementation to read the newly added parameters
+from the C structures. The details are omitted here.</p>
+<h3>Change the FlatBuffer reading code</h3>
+<p>The logic to read FlatBuffer and produce C structure is in
+<code>lite/core/api/flatbuffer_conversions.cc</code>.</p>
+<p>Update the file to handle the new parameters, as shown below:</p>
+<p>```
+TfLiteStatus ParseDepthwiseConv2D(const Operator<em> op,
+                                  ErrorReporter</em> error_reporter,
+                                  BuiltinDataAllocator<em> allocator,
+                                  void</em>* builtin_data) {
+  CheckParsePointerParams(op, error_reporter, allocator, builtin_data);</p>
+<p>SafeBuiltinDataAllocator safe_allocator(allocator);</p>
+<p>std::unique_ptr<TfLiteDepthwiseConvParams,
+                  SafeBuiltinDataAllocator::BuiltinDataDeleter>
+      params = safe_allocator.Allocate<TfLiteDepthwiseConvParams>();
+  TF_LITE_ENSURE(error_reporter, params != nullptr);</p>
+<p>const DepthwiseConv2DOptions* schema_params =
+      op-&gt;builtin_options_as_DepthwiseConv2DOptions();</p>
+<p>if (schema_params != nullptr) {
+    params-&gt;padding = ConvertPadding(schema_params-&gt;padding());
+    params-&gt;stride_width = schema_params-&gt;stride_w();
+    params-&gt;stride_height = schema_params-&gt;stride_h();
+    params-&gt;depth_multiplier = schema_params-&gt;depth_multiplier();
+    params-&gt;activation =
+        ConvertActivation(schema_params-&gt;fused_activation_function());</p>
+<pre><code>params-&gt;dilation_width_factor = schema_params-&gt;dilation_w_factor();
+params-&gt;dilation_height_factor = schema_params-&gt;dilation_h_factor();
+</code></pre>
+<p>}</p>
+<p>*builtin_data = params.release();
+  return kTfLiteOk;
+}
+```</p>
+<p>It's not required to check the op version here. When the new implementation
+reads an old model file where dilation factors are missing, it will use 1 as the
+default value, and the new kernel will work consistently with the old kernel.</p>
+<h3>Change kernel registration</h3>
+<p>The MutableOpResolver (defined in <code>lite/mutable_op_resolver.h</code>) provides a few
+functions to register op kernels. The minimum and maximum version are 1 by
+default:</p>
+<p><code>void AddBuiltin(tflite::BuiltinOperator op, TfLiteRegistration* registration,
+                int min_version = 1, int max_version = 1);
+void AddCustom(const char* name, TfLiteRegistration* registration,
+               int min_version = 1, int max_version = 1);</code></p>
+<p>The built-in ops are registered in <code>lite/kernels/register.cc</code>. In this example,
+we implemented a new op kernel which can handle <code>DepthwiseConv2D</code> version 1 and
+2, so we need to change this line:</p>
+<p><code>AddBuiltin(BuiltinOperator_DEPTHWISE_CONV_2D, Register_DEPTHWISE_CONV_2D());</code></p>
+<p>to:</p>
+<p><code>AddBuiltin(BuiltinOperator_DEPTHWISE_CONV_2D, Register_DEPTHWISE_CONV_2D(),
+             /* min_version = */ 1,
+             /* max_version = */ 2);</code></p>
+<h3>Change TFLite op version</h3>
+<p>The next step is to make TFLite populate the minimum version that's required to
+execute the op. In this example, it means:</p>
+<ul>
+<li>Populate version=1 when dilation factors are all 1.</li>
+<li>Populate version=2 otherwise.</li>
+</ul>
+<p>Modify <code>GetBuiltinOperatorVersion</code> function for the operator in
+<code>lite/tools/versioning/op_version.cc</code> by adding the new version to the case of
+<code>DepthwiseConv2D</code>:</p>
+<p><code>case BuiltinOperator_DEPTHWISE_CONV_2D:
+  auto depthwise_conv_params =
+      reinterpret_cast&lt;TfLiteDepthwiseConvParams*&gt;(op_sig.builtin_data);
+  TFLITE_DCHECK(depthwise_conv_params != nullptr);
+  if (depthwise_conv_params-&gt;dilation_width_factor != 1 ||
+       depthwise_conv_params-&gt;dilation_height_factor != 1) {
+    return 2;
+  }
+  return 1;</code></p>
+<h3>Update the operator version map</h3>
+<p>The last step is to add the new version info into the operator version map. This
+step is required because we need to generate the model's minimum required
+runtime version based on this version map.</p>
+<p>To do this, you need to add a new map entry in
+<code>lite/tools/versioning/runtime_version.cc</code>.</p>
+<p>In this example, you need to add the following entry into <code>op_version_map</code>:</p>
+<p><code>{{BuiltinOperator_DEPTHWISE_CONV_2D, 2}, %CURRENT_RUNTIME_VERSION%}</code></p>
+<p>where <code>%CURRENT_RUNTIME_VERSION%</code> corresponds to the current runtime version
+defined in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/public/version.h">tensorflow/core/public/version.h</a>.</p>
+<h3>Delegation implementation</h3>
+<p>TensorFlow Lite provides a delegation API which enables delegating ops to
+hardware backends. In the delegate's <code>Prepare</code> function, check if the version is
+supported for every node in Delegation code.</p>
+<p>```
+const int kMaxVersion = 1;
+TfLiteNode<em> node;
+TfLiteRegistration</em> registration = nullptr;
+TF_LITE_ENSURE_STATUS(context-&gt;GetNodeAndRegistration(context, node_index, &amp;node, &amp;registration));</p>
+<p>if (registration-&gt;version &gt; kMaxVersion) {
+  // Reject the node if the version isn't supported.
+}
+```</p>
+<p>This is required even if the delegation only supports version 1 ops, so the
+delegation can detect incompatibility when getting a higher version op.</p>

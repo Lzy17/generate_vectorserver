@@ -1,0 +1,27 @@
+<h2>TFSA-2020-021: Heap buffer overflow in SparseFillEmptyRowsGrad</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15195</p>
+<h3>Impact</h3>
+<p>The implementation of <code>SparseFillEmptyRowsGrad</code> uses a <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/kernels/sparse_fill_empty_rows_op.cc#L263-L269">double indexing
+pattern</a>:
+<code>cc
+      d_values(i) = grad_values(reverse_index_map(i));</code></p>
+<p>It is possible for <code>reverse_index_map(i)</code> to be an index outside of bounds of
+<code>grad_values</code>, thus resulting in a heap buffer overflow.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/390611e0d45c5793c7066110af37c8514e6a6c54">390611e0d45c5793c7066110af37c8514e6a6c54</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

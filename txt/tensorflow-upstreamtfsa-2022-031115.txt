@@ -1,0 +1,10 @@
+<h2>TFSA-2022-031: <code>CHECK</code>-fail with repeated <code>AttrDef</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23565</p>
+<h3>Impact</h3>
+<p>An attacker can trigger denial of service via assertion failure by altering a <code>SavedModel</code> on disk such that <code>AttrDef</code>s of some operation are duplicated.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c2b31ff2d3151acb230edc3f5b1832d2c713a9e0">c2b31ff2d3151acb230edc3f5b1832d2c713a9e0</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

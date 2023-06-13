@@ -1,0 +1,21 @@
+<h2>TFSA-2022-137: Null dereference on MLIR on empty function attributes</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36011</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ir/importexport/functiondef_import.cc"><code>mlir::tfg::ConvertGenericFunctionToFunctionDef</code></a> is given empty function attributes, it gives a null dereference.
+<code>cpp
+// Import the function attributes with a `tf.` prefix to match the current
+// infrastructure expectations.
+for (const auto&amp; namedAttr : func.attr()) {
+  const std::string&amp; name = "tf." + namedAttr.first;
+  const AttrValue&amp; tf_attr = namedAttr.second;
+  TF_ASSIGN_OR_RETURN(Attribute attr,
+                      ConvertAttributeValue(tf_attr, builder, tfgDialect));
+  attrs.append(name, attr);
+}</code>
+If <code>namedAttr.first</code> is empty, it will crash.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/1cf45b831eeb0cab8655c9c7c5d06ec6f45fc41b">1cf45b831eeb0cab8655c9c7c5d06ec6f45fc41b</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

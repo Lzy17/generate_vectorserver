@@ -1,0 +1,76 @@
+<h1>GPU acceleration delegate with C/C++ API</h1>
+<p>Using graphics processing units (GPUs) to run your machine learning (ML) models
+can dramatically improve the performance and the user experience
+of your ML-enabled applications. On Android devices, you can enable
+GPU-accelerated execution of your models using a
+<a href="../../performance/delegates"><em>delegate</em></a> and one of the following APIs:</p>
+<ul>
+<li>Interpreter API - <a href="./gpu">guide</a></li>
+<li>Task library API - <a href="./gpu_task">guide</a></li>
+<li>Native (C/C++) API - this guide</li>
+</ul>
+<p>This guide covers advanced
+uses of the GPU delegate for the C API, C++ API, and use of quantized models.
+For more information about using the GPU delegate for TensorFlow Lite,
+including best practices and advanced techniques, see the
+<a href="../../performance/gpu">GPU delegates</a> page.</p>
+<h2>Enable GPU acceleration</h2>
+<p>Use the TensorFlow Lite GPU delegate for Android in C or C++ by creating the
+delegate with <code>TfLiteGpuDelegateV2Create()</code> and destroying it with
+<code>TfLiteGpuDelegateV2Delete()</code>, as shown in the following example code:</p>
+<p>```c++
+// Set up interpreter.
+auto model = FlatBufferModel::BuildFromFile(model_path);
+if (!model) return false;
+ops::builtin::BuiltinOpResolver op_resolver;
+std::unique_ptr<Interpreter> interpreter;
+InterpreterBuilder(*model, op_resolver)(&amp;interpreter);</p>
+<p>// NEW: Prepare GPU delegate.
+auto<em> delegate = TfLiteGpuDelegateV2Create(/</em>default options=*/nullptr);
+if (interpreter-&gt;ModifyGraphWithDelegate(delegate) != kTfLiteOk) return false;</p>
+<p>// Run inference.
+WriteToInputTensor(interpreter-&gt;typed_input_tensor<float>(0));
+if (interpreter-&gt;Invoke() != kTfLiteOk) return false;
+ReadFromOutputTensor(interpreter-&gt;typed_output_tensor<float>(0));</p>
+<p>// NEW: Clean up.
+TfLiteGpuDelegateV2Delete(delegate);
+```</p>
+<p>Review the <code>TfLiteGpuDelegateOptionsV2</code> object code to build a delegate instance
+with custom options. You can initialize the default options with
+<code>TfLiteGpuDelegateOptionsV2Default()</code> and then modify them as necessary.</p>
+<p>The TensorFlow Lite GPU delegate for Android in C or C++ uses the
+<a href="https://bazel.io">Bazel</a> build system. You can build the delegate using the
+following command:</p>
+<p><code>sh
+bazel build -c opt --config android_arm64 tensorflow/lite/delegates/gpu:delegate                           # for static library
+bazel build -c opt --config android_arm64 tensorflow/lite/delegates/gpu:libtensorflowlite_gpu_delegate.so  # for dynamic library</code></p>
+<p>When calling <code>Interpreter::ModifyGraphWithDelegate()</code> or
+<code>Interpreter::Invoke()</code>, the caller must have an <code>EGLContext</code> in the current
+thread and <code>Interpreter::Invoke()</code> must be called from the same <code>EGLContext</code>. If
+an <code>EGLContext</code> does not exist, the delegate creates one internally, but then
+you must ensure that <code>Interpreter::Invoke()</code> is always called from the same
+thread in which <code>Interpreter::ModifyGraphWithDelegate()</code> was called.</p>
+<h2>Quantized models {:#quantized-models}</h2>
+<p>Android GPU delegate libraries support quantized models by default. You do not
+have to make any code changes to use quantized models with the GPU delegate. The
+following section explains how to disable quantized support for testing or
+experimental purposes.</p>
+<h4>Disable quantized model support</h4>
+<p>The following code shows how to <strong><em>disable</em></strong> support for quantized models.</p>
+<div>
+  <devsite-selector>
+    <section>
+      <h3>C++</h3>
+      <p><pre class="prettyprint lang-c++">
+TfLiteGpuDelegateOptionsV2 options = TfLiteGpuDelegateOptionsV2Default();
+options.experimental_flags = TFLITE_GPU_EXPERIMENTAL_FLAGS_NONE;
+
+auto* delegate = TfLiteGpuDelegateV2Create(options);
+if (interpreter->ModifyGraphWithDelegate(delegate) != kTfLiteOk) return false;
+      </pre></p>
+    </section>
+  </devsite-selector>
+</div>
+
+<p>For more information about running quantized models with GPU acceleration,
+see <a href="../../performance/gpu#quantized-models">GPU delegate</a> overview.</p>

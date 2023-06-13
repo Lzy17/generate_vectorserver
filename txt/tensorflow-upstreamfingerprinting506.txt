@@ -1,0 +1,18 @@
+<h2>SavedModel Fingerprinting</h2>
+<p>This document describes the implementation details of SavedModel fingerprinting. 
+The design document (RFC) can be found <a href="https://github.com/tensorflow/community/pull/415">here</a>.</p>
+<h3>Implementation</h3>
+<p>The code that implements SavedModel fingerprinting can be found in :
+- <code>tensorflow/python/saved_model/fingerprinting.py</code>: Public python methods for accessing the fingerprint.
+- <code>tensorflow/python/saved_model/pywrap_saved_model_fingerprinting.*</code>: Python wrappers for C++ fingerprint methods. For internal use only.
+- <code>tensorflow/cc/saved_model/fingerprint.*</code>: C++ methods for creating and reading the fingerprint.
+- <code>tensorflow/core/graph/regularization/</code>: Code that "regularizes" the GraphDef. See the README</p>
+<p>Generally speaking, most of the implementation for SavedModel fingerprinting is in C++. The code in this directory is meant to make these methods accessible in Python for the purposes of creating a public API
+as well as instrumenting the Python side of the code base.</p>
+<h3>Instrumentation</h3>
+<p>The current SavedModel reading and loading APIs are instrumented such that they log
+the fingerprint every time they are called. The APIs that are instrumented are:
+- <code>tf.saved_model.save</code>
+- <code>tf.saved_model.load</code>
+- <code>tensorflow::LoadSavedModel</code>
+- <code>tensorflow::SavedModelV2Bundle::Load</code></p>

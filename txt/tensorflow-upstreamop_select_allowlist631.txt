@@ -1,0 +1,881 @@
+<h1>Supported Select TensorFlow operators</h1>
+<p>Caution: The operators list is updated frequently.</p>
+<h2>TensorFlow core operators</h2>
+<p>The following is an exhaustive list of TensorFlow core operations that are
+supported by TensorFlow Lite runtime with the Select TensorFlow Ops feature.</p>
+<ul>
+<li><code>raw_ops.Abort</code></li>
+<li><code>raw_ops.Abs</code></li>
+<li><code>raw_ops.Add</code></li>
+<li><code>raw_ops.AddN</code></li>
+<li><code>raw_ops.AddV2</code></li>
+<li><code>raw_ops.AdjustContrast</code></li>
+<li><code>raw_ops.AdjustContrastv2</code></li>
+<li><code>raw_ops.AdjustHue</code></li>
+<li><code>raw_ops.AdjustSaturation</code></li>
+<li><code>raw_ops.All</code></li>
+<li><code>raw_ops.Angle</code></li>
+<li><code>raw_ops.Any</code></li>
+<li><code>raw_ops.ApplyAdadelta</code></li>
+<li><code>raw_ops.ApplyAdagrad</code></li>
+<li><code>raw_ops.ApplyAdagradDA</code></li>
+<li><code>raw_ops.ApplyAdagradV2</code></li>
+<li><code>raw_ops.ApplyAdam</code></li>
+<li><code>raw_ops.ApplyAdaMax</code></li>
+<li><code>raw_ops.ApplyAddSign</code></li>
+<li><code>raw_ops.ApplyCenteredRMSProp</code></li>
+<li><code>raw_ops.ApplyFtrl</code></li>
+<li><code>raw_ops.ApplyFtrlV2</code></li>
+<li><code>raw_ops.ApplyGradientDescent</code></li>
+<li><code>raw_ops.ApplyMomentum</code></li>
+<li><code>raw_ops.ApplyPowerSign</code></li>
+<li><code>raw_ops.ApplyProximalAdagrad</code></li>
+<li><code>raw_ops.ApplyProximalGradientDescent</code></li>
+<li><code>raw_ops.ApplyRMSProp</code></li>
+<li><code>raw_ops.ApproximateEqual</code></li>
+<li><code>raw_ops.ArgMax</code></li>
+<li><code>raw_ops.ArgMin</code></li>
+<li><code>raw_ops.AsString</code></li>
+<li><code>raw_ops.Assert</code></li>
+<li><code>raw_ops.Assign</code></li>
+<li><code>raw_ops.AssignAdd</code></li>
+<li><code>raw_ops.AssignAddVariableOp</code></li>
+<li><code>raw_ops.AssignSub</code></li>
+<li><code>raw_ops.AssignSubVariableOp</code></li>
+<li><code>raw_ops.AssignVariableOp</code></li>
+<li><code>raw_ops.Atan</code></li>
+<li><code>raw_ops.Atan2</code></li>
+<li><code>raw_ops.AudioSpectrogram</code></li>
+<li><code>raw_ops.AvgPool</code></li>
+<li><code>raw_ops.AvgPool3D</code></li>
+<li><code>raw_ops.AvgPool3DGrad</code></li>
+<li><code>raw_ops.AvgPoolGrad</code></li>
+<li><code>raw_ops.BatchCholesky</code></li>
+<li><code>raw_ops.BatchDatasetV2</code></li>
+<li><code>raw_ops.BatchMatMul</code></li>
+<li><code>raw_ops.BatchMatMulV2</code></li>
+<li><code>raw_ops.BatchMatrixBandPart</code></li>
+<li><code>raw_ops.BatchMatrixDiag</code></li>
+<li><code>raw_ops.BatchMatrixDiagPart</code></li>
+<li><code>raw_ops.BatchMatrixInverse</code></li>
+<li><code>raw_ops.BatchMatrixSetDiag</code></li>
+<li><code>raw_ops.BatchMatrixTriangularSolve</code></li>
+<li><code>raw_ops.BatchNormWithGlobalNormalization</code></li>
+<li><code>raw_ops.BatchNormWithGlobalNormalizationGrad</code></li>
+<li><code>raw_ops.BatchToSpace</code></li>
+<li><code>raw_ops.BatchToSpaceND</code></li>
+<li><code>raw_ops.BiasAdd</code></li>
+<li><code>raw_ops.BiasAddGrad</code></li>
+<li><code>raw_ops.BiasAddV1</code></li>
+<li><code>raw_ops.Bincount</code></li>
+<li><code>raw_ops.Bitcast</code></li>
+<li><code>raw_ops.BitwiseAnd</code></li>
+<li><code>raw_ops.BitwiseOr</code></li>
+<li><code>raw_ops.BitwiseXor</code></li>
+<li><code>raw_ops.BroadcastArgs</code></li>
+<li><code>raw_ops.BroadcastGradientArgs</code></li>
+<li><code>raw_ops.BroadcastTo</code></li>
+<li><code>raw_ops.Bucketize</code></li>
+<li><code>raw_ops.CTCBeamSearchDecoder</code></li>
+<li><code>raw_ops.CTCGreedyDecoder</code></li>
+<li><code>raw_ops.Case</code></li>
+<li><code>raw_ops.Cast</code></li>
+<li><code>raw_ops.Ceil</code></li>
+<li><code>raw_ops.CheckNumerics</code></li>
+<li><code>raw_ops.CheckNumericsV2</code></li>
+<li><code>raw_ops.Cholesky</code></li>
+<li><code>raw_ops.ClipByValue</code></li>
+<li><code>raw_ops.CombinedNonMaxSuppression</code></li>
+<li><code>raw_ops.Complex</code></li>
+<li><code>raw_ops.ComplexAbs</code></li>
+<li><code>raw_ops.Concat</code></li>
+<li><code>raw_ops.ConcatOffset</code></li>
+<li><code>raw_ops.ConcatV2</code></li>
+<li><code>raw_ops.Conj</code></li>
+<li><code>raw_ops.ConjugateTranspose</code></li>
+<li><code>raw_ops.Const</code></li>
+<li><code>raw_ops.ControlTrigger</code></li>
+<li><code>raw_ops.Conv2D</code></li>
+<li><code>raw_ops.Conv2DBackpropFilter</code></li>
+<li><code>raw_ops.Conv2DBackpropInput</code></li>
+<li><code>raw_ops.Conv3D</code></li>
+<li><code>raw_ops.Conv3DBackpropFilter</code></li>
+<li><code>raw_ops.Conv3DBackpropFilterV2</code></li>
+<li><code>raw_ops.Conv3DBackpropInput</code></li>
+<li><code>raw_ops.Conv3DBackpropInputV2</code></li>
+<li><code>raw_ops.Cos</code></li>
+<li><code>raw_ops.Cosh</code></li>
+<li><code>raw_ops.CropAndResize</code></li>
+<li><code>raw_ops.CropAndResizeGradBoxes</code></li>
+<li><code>raw_ops.CropAndResizeGradImage</code></li>
+<li><code>raw_ops.CTCBeamSearchDecoder</code></li>
+<li><code>raw_ops.CTCGreedyDecoder</code></li>
+<li><code>raw_ops.Cumprod</code></li>
+<li><code>raw_ops.Cumsum</code></li>
+<li><code>raw_ops.CumulativeLogsumexp</code></li>
+<li><code>raw_ops.DataFormatDimMap</code></li>
+<li><code>raw_ops.DataFormatVecPermute</code></li>
+<li><code>raw_ops.DebugGradientIdentity</code></li>
+<li><code>raw_ops.DebugGradientRefIdentity</code></li>
+<li><code>raw_ops.DecodeAndCropJpeg</code></li>
+<li><code>raw_ops.DecodeBase64</code></li>
+<li><code>raw_ops.DecodeBmp</code></li>
+<li><code>raw_ops.DecodeGif</code></li>
+<li><code>raw_ops.DecodeImage</code></li>
+<li><code>raw_ops.DecodeJpeg</code></li>
+<li><code>raw_ops.DecodePaddedRaw</code></li>
+<li><code>raw_ops.DecodePng</code></li>
+<li><code>raw_ops.DecodeRaw</code></li>
+<li><code>raw_ops.DecodeWav</code></li>
+<li><code>raw_ops.DeepCopy</code></li>
+<li><code>raw_ops.DeleteSessionTensor</code></li>
+<li><code>raw_ops.DenseBincount</code></li>
+<li><code>raw_ops.DenseToDenseSetOperation</code></li>
+<li><code>raw_ops.DenseToSparseSetOperation</code></li>
+<li><code>raw_ops.DepthToSpace</code></li>
+<li><code>raw_ops.DepthwiseConv2dNative</code></li>
+<li><code>raw_ops.DepthwiseConv2dNativeBackpropFilter</code></li>
+<li><code>raw_ops.DepthwiseConv2dNativeBackpropInput</code></li>
+<li><code>raw_ops.Dequantize</code></li>
+<li><code>raw_ops.DestroyResourceOp</code></li>
+<li><code>raw_ops.DestroyTemporaryVariable</code></li>
+<li><code>raw_ops.Diag</code></li>
+<li><code>raw_ops.DiagPart</code></li>
+<li><code>raw_ops.Dilation2D</code></li>
+<li><code>raw_ops.Dilation2DBackpropFilter</code></li>
+<li><code>raw_ops.Dilation2DBackpropInput</code></li>
+<li><code>raw_ops.Div</code></li>
+<li><code>raw_ops.DivNoNan</code></li>
+<li><code>raw_ops.DynamicPartition</code></li>
+<li><code>raw_ops.DynamicStitch</code></li>
+<li><code>raw_ops.Einsum</code></li>
+<li><code>raw_ops.Elu</code></li>
+<li><code>raw_ops.EluGrad</code></li>
+<li><code>raw_ops.Empty</code></li>
+<li><code>raw_ops.EmptyTensorList</code></li>
+<li><code>raw_ops.EmptyTensorMap</code></li>
+<li><code>raw_ops.EncodeBase64</code></li>
+<li><code>raw_ops.EncodeJpeg</code></li>
+<li><code>raw_ops.EncodeJpegVariableQuality</code></li>
+<li><code>raw_ops.EncodePng</code></li>
+<li><code>raw_ops.EncodeWav</code></li>
+<li><code>raw_ops.EnsureShape</code></li>
+<li><code>raw_ops.Enter</code></li>
+<li><code>raw_ops.Equal</code></li>
+<li><code>raw_ops.Erf</code></li>
+<li><code>raw_ops.Exit</code></li>
+<li><code>raw_ops.Exp</code></li>
+<li><code>raw_ops.ExpandDims</code></li>
+<li><code>raw_ops.ExtractImagePatches</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxArgs</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxArgsGradient</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxVars</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxVarsGradient</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxVarsPerChannel</code></li>
+<li><code>raw_ops.FakeQuantWithMinMaxVarsPerChannelGradient</code></li>
+<li><code>raw_ops.FakeQueue</code></li>
+<li><code>raw_ops.FFT</code></li>
+<li><code>raw_ops.FFT2D</code></li>
+<li><code>raw_ops.FFT3D</code></li>
+<li><code>raw_ops.FIFOQueue</code></li>
+<li><code>raw_ops.FIFOQueueV2</code></li>
+<li><code>raw_ops.Fill</code></li>
+<li><code>raw_ops.FilterDataset</code></li>
+<li><code>raw_ops.FinalizeDataset</code></li>
+<li><code>raw_ops.Fingerprint</code></li>
+<li><code>raw_ops.FlatMapDataset</code></li>
+<li><code>raw_ops.Floor</code></li>
+<li><code>raw_ops.FloorDiv</code></li>
+<li><code>raw_ops.FloorMod</code></li>
+<li><code>raw_ops.FusedBatchNorm</code></li>
+<li><code>raw_ops.FusedBatchNormGrad</code></li>
+<li><code>raw_ops.FusedBatchNormGradV2</code></li>
+<li><code>raw_ops.FusedBatchNormGradV3</code></li>
+<li><code>raw_ops.FusedBatchNormV2</code></li>
+<li><code>raw_ops.FusedBatchNormV3</code></li>
+<li><code>raw_ops.FusedPadConv2D</code></li>
+<li><code>raw_ops.FusedResizeAndPadConv2D</code></li>
+<li><code>raw_ops.Gather</code></li>
+<li><code>raw_ops.GatherNd</code></li>
+<li><code>raw_ops.GatherV2</code></li>
+<li><code>raw_ops.GetSessionHandle</code></li>
+<li><code>raw_ops.GetSessionHandleV2</code></li>
+<li><code>raw_ops.GetSessionTensor</code></li>
+<li><code>raw_ops.Greater</code></li>
+<li><code>raw_ops.GreaterEqual</code></li>
+<li><code>raw_ops.HSVToRGB</code></li>
+<li><code>raw_ops.HashTable</code></li>
+<li><code>raw_ops.HashTableV2</code></li>
+<li><code>raw_ops.HistogramSummary</code></li>
+<li><code>raw_ops.Identity</code></li>
+<li><code>raw_ops.IdentityN</code></li>
+<li><code>raw_ops.IFFT</code></li>
+<li><code>raw_ops.IFFT2D</code></li>
+<li><code>raw_ops.IFFT3D</code></li>
+<li><code>raw_ops.Imag</code></li>
+<li><code>raw_ops.ImageProjectiveTransformV2</code></li>
+<li><code>raw_ops.ImageProjectiveTransformV3</code></li>
+<li><code>raw_ops.ImmutableConst</code></li>
+<li><code>raw_ops.InplaceAdd</code></li>
+<li><code>raw_ops.InplaceSub</code></li>
+<li><code>raw_ops.InplaceUpdate</code></li>
+<li><code>raw_ops.InTopK</code></li>
+<li><code>raw_ops.InTopKV2</code></li>
+<li><code>raw_ops.InitializeTable</code></li>
+<li><code>raw_ops.InitializeTableFromDataset</code></li>
+<li><code>raw_ops.InitializeTableFromTextFile</code></li>
+<li><code>raw_ops.InitializeTableFromTextFileV2</code></li>
+<li><code>raw_ops.InitializeTableV2</code></li>
+<li><code>raw_ops.Inv</code></li>
+<li><code>raw_ops.Invert</code></li>
+<li><code>raw_ops.InvertPermutation</code></li>
+<li><code>raw_ops.InvGrad</code></li>
+<li><code>raw_ops.IRFFT</code></li>
+<li><code>raw_ops.IRFFT2D</code></li>
+<li><code>raw_ops.IRFFT3D</code></li>
+<li><code>raw_ops.IsFinite</code></li>
+<li><code>raw_ops.IsNan</code></li>
+<li><code>raw_ops.IsVariableInitialized</code></li>
+<li><code>raw_ops.LRN</code></li>
+<li><code>raw_ops.LeakyRelu</code></li>
+<li><code>raw_ops.LeakyReluGrad</code></li>
+<li><code>raw_ops.LeftShift</code></li>
+<li><code>raw_ops.Less</code></li>
+<li><code>raw_ops.LessEqual</code></li>
+<li><code>raw_ops.LinSpace</code></li>
+<li><code>raw_ops.ListDiff</code></li>
+<li><code>raw_ops.Log</code></li>
+<li><code>raw_ops.LogMatrixDeterminant</code></li>
+<li><code>raw_ops.LogSoftmax</code></li>
+<li><code>raw_ops.LogicalAnd</code></li>
+<li><code>raw_ops.LogicalNot</code></li>
+<li><code>raw_ops.LogicalOr</code></li>
+<li><code>raw_ops.LookupTableExport</code></li>
+<li><code>raw_ops.LookupTableExportV2</code></li>
+<li><code>raw_ops.LookupTableFind</code></li>
+<li><code>raw_ops.LookupTableFindV2</code></li>
+<li><code>raw_ops.LookupTableImport</code></li>
+<li><code>raw_ops.LookupTableImportV2</code></li>
+<li><code>raw_ops.LookupTableInsert</code></li>
+<li><code>raw_ops.LookupTableInsertV2</code></li>
+<li><code>raw_ops.LookupTableRemoveV2</code></li>
+<li><code>raw_ops.LookupTableSize</code></li>
+<li><code>raw_ops.LookupTableSizeV2</code></li>
+<li><code>raw_ops.LoopCond</code></li>
+<li><code>raw_ops.LRN</code></li>
+<li><code>raw_ops.MapDataset</code></li>
+<li><code>raw_ops.MatMul</code></li>
+<li><code>raw_ops.MatrixBandPart</code></li>
+<li><code>raw_ops.MatrixDiag</code></li>
+<li><code>raw_ops.MatrixDiagPart</code></li>
+<li><code>raw_ops.MatrixDiagPartV2</code></li>
+<li><code>raw_ops.MatrixDiagPartV3</code></li>
+<li><code>raw_ops.MatrixDiagV2</code></li>
+<li><code>raw_ops.MatrixDiagV3</code></li>
+<li><code>raw_ops.MatrixInverse</code></li>
+<li><code>raw_ops.MatrixSetDiag</code></li>
+<li><code>raw_ops.MatrixSetDiagV2</code></li>
+<li><code>raw_ops.MatrixSetDiagV3</code></li>
+<li><code>raw_ops.MatrixTriangularSolve</code></li>
+<li><code>raw_ops.Max</code></li>
+<li><code>raw_ops.Maximum</code></li>
+<li><code>raw_ops.MaxPool</code></li>
+<li><code>raw_ops.MaxPool3D</code></li>
+<li><code>raw_ops.MaxPool3DGrad</code></li>
+<li><code>raw_ops.MaxPool3DGradGrad</code></li>
+<li><code>raw_ops.MaxPoolGrad</code></li>
+<li><code>raw_ops.MaxPoolGradGrad</code></li>
+<li><code>raw_ops.MaxPoolGradGradV2</code></li>
+<li><code>raw_ops.MaxPoolGradV2</code></li>
+<li><code>raw_ops.MaxPoolGradWithArgmax</code></li>
+<li><code>raw_ops.MaxPoolV2</code></li>
+<li><code>raw_ops.MaxPoolWithArgmax</code></li>
+<li><code>raw_ops.Mean</code></li>
+<li><code>raw_ops.Merge</code></li>
+<li><code>raw_ops.MergeSummary</code></li>
+<li><code>raw_ops.MergeV2Checkpoints</code></li>
+<li><code>raw_ops.Mfcc</code></li>
+<li><code>raw_ops.Min</code></li>
+<li><code>raw_ops.Minimum</code></li>
+<li><code>raw_ops.MirrorPad</code></li>
+<li><code>raw_ops.MirrorPadGrad</code></li>
+<li><code>raw_ops.ModelDataset</code></li>
+<li><code>raw_ops.Mul</code></li>
+<li><code>raw_ops.MulNoNan</code></li>
+<li><code>raw_ops.Multinomial</code></li>
+<li><code>raw_ops.MutableDenseHashTable</code></li>
+<li><code>raw_ops.MutableDenseHashTableV2</code></li>
+<li><code>raw_ops.MutableHashTable</code></li>
+<li><code>raw_ops.MutableHashTableOfTensors</code></li>
+<li><code>raw_ops.MutableHashTableOfTensorsV2</code></li>
+<li><code>raw_ops.MutableHashTableV2</code></li>
+<li><code>raw_ops.Neg</code></li>
+<li><code>raw_ops.NextIteration</code></li>
+<li><code>raw_ops.NonMaxSuppression</code></li>
+<li><code>raw_ops.NonMaxSuppressionV2</code></li>
+<li><code>raw_ops.NonMaxSuppressionV3</code></li>
+<li><code>raw_ops.NonMaxSuppressionV4</code></li>
+<li><code>raw_ops.NonMaxSuppressionV5</code></li>
+<li><code>raw_ops.NonMaxSuppressionWithOverlaps</code></li>
+<li><code>raw_ops.NoOp</code></li>
+<li><code>raw_ops.NotEqual</code></li>
+<li><code>raw_ops.OneHot</code></li>
+<li><code>raw_ops.OnesLike</code></li>
+<li><code>raw_ops.OptimizeDatasetV2</code></li>
+<li><code>raw_ops.OptionalFromValue</code></li>
+<li><code>raw_ops.OptionalGetValue</code></li>
+<li><code>raw_ops.OptionalHasValue</code></li>
+<li><code>raw_ops.OptionalNone</code></li>
+<li><code>raw_ops.Pack</code></li>
+<li><code>raw_ops.Pad</code></li>
+<li><code>raw_ops.PadV2</code></li>
+<li><code>raw_ops.PaddingFIFOQueue</code></li>
+<li><code>raw_ops.PaddingFIFOQueueV2</code></li>
+<li><code>raw_ops.PadV2</code></li>
+<li><code>raw_ops.ParallelConcat</code></li>
+<li><code>raw_ops.ParallelDynamicStitch</code></li>
+<li><code>raw_ops.ParseExample</code></li>
+<li><code>raw_ops.ParseExampleV2</code></li>
+<li><code>raw_ops.ParseSequenceExample</code></li>
+<li><code>raw_ops.ParseSequenceExampleV2</code></li>
+<li><code>raw_ops.ParseSingleExample</code></li>
+<li><code>raw_ops.ParseSingleSequenceExample</code></li>
+<li><code>raw_ops.Placeholder</code></li>
+<li><code>raw_ops.PlaceholderV2</code></li>
+<li><code>raw_ops.PlaceholderWithDefault</code></li>
+<li><code>raw_ops.PopulationCount</code></li>
+<li><code>raw_ops.Pow</code></li>
+<li><code>raw_ops.PreventGradient</code></li>
+<li><code>raw_ops.Print</code></li>
+<li><code>raw_ops.PrintV2</code></li>
+<li><code>raw_ops.Prod</code></li>
+<li><code>raw_ops.Qr</code></li>
+<li><code>raw_ops.QuantizedAdd</code></li>
+<li><code>raw_ops.QuantizedAvgPool</code></li>
+<li><code>raw_ops.QuantizedBatchNormWithGlobalNormalization</code></li>
+<li><code>raw_ops.QuantizedBiasAdd</code></li>
+<li><code>raw_ops.QuantizedConcat</code></li>
+<li><code>raw_ops.QuantizedConv2D</code></li>
+<li><code>raw_ops.QuantizedInstanceNorm</code></li>
+<li><code>raw_ops.QuantizedMatMul</code></li>
+<li><code>raw_ops.QuantizedMaxPool</code></li>
+<li><code>raw_ops.QuantizedMul</code></li>
+<li><code>raw_ops.QuantizeDownAndShrinkRange</code></li>
+<li><code>raw_ops.QuantizedRelu</code></li>
+<li><code>raw_ops.QuantizedRelu6</code></li>
+<li><code>raw_ops.QuantizedReshape</code></li>
+<li><code>raw_ops.QuantizedResizeBilinear</code></li>
+<li><code>raw_ops.QuantizeV2</code></li>
+<li><code>raw_ops.QueueClose</code></li>
+<li><code>raw_ops.QueueCloseV2</code></li>
+<li><code>raw_ops.QueueDequeue</code></li>
+<li><code>raw_ops.QueueDequeueMany</code></li>
+<li><code>raw_ops.QueueDequeueManyV2</code></li>
+<li><code>raw_ops.QueueDequeueUpTo</code></li>
+<li><code>raw_ops.QueueDequeueUpToV2</code></li>
+<li><code>raw_ops.QueueDequeueV2</code></li>
+<li><code>raw_ops.QueueEnqueue</code></li>
+<li><code>raw_ops.QueueEnqueueMany</code></li>
+<li><code>raw_ops.QueueEnqueueManyV2</code></li>
+<li><code>raw_ops.QueueEnqueueV2</code></li>
+<li><code>raw_ops.QueueIsClosed</code></li>
+<li><code>raw_ops.QueueIsClosedV2</code></li>
+<li><code>raw_ops.QueueSize</code></li>
+<li><code>raw_ops.QueueSizeV2</code></li>
+<li><code>raw_ops.RFFT</code></li>
+<li><code>raw_ops.RFFT2D</code></li>
+<li><code>raw_ops.RFFT3D</code></li>
+<li><code>raw_ops.RGBToHSV</code></li>
+<li><code>raw_ops.RaggedBincount</code></li>
+<li><code>raw_ops.RaggedGather</code></li>
+<li><code>raw_ops.RaggedRange</code></li>
+<li><code>raw_ops.RaggedTensorFromVariant</code></li>
+<li><code>raw_ops.RaggedTensorToSparse</code></li>
+<li><code>raw_ops.RaggedTensorToTensor</code></li>
+<li><code>raw_ops.RaggedTensorToVariant</code></li>
+<li><code>raw_ops.RaggedTensorToVariantGradient</code></li>
+<li><code>raw_ops.RandomGamma</code></li>
+<li><code>raw_ops.RandomPoisson</code></li>
+<li><code>raw_ops.RandomPoissonV2</code></li>
+<li><code>raw_ops.RandomShuffle</code></li>
+<li><code>raw_ops.RandomStandardNormal</code></li>
+<li><code>raw_ops.RandomUniform</code></li>
+<li><code>raw_ops.RandomUniformInt</code></li>
+<li><code>raw_ops.Range</code></li>
+<li><code>raw_ops.Rank</code></li>
+<li><code>raw_ops.ReadFile</code></li>
+<li><code>raw_ops.ReadVariableOp</code></li>
+<li><code>raw_ops.Real</code></li>
+<li><code>raw_ops.RealDiv</code></li>
+<li><code>raw_ops.Reciprocal</code></li>
+<li><code>raw_ops.ReciprocalGrad</code></li>
+<li><code>raw_ops.Recv</code></li>
+<li><code>raw_ops.ReduceDataset</code></li>
+<li><code>raw_ops.ReduceJoin</code></li>
+<li><code>raw_ops.RefEnter</code></li>
+<li><code>raw_ops.RefExit</code></li>
+<li><code>raw_ops.RefIdentity</code></li>
+<li><code>raw_ops.RefMerge</code></li>
+<li><code>raw_ops.RefNextIteration</code></li>
+<li><code>raw_ops.RefSelect</code></li>
+<li><code>raw_ops.RefSwitch</code></li>
+<li><code>raw_ops.RegexFullMatch</code></li>
+<li><code>raw_ops.RegexReplace</code></li>
+<li><code>raw_ops.Relu</code></li>
+<li><code>raw_ops.Relu6</code></li>
+<li><code>raw_ops.Relu6Grad</code></li>
+<li><code>raw_ops.ReluGrad</code></li>
+<li><code>raw_ops.RemoteCall</code></li>
+<li><code>raw_ops.RepeatDataset</code></li>
+<li><code>raw_ops.RequantizationRange</code></li>
+<li><code>raw_ops.Requantize</code></li>
+<li><code>raw_ops.Reshape</code></li>
+<li><code>raw_ops.ResizeBicubic</code></li>
+<li><code>raw_ops.ResizeBicubicGrad</code></li>
+<li><code>raw_ops.ResizeBilinear</code></li>
+<li><code>raw_ops.ResizeBilinearGrad</code></li>
+<li><code>raw_ops.ResizeNearestNeighbor</code></li>
+<li><code>raw_ops.ResizeNearestNeighborGrad</code></li>
+<li><code>raw_ops.ResourceApplyAdadelta</code></li>
+<li><code>raw_ops.ResourceApplyAdagrad</code></li>
+<li><code>raw_ops.ResourceApplyAdagradDA</code></li>
+<li><code>raw_ops.ResourceApplyAdagradV2</code></li>
+<li><code>raw_ops.ResourceApplyAdam</code></li>
+<li><code>raw_ops.ResourceApplyAdaMax</code></li>
+<li><code>raw_ops.ResourceApplyAdamWithAmsgrad</code></li>
+<li><code>raw_ops.ResourceApplyAddSign</code></li>
+<li><code>raw_ops.ResourceApplyCenteredRMSProp</code></li>
+<li><code>raw_ops.ResourceApplyFtrl</code></li>
+<li><code>raw_ops.ResourceApplyFtrlV2</code></li>
+<li><code>raw_ops.ResourceApplyGradientDescent</code></li>
+<li><code>raw_ops.ResourceApplyKerasMomentum</code></li>
+<li><code>raw_ops.ResourceApplyMomentum</code></li>
+<li><code>raw_ops.ResourceApplyPowerSign</code></li>
+<li><code>raw_ops.ResourceApplyProximalAdagrad</code></li>
+<li><code>raw_ops.ResourceApplyProximalGradientDescent</code></li>
+<li><code>raw_ops.ResourceApplyRMSProp</code></li>
+<li><code>raw_ops.ResourceGather</code></li>
+<li><code>raw_ops.ResourceGatherNd</code></li>
+<li><code>raw_ops.ResourceScatterAdd</code></li>
+<li><code>raw_ops.ResourceScatterDiv</code></li>
+<li><code>raw_ops.ResourceScatterMax</code></li>
+<li><code>raw_ops.ResourceScatterMin</code></li>
+<li><code>raw_ops.ResourceScatterMul</code></li>
+<li><code>raw_ops.ResourceScatterNdAdd</code></li>
+<li><code>raw_ops.ResourceScatterNdMax</code></li>
+<li><code>raw_ops.ResourceScatterNdMin</code></li>
+<li><code>raw_ops.ResourceScatterNdSub</code></li>
+<li><code>raw_ops.ResourceScatterNdUpdate</code></li>
+<li><code>raw_ops.ResourceScatterSub</code></li>
+<li><code>raw_ops.ResourceScatterUpdate</code></li>
+<li><code>raw_ops.ResourceSparseApplyAdadelta</code></li>
+<li><code>raw_ops.ResourceSparseApplyAdagrad</code></li>
+<li><code>raw_ops.ResourceSparseApplyAdagradDA</code></li>
+<li><code>raw_ops.ResourceSparseApplyAdagradV2</code></li>
+<li><code>raw_ops.ResourceSparseApplyCenteredRMSProp</code></li>
+<li><code>raw_ops.ResourceSparseApplyFtrl</code></li>
+<li><code>raw_ops.ResourceSparseApplyFtrlV2</code></li>
+<li><code>raw_ops.ResourceSparseApplyKerasMomentum</code></li>
+<li><code>raw_ops.ResourceSparseApplyMomentum</code></li>
+<li><code>raw_ops.ResourceSparseApplyProximalAdagrad</code></li>
+<li><code>raw_ops.ResourceSparseApplyProximalGradientDescent</code></li>
+<li><code>raw_ops.ResourceSparseApplyRMSProp</code></li>
+<li><code>raw_ops.ResourceStridedSliceAssign</code></li>
+<li><code>raw_ops.Restore</code></li>
+<li><code>raw_ops.RestoreSlice</code></li>
+<li><code>raw_ops.RestoreV2</code></li>
+<li><code>raw_ops.Reverse</code></li>
+<li><code>raw_ops.ReverseSequence</code></li>
+<li><code>raw_ops.ReverseV2</code></li>
+<li><code>raw_ops.RightShift</code></li>
+<li><code>raw_ops.Roll</code></li>
+<li><code>raw_ops.Round</code></li>
+<li><code>raw_ops.Rsqrt</code></li>
+<li><code>raw_ops.RsqrtGrad</code></li>
+<li><code>raw_ops.SampleDistortedBoundingBox</code></li>
+<li><code>raw_ops.SampleDistortedBoundingBoxV2</code></li>
+<li><code>raw_ops.Save</code></li>
+<li><code>raw_ops.SaveSlices</code></li>
+<li><code>raw_ops.SaveV2</code></li>
+<li><code>raw_ops.ScalarSummary</code></li>
+<li><code>raw_ops.ScatterNd</code></li>
+<li><code>raw_ops.ScatterNdAdd</code></li>
+<li><code>raw_ops.ScatterNdMax</code></li>
+<li><code>raw_ops.ScatterNdMin</code></li>
+<li><code>raw_ops.ScatterNdNonAliasingAdd</code></li>
+<li><code>raw_ops.ScatterNdSub</code></li>
+<li><code>raw_ops.ScatterNdUpdate</code></li>
+<li><code>raw_ops.SegmentMax</code></li>
+<li><code>raw_ops.SegmentMean</code></li>
+<li><code>raw_ops.SegmentMin</code></li>
+<li><code>raw_ops.SegmentProd</code></li>
+<li><code>raw_ops.SegmentSum</code></li>
+<li><code>raw_ops.Select</code></li>
+<li><code>raw_ops.SelectV2</code></li>
+<li><code>raw_ops.Selu</code></li>
+<li><code>raw_ops.SeluGrad</code></li>
+<li><code>raw_ops.Send</code></li>
+<li><code>raw_ops.SerializeTensor</code></li>
+<li><code>raw_ops.Shape</code></li>
+<li><code>raw_ops.ShapeN</code></li>
+<li><code>raw_ops.ShardedFilename</code></li>
+<li><code>raw_ops.ShardedFilespec</code></li>
+<li><code>raw_ops.Sigmoid</code></li>
+<li><code>raw_ops.SigmoidGrad</code></li>
+<li><code>raw_ops.Sign</code></li>
+<li><code>raw_ops.Sin</code></li>
+<li><code>raw_ops.Sinh</code></li>
+<li><code>raw_ops.Size</code></li>
+<li><code>raw_ops.Slice</code></li>
+<li><code>raw_ops.Softmax</code></li>
+<li><code>raw_ops.SoftmaxCrossEntropyWithLogits</code></li>
+<li><code>raw_ops.Softplus</code></li>
+<li><code>raw_ops.SoftplusGrad</code></li>
+<li><code>raw_ops.Softsign</code></li>
+<li><code>raw_ops.SoftsignGrad</code></li>
+<li><code>raw_ops.SpaceToBatch</code></li>
+<li><code>raw_ops.SpaceToBatchND</code></li>
+<li><code>raw_ops.SpaceToDepth</code></li>
+<li><code>raw_ops.SparseAdd</code></li>
+<li><code>raw_ops.SparseApplyAdadelta</code></li>
+<li><code>raw_ops.SparseApplyAdagrad</code></li>
+<li><code>raw_ops.SparseApplyAdagradDA</code></li>
+<li><code>raw_ops.SparseApplyAdagradV2</code></li>
+<li><code>raw_ops.SparseApplyCenteredRMSProp</code></li>
+<li><code>raw_ops.SparseApplyFtrl</code></li>
+<li><code>raw_ops.SparseApplyFtrlV2</code></li>
+<li><code>raw_ops.SparseApplyMomentum</code></li>
+<li><code>raw_ops.SparseApplyProximalAdagrad</code></li>
+<li><code>raw_ops.SparseApplyProximalGradientDescent</code></li>
+<li><code>raw_ops.SparseApplyRMSProp</code></li>
+<li><code>raw_ops.SparseBincount</code></li>
+<li><code>raw_ops.SparseCross</code></li>
+<li><code>raw_ops.SparseCrossHashed</code></li>
+<li><code>raw_ops.SparseCrossV2</code></li>
+<li><code>raw_ops.SparseFillEmptyRows</code></li>
+<li><code>raw_ops.SparseFillEmptyRowsGrad</code></li>
+<li><code>raw_ops.SparseReduceSum</code></li>
+<li><code>raw_ops.SparseReshape</code></li>
+<li><code>raw_ops.SparseReorder</code></li>
+<li><code>raw_ops.SparseSegmentMean</code></li>
+<li><code>raw_ops.SparseSegmentMeanGrad</code></li>
+<li><code>raw_ops.SparseSegmentMeanWithNumSegments</code></li>
+<li><code>raw_ops.SparseSegmentSqrtN</code></li>
+<li><code>raw_ops.SparseSegmentSqrtNGrad</code></li>
+<li><code>raw_ops.SparseSegmentSqrtNWithNumSegments</code></li>
+<li><code>raw_ops.SparseSegmentSum</code></li>
+<li><code>raw_ops.SparseSegmentSumGrad</code></li>
+<li><code>raw_ops.SparseSegmentSumWithNumSegments</code></li>
+<li><code>raw_ops.SparseSlice</code></li>
+<li><code>raw_ops.SparseSoftmaxCrossEntropyWithLogits</code></li>
+<li><code>raw_ops.SparseTensorDenseMatMul</code></li>
+<li><code>raw_ops.SparseToDense</code></li>
+<li><code>raw_ops.SparseToSparseSetOperation</code></li>
+<li><code>raw_ops.Split</code></li>
+<li><code>raw_ops.SplitV</code></li>
+<li><code>raw_ops.Sqrt</code></li>
+<li><code>raw_ops.SqrtGrad</code></li>
+<li><code>raw_ops.Square</code></li>
+<li><code>raw_ops.SquaredDifference</code></li>
+<li><code>raw_ops.Squeeze</code></li>
+<li><code>raw_ops.Stack</code></li>
+<li><code>raw_ops.StackClose</code></li>
+<li><code>raw_ops.StackCloseV2</code></li>
+<li><code>raw_ops.StackPop</code></li>
+<li><code>raw_ops.StackPopV2</code></li>
+<li><code>raw_ops.StackPush</code></li>
+<li><code>raw_ops.StackPushV2</code></li>
+<li><code>raw_ops.StackV2</code></li>
+<li><code>raw_ops.StatelessMultinomial</code></li>
+<li><code>raw_ops.StatelessRandomGammaV2</code></li>
+<li><code>raw_ops.StatelessRandomGammaV3</code></li>
+<li><code>raw_ops.StatelessRandomGetAlg</code></li>
+<li><code>raw_ops.StatelessRandomGetKeyCounter</code></li>
+<li><code>raw_ops.StatelessRandomGetKeyCounterAlg</code></li>
+<li><code>raw_ops.StatelessRandomNormal</code></li>
+<li><code>raw_ops.StatelessRandomNormalV2</code></li>
+<li><code>raw_ops.StatelessRandomPoisson</code></li>
+<li><code>raw_ops.StatelessRandomUniform</code></li>
+<li><code>raw_ops.StatelessRandomUniformFullInt</code></li>
+<li><code>raw_ops.StatelessRandomUniformFullIntV2</code></li>
+<li><code>raw_ops.StatelessRandomUniformInt</code></li>
+<li><code>raw_ops.StatelessRandomUniformIntV2</code></li>
+<li><code>raw_ops.StatelessRandomUniformV2</code></li>
+<li><code>raw_ops.StatelessSampleDistortedBoundingBox</code></li>
+<li><code>raw_ops.StatelessTruncatedNormal</code></li>
+<li><code>raw_ops.StatelessTruncatedNormalV2</code></li>
+<li><code>raw_ops.StaticRegexFullMatch</code></li>
+<li><code>raw_ops.StaticRegexReplace</code></li>
+<li><code>raw_ops.StopGradient</code></li>
+<li><code>raw_ops.StridedSlice</code></li>
+<li><code>raw_ops.StridedSliceAssign</code></li>
+<li><code>raw_ops.StridedSliceGrad</code></li>
+<li><code>raw_ops.StringFormat</code></li>
+<li><code>raw_ops.StringJoin</code></li>
+<li><code>raw_ops.StringLength</code></li>
+<li><code>raw_ops.StringLower</code></li>
+<li><code>raw_ops.StringSplit</code></li>
+<li><code>raw_ops.StringSplitV2</code></li>
+<li><code>raw_ops.StringStrip</code></li>
+<li><code>raw_ops.StringToHashBucket</code></li>
+<li><code>raw_ops.StringToHashBucketFast</code></li>
+<li><code>raw_ops.StringToHashBucketStrong</code></li>
+<li><code>raw_ops.StringToNumber</code></li>
+<li><code>raw_ops.Sub</code></li>
+<li><code>raw_ops.Substr</code></li>
+<li><code>raw_ops.Sum</code></li>
+<li><code>raw_ops.Switch</code></li>
+<li><code>raw_ops.SymbolicGradient</code></li>
+<li><code>raw_ops.TakeDataset</code></li>
+<li><code>raw_ops.TakeWhileDataset</code></li>
+<li><code>raw_ops.Tan</code></li>
+<li><code>raw_ops.Tanh</code></li>
+<li><code>raw_ops.TanhGrad</code></li>
+<li><code>raw_ops.TemporaryVariable</code></li>
+<li><code>raw_ops.TensorArray</code></li>
+<li><code>raw_ops.TensorArrayClose</code></li>
+<li><code>raw_ops.TensorArrayCloseV2</code></li>
+<li><code>raw_ops.TensorArrayCloseV3</code></li>
+<li><code>raw_ops.TensorArrayConcat</code></li>
+<li><code>raw_ops.TensorArrayConcatV2</code></li>
+<li><code>raw_ops.TensorArrayConcatV3</code></li>
+<li><code>raw_ops.TensorArrayGather</code></li>
+<li><code>raw_ops.TensorArrayGatherV2</code></li>
+<li><code>raw_ops.TensorArrayGatherV3</code></li>
+<li><code>raw_ops.TensorArrayGrad</code></li>
+<li><code>raw_ops.TensorArrayGradV2</code></li>
+<li><code>raw_ops.TensorArrayGradV3</code></li>
+<li><code>raw_ops.TensorArrayGradWithShape</code></li>
+<li><code>raw_ops.TensorArrayPack</code></li>
+<li><code>raw_ops.TensorArrayRead</code></li>
+<li><code>raw_ops.TensorArrayReadV2</code></li>
+<li><code>raw_ops.TensorArrayReadV3</code></li>
+<li><code>raw_ops.TensorArrayScatter</code></li>
+<li><code>raw_ops.TensorArrayScatterV2</code></li>
+<li><code>raw_ops.TensorArrayScatterV3</code></li>
+<li><code>raw_ops.TensorArraySize</code></li>
+<li><code>raw_ops.TensorArraySizeV2</code></li>
+<li><code>raw_ops.TensorArraySizeV3</code></li>
+<li><code>raw_ops.TensorArraySplit</code></li>
+<li><code>raw_ops.TensorArraySplitV2</code></li>
+<li><code>raw_ops.TensorArraySplitV3</code></li>
+<li><code>raw_ops.TensorArrayUnpack</code></li>
+<li><code>raw_ops.TensorArrayV2</code></li>
+<li><code>raw_ops.TensorArrayV3</code></li>
+<li><code>raw_ops.TensorArrayWrite</code></li>
+<li><code>raw_ops.TensorArrayWriteV2</code></li>
+<li><code>raw_ops.TensorArrayWriteV3</code></li>
+<li><code>raw_ops.TensorListConcat</code></li>
+<li><code>raw_ops.TensorListConcatLists</code></li>
+<li><code>raw_ops.TensorListConcatV2</code></li>
+<li><code>raw_ops.TensorListElementShape</code></li>
+<li><code>raw_ops.TensorListFromTensor</code></li>
+<li><code>raw_ops.TensorListGather</code></li>
+<li><code>raw_ops.TensorListGetItem</code></li>
+<li><code>raw_ops.TensorListLength</code></li>
+<li><code>raw_ops.TensorListPopBack</code></li>
+<li><code>raw_ops.TensorListPushBack</code></li>
+<li><code>raw_ops.TensorListPushBackBatch</code></li>
+<li><code>raw_ops.TensorListReserve</code></li>
+<li><code>raw_ops.TensorListResize</code></li>
+<li><code>raw_ops.TensorListScatter</code></li>
+<li><code>raw_ops.TensorListScatterIntoExistingList</code></li>
+<li><code>raw_ops.TensorListScatterV2</code></li>
+<li><code>raw_ops.TensorListSetItem</code></li>
+<li><code>raw_ops.TensorListSplit</code></li>
+<li><code>raw_ops.TensorListStack</code></li>
+<li><code>raw_ops.TensorMapErase</code></li>
+<li><code>raw_ops.TensorMapHasKey</code></li>
+<li><code>raw_ops.TensorMapInsert</code></li>
+<li><code>raw_ops.TensorMapLookup</code></li>
+<li><code>raw_ops.TensorMapSize</code></li>
+<li><code>raw_ops.TensorMapStackKeys</code></li>
+<li><code>raw_ops.TensorScatterAdd</code></li>
+<li><code>raw_ops.TensorScatterMax</code></li>
+<li><code>raw_ops.TensorScatterMin</code></li>
+<li><code>raw_ops.TensorScatterSub</code></li>
+<li><code>raw_ops.TensorScatterUpdate</code></li>
+<li><code>raw_ops.TensorSliceDataset</code></li>
+<li><code>raw_ops.TensorStridedSliceUpdate</code></li>
+<li><code>raw_ops.Tile</code></li>
+<li><code>raw_ops.TileGrad</code></li>
+<li><code>raw_ops.Timestamp</code></li>
+<li><code>raw_ops.TokenizerFromLogits</code></li>
+<li><code>raw_ops.TopK</code></li>
+<li><code>raw_ops.TopKV2</code></li>
+<li><code>raw_ops.Transpose</code></li>
+<li><code>raw_ops.TruncateDiv</code></li>
+<li><code>raw_ops.TruncatedNormal</code></li>
+<li><code>raw_ops.UnicodeDecode</code></li>
+<li><code>raw_ops.UnicodeDecodeWithOffsets</code></li>
+<li><code>raw_ops.UnicodeEncode</code></li>
+<li><code>raw_ops.UnicodeTranscode</code></li>
+<li><code>raw_ops.Unique</code></li>
+<li><code>raw_ops.UniqueV2</code></li>
+<li><code>raw_ops.UniqueWithCounts</code></li>
+<li><code>raw_ops.UniqueWithCountsV2</code></li>
+<li><code>raw_ops.Unpack</code></li>
+<li><code>raw_ops.UnsortedSegmentJoin</code></li>
+<li><code>raw_ops.UnsortedSegmentMax</code></li>
+<li><code>raw_ops.UnsortedSegmentMin</code></li>
+<li><code>raw_ops.UnsortedSegmentProd</code></li>
+<li><code>raw_ops.UnsortedSegmentSum</code></li>
+<li><code>raw_ops.UnwrapDatasetVariant</code></li>
+<li><code>raw_ops.UpperBound</code></li>
+<li><code>raw_ops.VarHandleOp</code></li>
+<li><code>raw_ops.Variable</code></li>
+<li><code>raw_ops.VariableShape</code></li>
+<li><code>raw_ops.VariableV2</code></li>
+<li><code>raw_ops.VarIsInitializedOp</code></li>
+<li><code>raw_ops.Where</code></li>
+<li><code>raw_ops.WrapDatasetVariant</code></li>
+<li><code>raw_ops.WriteFile</code></li>
+<li><code>raw_ops.Xdivy</code></li>
+<li><code>raw_ops.Xlog1py</code></li>
+<li><code>raw_ops.Xlogy</code></li>
+<li><code>raw_ops.ZerosLike</code></li>
+</ul>
+<h2>TensorFlow Text and SentencePiece operators</h2>
+<p>The following
+<a href="https://www.tensorflow.org/tutorials/tensorflow_text/intro">TensorFlow Text</a>
+and <a href="https://github.com/google/sentencepiece">SentencePiece</a> operators are
+supported if you use the Python API for conversion and import those libraries.</p>
+<p>TF.Text operators:</p>
+<ul>
+<li><code>CaseFoldUTF8</code></li>
+<li><code>ConstrainedSequence</code></li>
+<li><code>MaxSpanningTree</code></li>
+<li><code>NormalizeUTF8</code></li>
+<li><code>NormalizeUTF8WithOffsetsMap</code></li>
+<li><code>RegexSplitWithOffsets</code></li>
+<li><code>RougeL</code></li>
+<li><code>SentenceFragments</code></li>
+<li><code>SentencepieceOp</code></li>
+<li><code>SentencepieceTokenizeOp</code></li>
+<li><code>SentencepieceTokenizeWithOffsetsOp</code></li>
+<li><code>SentencepieceDetokenizeOp</code></li>
+<li><code>SentencepieceVocabSizeOp</code></li>
+<li><code>SplitMergeTokenizeWithOffsets</code></li>
+<li><code>UnicodeScriptTokenizeWithOffsets</code></li>
+<li><code>WhitespaceTokenizeWithOffsets</code></li>
+<li><code>WordpieceTokenizeWithOffsets</code></li>
+</ul>
+<p>SentencePiece operators:</p>
+<ul>
+<li><code>SentencepieceGetPieceSize</code></li>
+<li><code>SentencepiecePieceToId</code></li>
+<li><code>SentencepieceIdToPiece</code></li>
+<li><code>SentencepieceEncodeDense</code></li>
+<li><code>SentencepieceEncodeSparse</code></li>
+<li><code>SentencepieceDecode</code></li>
+</ul>
+<p>The following snippet shows how to convert models with the above operators:</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>These imports are required to load operators' definition.</h1>
+<p>import tensorflow_text as tf_text
+import sentencepiece as spm</p>
+<p>converter = tf.lite.TFLiteConverter.from_keras_model(your_model)
+converter.target_spec.supported_ops = [
+  tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+]
+model_data = converter.convert()
+```</p>
+<p>On the runtime side, it is also required to link the TensorFlow Text or
+SentencePiece library into the final app or binary.</p>
+<h2>User's defined Operators</h2>
+<p><em>Note: This feature is only available from TensorFlow 2.5 version</em></p>
+<p>If you
+<a href="https://www.tensorflow.org/guide/create_op">created your own TensorFlow operators</a>,
+you can also convert models containing them to TensorFlow Lite by listing
+required operators in the <code>experimental_select_user_tf_ops</code> as following:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>ops_module = tf.load_op_library('./your_ops_library.so')</p>
+<p>converter = tf.lite.TFLiteConverter.from_saved_model(your_model)
+converter.target_spec.supported_ops = [
+  tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+]
+converter.target_spec.experimental_select_user_tf_ops = [
+    'your_op_name1',
+    'your_op_name2'
+]
+model_data = converter.convert()
+```</p>
+<p>On the runtime side, it is also required to link your operators library into the
+final app or binary.</p>
+<h2>Add TensorFlow core operators to the allowed list.</h2>
+<p>If you hit the case where the TensorFlow core operators are not in the above
+allowed
+<a href="https://www.tensorflow.org/lite/guide/op_select_allowlist#tensorflow_core_operators">list</a>,
+you can report the feature request at
+<a href="https://github.com/tensorflow/tensorflow/issues">here</a> with the names of the
+TensorFlow core operators, not listed in the allowed list.</p>
+<p>You can also create own your pull request from the source code. For example, if
+you want to add the <code>raw_ops.StringToNumber</code> op in the allowed list, there are
+three places to update like this
+<a href="https://github.com/tensorflow/tensorflow/commit/02e691329517eb5e76522ed8d8bef79ceb082ff8">commit</a>.</p>
+<p>(1) Add the operator kernel source code to the <code>portable_extended_ops_group2</code>
+BUILD rule.</p>
+<p>```
+filegroup(
+    name = "portable_extended_ops_group2",
+    srcs = [
+        ...
++       "string_to_number_op.cc",</p>
+<pre><code>    ...
+],
+</code></pre>
+<p>)
+```</p>
+<p>In order to find the relevant operator kernel source file under the
+<code>tensorflow/core/kernels</code> directory, you can search the source code location,
+which contains the following kernel declaration with the operator name:</p>
+<p><code>REGISTER_KERNEL_BUILDER(Name("StringToNumber")                 \
+                            .Device(DEVICE_CPU)                \
+                            .TypeConstraint&lt;type&gt;("out_type"), \
+                        StringToNumberOp&lt;type&gt;)</code></p>
+<p>If there are any header files under the <code>tensorflow/core/kernels</code> directory,
+required in the operator kernel source code, you need to add the header file
+into the <code>portable_extended_ops_headers</code> BUILD rule as the follows:</p>
+<p>```
+filegroup(
+    name = "portable_extended_ops_headers",
+    srcs = [
+        ...
++       "string_util.h",</p>
+<pre><code>    ...
+],
+</code></pre>
+<p>)
+```</p>
+<p>(2) Add the operator name to the allowed list.</p>
+<p>The allowed list is defined in the
+<code>tensorflow/lite/delegates/flex/allowlisted_flex_ops.cc</code>. The TensorFlow core
+operator name is need to be listed in order to be allowed through the Select TF
+option.</p>
+<p>```
+static const std::set<std::string>* allowlisted_flex_ops =
+    new std::set<std::string>({
+        ...
++       "StringToNumber",</p>
+<pre><code>    ...
+});
+</code></pre>
+<p>```</p>
+<p>Since the above list is sorted in alphabetical order, it makes sure to place the
+name in the right place.</p>
+<p>(3) Add the operator name to this guide page.</p>
+<p>To show the operator inclusion to the other developers, this guide page should
+be updated as well. This page is located at the
+<code>tensorflow/lite/g3doc/guide/op_select_allowlist.md</code>.</p>
+<p>```</p>
+<h2>TensorFlow core operators</h2>
+<p>The following is an exhaustive list of TensorFlow core operations that are
+supported by TensorFlow Lite runtime with the Select TensorFlow Ops feature.</p>
+<p>...
++*   <code>raw_ops.StringToNumber</code>
+...
+```</p>
+<p>Since the above list is sorted in alphabetical order, it makes sure to place the
+name in the right place.</p>

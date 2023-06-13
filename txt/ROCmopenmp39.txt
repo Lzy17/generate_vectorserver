@@ -1,0 +1,399 @@
+<h1>OpenMP Support in ROCm</h1>
+<h2>Introduction</h2>
+<p>The ROCm™ installation includes an LLVM-based implementation that fully supports
+the OpenMP 4.5 standard and a subset of OpenMP 5.0, 5.1, and 5.2 standards.
+Fortran, C/C++ compilers, and corresponding runtime libraries are included.
+Along with host APIs, the OpenMP compilers support offloading code and data onto
+GPU devices. This document briefly describes the installation location of the
+OpenMP toolchain, example usage of device offloading, and usage of <code>rocprof</code>
+with OpenMP applications. The GPUs supported are the same as those supported by
+this ROCm release. See the list of supported GPUs in {doc}<code>/release/gpu_os_support</code>.</p>
+<h3>Installation</h3>
+<p>The OpenMP toolchain is automatically installed as part of the standard ROCm
+installation and is available under <code>/opt/rocm-{version}/llvm</code>. The
+sub-directories are:</p>
+<p>bin: Compilers (<code>flang</code> and <code>clang</code>) and other binaries.</p>
+<ul>
+<li>
+<p>examples: The usage section below shows how to compile and run these programs.</p>
+</li>
+<li>
+<p>include: Header files.</p>
+</li>
+<li>
+<p>lib: Libraries including those required for target offload.</p>
+</li>
+<li>
+<p>lib-debug: Debug versions of the above libraries.</p>
+</li>
+</ul>
+<h2>OpenMP: Usage</h2>
+<p>The example programs can be compiled and run by pointing the environment
+variable <code>ROCM_PATH</code> to the ROCm install directory.</p>
+<p><strong>Example:</strong></p>
+<p><code>bash
+export ROCM_PATH=/opt/rocm-{version}
+cd $ROCM_PATH/share/openmp-extras/examples/openmp/veccopy
+sudo make run</code></p>
+<p>:::{note}
+<code>sudo</code> is required since we are building inside the <code>/opt</code> directory.
+Alternatively, copy the files to your home directory first.
+:::</p>
+<p>The above invocation of Make compiles and runs the program. Note the options
+that are required for target offload from an OpenMP program:</p>
+<p><code>bash
+-fopenmp --offload-arch=&lt;gpu-arch&gt;</code></p>
+<p>:::{note}
+The Makefile in the example above uses a more classical and verbose set of flags
+which can also be used:</p>
+<p><code>bash
+-fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa</code></p>
+<p>:::</p>
+<p>Obtain the value of <code>gpu-arch</code> by running the following command:</p>
+<p><code>bash
+% /opt/rocm-{version}/bin/rocminfo | grep gfx</code></p>
+<p>See the complete list of compiler command-line references
+<a href="https://github.com/RadeonOpenCompute/llvm-project/blob/amd-stg-open/clang/docs/CommandGuide/clang.rst">here</a>.</p>
+<h3>Using <code>rocprof</code> with OpenMP</h3>
+<p>The following steps describe a typical workflow for using <code>rocprof</code> with OpenMP
+code compiled with AOMP:</p>
+<ol>
+<li>
+<p>Run <code>rocprof</code> with the program command line:</p>
+<p><code>bash
+% rocprof &lt;application&gt; &lt;args&gt;</code></p>
+<p>This produces a <code>results.csv</code> file in the user’s current directory that
+shows basic stats such as kernel names, grid size, number of registers used,
+etc. The user can choose to specify the preferred output file name using the
+o option.</p>
+</li>
+<li>
+<p>Add options for a detailed result:</p>
+</li>
+</ol>
+<p><code>bash
+   --stats: % rocprof --stats &lt;application&gt; &lt;args&gt;</code></p>
+<p>The stats option produces timestamps for the kernels. Look into the output
+   CSV file for the field, <code>DurationNs</code>, which is useful in getting an
+   understanding of the critical kernels in the code.</p>
+<p>Apart from <code>--stats</code>, the option <code>--timestamp</code> on produces a timestamp for
+   the kernels.</p>
+<ol>
+<li>After learning about the required kernels, the user can take a detailed look
+   at each one of them. <code>rocprof</code> has support for hardware counters: a set of
+   basic and a set of derived ones. See the complete list of counters using
+   options --list-basic and --list-derived. <code>rocprof</code> accepts either a text or
+   an XML file as an input.</li>
+</ol>
+<p>For more details on <code>rocprof</code>, refer to the ROCm Profiling Tools document on
+{doc}<code>rocprofiler:rocprof</code>.</p>
+<h3>Using Tracing Options</h3>
+<p><strong>Prerequisite:</strong> When using the <code>--sys-trace</code> option, compile the OpenMP
+program with:</p>
+<p><code>bash
+    -Wl,-rpath,/opt/rocm-{version}/lib -lamdhip64</code></p>
+<p>The following tracing options are widely used to generate useful information:</p>
+<ul>
+<li>
+<p><strong><code>--hsa-trace</code></strong>: This option is used to get a JSON output file with the HSA
+  API execution traces and a flat profile in a CSV file.</p>
+</li>
+<li>
+<p><strong><code>--sys-trace</code></strong>: This allows programmers to trace both HIP and HSA calls.
+  Since this option results in loading <code>libamdhip64.so</code>, follow the
+  prerequisite as mentioned above.</p>
+</li>
+</ul>
+<p>A CSV and a JSON file are produced by the above trace options. The CSV file
+presents the data in a tabular format, and the JSON file can be visualized using
+Google Chrome at chrome://tracing/ or <a href="https://perfetto.dev/">Perfetto</a>.
+Navigate to Chrome or Perfetto and load the JSON file to see the timeline of the
+HSA calls.</p>
+<p>For more details on tracing, refer to the ROCm Profiling Tools document on
+{doc}<code>rocprofiler:rocprof</code>.</p>
+<h3>Environment Variables</h3>
+<p>:::{table}
+:widths: auto
+| Environment Variable        | Description                  |
+| --------------------------- | ---------------------------- |
+| <code>OMP_NUM_TEAMS</code>             | The implementation chooses the number of teams for kernel launch. The user can change this number for performance tuning using this environment variable, subject to implementation limits. |
+| <code>LIBOMPTARGET_KERNEL_TRACE</code> | This environment variable is used to print useful statistics for device operations. Setting it to 1 and running the program emits the name of every kernel launched, the number of teams and threads used, and the corresponding register usage. Setting it to 2 additionally emits timing information for kernel launches and data transfer operations between the host and the device. |
+| <code>LIBOMPTARGET_INFO</code>         | This environment variable is used to print informational messages from the device runtime as the program executes. Users can request fine-grain information by setting it to the value of 1 or higher and can set the value of -1 for complete information. |
+| <code>LIBOMPTARGET_DEBUG</code>        | If a debug version of the device library is present, setting this environment variable to 1 and using that library emits further detailed debugging information about data transfer operations and kernel launch. |
+| <code>GPU_MAX_HW_QUEUES</code>         | This environment variable is used to set the number of HSA queues in the OpenMP runtime. |
+:::</p>
+<h2>OpenMP: Features</h2>
+<p>The OpenMP programming model is greatly enhanced with the following new features
+implemented in the past releases.</p>
+<p>(openmp_usm)=</p>
+<h3>Unified Shared Memory</h3>
+<p>Unified Shared Memory (USM) provides a pointer-based approach to memory
+management. To implement USM, fulfill the following system requirements along
+with Xnack capability.</p>
+<h4>Prerequisites</h4>
+<ul>
+<li>
+<p>Linux Kernel versions above 5.14</p>
+</li>
+<li>
+<p>Latest KFD driver packaged in ROCm stack</p>
+</li>
+<li>
+<p>Xnack, as USM support can only be tested with applications compiled with Xnack
+  capability</p>
+</li>
+</ul>
+<h4>Xnack Capability</h4>
+<p>When enabled, Xnack capability allows GPU threads to access CPU (system) memory,
+allocated with OS-allocators, such as <code>malloc</code>, <code>new</code>, and <code>mmap</code>. Xnack must be
+enabled both at compile- and run-time. To enable Xnack support at compile-time,
+the programmer should use</p>
+<p><code>bash
+--offload-arch=gfx908:xnack+</code></p>
+<p>Or, equivalently</p>
+<p><code>bash
+--offload-arch=gfx908</code></p>
+<p>:::{note}
+The second case is called Xnack-any and it is functionally equivalent to the
+first case.
+:::</p>
+<p>At runtime, programmers enable Xnack functionality on a per-application basis
+using an environment variable:</p>
+<p><code>bash
+HSA_XNACK=1</code></p>
+<p>When Xnack support is not needed, then applications can be built to maximize
+resource utilization using:</p>
+<p><code>bash
+--offload-arch=gfx908:xnack-</code></p>
+<p>At runtime, the <code>HSA_XNACK</code> environment variable can be set to 0, as Xnack
+functionality is not needed.</p>
+<h4>Unified Shared Memory Pragma</h4>
+<p>This OpenMP pragma is available on MI200 through <code>xnack+</code> support.</p>
+<p><code>bash
+omp requires unified_shared_memory</code></p>
+<p>As stated in the OpenMP specifications, this pragma makes the map clause on
+target constructs optional. By default, on MI200, all memory allocated on the
+host is fine grain. Using the map clause on a target clause is allowed, which
+transforms the access semantics of the associated memory to coarse grain.</p>
+<p>```bash
+A simple program demonstrating the use of this feature is:
+$ cat parallel_for.cpp</p>
+<h1>include <stdlib.h></h1>
+<h1>include <stdio.h></h1>
+<h1>define N 64</h1>
+<h1>pragma omp requires unified_shared_memory</h1>
+<p>int main() {
+  int n = N;
+  int <em>a = new int[n];
+  int </em>b = new int[n];</p>
+<p>for(int i = 0; i &lt; n; i++)
+    b[i] = i;</p>
+<p>#pragma omp target parallel for map(to:b[:n])
+  for(int i = 0; i &lt; n; i++)
+    a[i] = b[i];</p>
+<p>for(int i = 0; i &lt; n; i++)
+    if(a[i] != i)
+      printf("error at %d: expected %d, got %d\n", i, i+1, a[i]);</p>
+<p>return 0;
+}
+$ clang++ -O2 -target x86_64-pc-linux-gnu -fopenmp --offload-arch=gfx90a:xnack+ parallel_for.cpp
+$ HSA_XNACK=1 ./a.out
+```</p>
+<p>In the above code example, pointer “a” is not mapped in the target region, while
+pointer “b” is. Both are valid pointers on the GPU device and passed by-value to
+the kernel implementing the target region. This means the pointer values on the
+host and the device are the same.</p>
+<p>The difference between the memory pages pointed to by these two variables is
+that the pages pointed by “a” are in fine-grain memory, while the pages pointed
+to by “b” are in coarse-grain memory during and after the execution of the
+target region. This is accomplished in the OpenMP runtime library with calls to
+the ROCr runtime to set the pages pointed by “b” as coarse grain.</p>
+<h3>OMPT Target Support</h3>
+<p>The OpenMP runtime in ROCm implements a subset of the OMPT device APIs, as
+described in the OpenMP specification document. These APIs allow first-party
+tools to examine the profile and kernel traces that execute on a device. A tool
+can register callbacks for data transfer and kernel dispatch entry points or use
+APIs to start and stop tracing for device-related activities such as data
+transfer and kernel dispatch timings and associated metadata. If device tracing
+is enabled, trace records for device activities are collected during program
+execution and returned to the tool using the APIs described in the
+specification.</p>
+<p>The following example demonstrates how a tool uses the supported OMPT target
+APIs. The <code>README</code> in <code>/opt/rocm/llvm/examples/tools/ompt</code> outlines the steps to
+be followed, and the provided example can be run as shown below:</p>
+<p><code>bash
+cd $ROCM_PATH/share/openmp-extras/examples/tools/ompt/veccopy-ompt-target-tracing
+sudo make run</code></p>
+<p>The file <code>veccopy-ompt-target-tracing.c</code> simulates how a tool initiates device
+activity tracing. The file <code>callbacks.h</code> shows the callbacks registered and
+implemented by the tool.</p>
+<h3>Floating Point Atomic Operations</h3>
+<p>The MI200-series GPUs support the generation of hardware floating-point atomics
+using the OpenMP atomic pragma. The support includes single- and
+double-precision floating-point atomic operations. The programmer must ensure
+that the memory subjected to the atomic operation is in coarse-grain memory by
+mapping it explicitly with the help of map clauses when not implicitly mapped by
+the compiler as per the <a href="https://www.openmp.org/specifications/">OpenMP
+specifications</a>. This makes these
+hardware floating-point atomic instructions “fast,” as they are faster than
+using a default compare-and-swap loop scheme, but at the same time “unsafe,” as
+they are not supported on fine-grain memory. The operation in
+<code>unified_shared_memory</code> mode also requires programmers to map the memory
+explicitly when not implicitly mapped by the compiler.</p>
+<p>To request fast floating-point atomic instructions at the file level, use
+compiler flag <code>-munsafe-fp-atomics</code> or a hint clause on a specific pragma:</p>
+<p>```bash
+double a = 0.0;</p>
+<h1>pragma omp atomic hint(AMD_fast_fp_atomics)</h1>
+<p>a = a + 1.0;
+```</p>
+<p>NOTE <code>AMD_unsafe_fp_atomics</code> is an alias for <code>AMD_fast_fp_atomics</code>, and
+<code>AMD_safe_fp_atomics</code> is implemented with a compare-and-swap loop.</p>
+<p>To disable the generation of fast floating-point atomic instructions at the file
+level, build using the option <code>-msafe-fp-atomics</code> or use a hint clause on a
+specific pragma:</p>
+<p>```bash
+double a = 0.0;</p>
+<h1>pragma omp atomic hint(AMD_safe_fp_atomics)</h1>
+<p>a = a + 1.0;
+```</p>
+<p>The hint clause value always has a precedence over the compiler flag, which
+allows programmers to create atomic constructs with a different behavior than
+the rest of the file.</p>
+<p>See the example below, where the user builds the program using
+<code>-msafe-fp-atomics</code> to select a file-wide “safe atomic” compilation. However,
+the fast atomics hint clause over variable “a” takes precedence and operates on
+“a” using a fast/unsafe floating-point atomic, while the variable “b” in the
+absence of a hint clause is operated upon using safe floating-point atomics as
+per the compiler flag.</p>
+<p>```bash
+double a = 0.0;.</p>
+<h1>pragma omp atomic hint(AMD_fast_fp_atomics)</h1>
+<p>a = a + 1.0;</p>
+<p>double b = 0.0;</p>
+<h1>pragma omp atomic</h1>
+<p>b = b + 1.0;
+```</p>
+<h3>Address Sanitizer (ASan) Tool</h3>
+<p>Address Sanitizer is a memory error detector tool utilized by applications to
+detect various errors ranging from spatial issues such as out-of-bound access to
+temporal issues such as use-after-free. The AOMP compiler supports ASan for AMD
+GPUs with applications written in both HIP and OpenMP.</p>
+<p><strong>Features Supported on Host Platform (Target x86_64):</strong></p>
+<ul>
+<li>
+<p>Use-after-free</p>
+</li>
+<li>
+<p>Buffer overflows</p>
+</li>
+<li>
+<p>Heap buffer overflow</p>
+</li>
+<li>
+<p>Stack buffer overflow</p>
+</li>
+<li>
+<p>Global buffer overflow</p>
+</li>
+<li>
+<p>Use-after-return</p>
+</li>
+<li>
+<p>Use-after-scope</p>
+</li>
+<li>
+<p>Initialization order bugs</p>
+</li>
+</ul>
+<p><strong>Features Supported on AMDGPU Platform (<code>amdgcn-amd-amdhsa</code>):</strong></p>
+<ul>
+<li>
+<p>Heap buffer overflow</p>
+</li>
+<li>
+<p>Global buffer overflow</p>
+</li>
+</ul>
+<p><strong>Software (Kernel/OS) Requirements:</strong> Unified Shared Memory support with Xnack
+capability. See the section on <a href="#unified-shared-memory">Unified Shared Memory</a>
+for prerequisites and details on Xnack.</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Heap buffer overflow</li>
+</ul>
+<p>```bash
+void  main() {
+.......  // Some program statements
+.......  // Some program statements</p>
+<h1>pragma omp target map(to : A[0:N], B[0:N]) map(from: C[0:N])</h1>
+<p>{</p>
+<h1>pragma omp parallel for</h1>
+<pre><code>for(int i =0 ; i &lt; N; i++){
+C[i+10] = A[i] + B[i];
+</code></pre>
+<p>}   // end of for loop
+}
+.......   // Some program statements
+}// end of main
+```</p>
+<p>See the complete sample code for heap buffer overflow
+<a href="https://github.com/ROCm-Developer-Tools/aomp/blob/aomp-dev/examples/tools/asan/heap_buffer_overflow/openmp/vecadd-HBO.cpp">here</a>.</p>
+<ul>
+<li>Global buffer overflow</li>
+</ul>
+<p>```bash</p>
+<h1>pragma omp declare target</h1>
+<p>int A[N],B[N],C[N];</p>
+<h1>pragma omp end declare target</h1>
+<p>void main(){
+......  // some program statements
+......  // some program statements</p>
+<h1>pragma omp target data map(to:A[0:N],B[0:N]) map(from: C[0:N])</h1>
+<p>{</p>
+<h1>pragma omp target update to(A,B)</h1>
+<h1>pragma omp target parallel for</h1>
+<p>for(int i=0; i&lt;N; i++){
+    C[i]=A[i*100]+B[i+22];
+} // end of for loop</p>
+<h1>pragma omp target update from(C)</h1>
+<p>}
+........  // some program statements
+} // end of main
+```</p>
+<p>See the complete sample code for global buffer overflow
+<a href="https://github.com/ROCm-Developer-Tools/aomp/blob/aomp-dev/examples/tools/asan/global_buffer_overflow/openmp/vecadd-GBO.cpp">here</a>.</p>
+<h3>Specialized Kernels</h3>
+<p>Clang will attempt to generate specialized kernels based on compiler options and OpenMP constructs. The following specialized kernels are supported:</p>
+<ul>
+<li>
+<p>No-Loop</p>
+</li>
+<li>
+<p>Big-Jump-Loop</p>
+</li>
+<li>
+<p>Cross-Team (Xteam) Reductions</p>
+</li>
+</ul>
+<p>To enable the generation of specialized kernels, follow these guidelines:</p>
+<ul>
+<li>
+<p>Do not specify teams, threads, and schedule-related environment variables. The <code>num_teams</code> clause in an OpenMP target construct acts as an override and prevents the generation of the No-Loop kernel. If the specification of <code>num_teams</code> clause is a user requirement then clang tries to generate the Big-Jump-Loop kernel instead of the No-Loop kernel.</p>
+</li>
+<li>
+<p>Assert the absence of the teams, threads, and schedule-related environment variables by adding the command-line option <code>-fopenmp-target-ignore-env-vars</code>.</p>
+</li>
+<li>
+<p>To automatically enable the specialized kernel generation, use <code>-Ofast</code> or <code>-fopenmp-target-fast</code> for compilation.</p>
+</li>
+<li>
+<p>To disable specialized kernel generation, use <code>-fno-openmp-target-ignore-env-vars</code>.</p>
+</li>
+</ul>
+<h4>No-Loop Kernel Generation</h4>
+<p>The No-loop kernel generation feature optimizes the compiler performance by generating a specialized kernel for certain OpenMP target constructs such as target teams distribute parallel for. The specialized kernel generation feature assumes every thread executes a single iteration of the user loop, which leads the runtime to launch a total number of GPU threads equal to or greater than the iteration space size of the target region loop. This allows the compiler to generate code for the loop body without an enclosing loop, resulting in reduced control-flow complexity and potentially better performance.</p>
+<h4>Big-Jump-Loop Kernel Generation</h4>
+<p>A No-Loop kernel is not generated if the OpenMP teams construct uses a <code>num_teams</code> clause. Instead, the compiler attempts to generate a different specialized kernel called the Big-Jump-Loop kernel. The compiler launches the kernel with a grid size determined by the number of teams specified by the OpenMP <code>num_teams</code> clause and the <code>blocksize</code> chosen either by the compiler or specified by the corresponding OpenMP clause.</p>
+<h4>Xteam Optimized Reduction Kernel Generation</h4>
+<p>If the OpenMP construct has a reduction clause, the compiler attempts to generate optimized code by utilizing efficient Xteam communication. New APIs for Xteam reduction are implemented in the device runtime and are automatically generated by clang.</p>

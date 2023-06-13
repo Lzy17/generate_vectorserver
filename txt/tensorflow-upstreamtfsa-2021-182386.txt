@@ -1,0 +1,20 @@
+<h2>TFSA-2021-182: Reference binding to <code>nullptr</code> in <code>tf.ragged.cross</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41214</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/ops/ragged_array_ops.cc#L64">shape inference code for <code>tf.ragged.cross</code></a> has an undefined behavior due to binding a reference to <code>nullptr</code>. In the following scenario, this results in a crash:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def test():
+  y = tf.ragged.cross([tf.ragged.constant([['1']]),'2'])
+  return y</p>
+<p>test()
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/fa6b7782fbb14aa08d767bc799c531f5e1fb3bb8">fa6b7782fbb14aa08d767bc799c531f5e1fb3bb8</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

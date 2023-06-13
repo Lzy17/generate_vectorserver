@@ -1,0 +1,34 @@
+<h2>TFSA-2021-123: Null pointer dereference in <code>UncompressElement</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37649</p>
+<h3>Impact</h3>
+<p>The code for <code>tf.raw_ops.UncompressElement</code> can be made to trigger a null
+pointer dereference:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>data = tf.data.Dataset.from_tensors([0.0])
+tf.raw_ops.UncompressElement(
+  compressed=tf.data.experimental.to_variant(data),
+  output_types=[tf.int64],
+  output_shapes=[2])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/f24faa153ad31a4b51578f8181d3aaab77a1ddeb/tensorflow/core/kernels/data/experimental/compression_ops.cc#L50-L53">implementation</a>
+obtains a pointer to a <code>CompressedElement</code> from a <code>Variant</code> tensor and then
+proceeds to dereference it for decompressing. There is no check that the
+<code>Variant</code> tensor contained a <code>CompressedElement</code>, so the pointer is actually
+<code>nullptr</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/7bdf50bb4f5c54a4997c379092888546c97c3ebd">7bdf50bb4f5c54a4997c379092888546c97c3ebd</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

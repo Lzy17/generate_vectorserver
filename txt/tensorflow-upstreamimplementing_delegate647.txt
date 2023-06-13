@@ -1,0 +1,520 @@
+<h1>Implementing a Custom Delegate</h1>
+<p>[TOC]</p>
+<h2>What is a TensorFlow Lite Delegate?</h2>
+<p>A TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/performance/delegates">Delegate</a> allows you to
+run your models (part or whole) on another executor. This mechanism can leverage
+a variety of on-device accelerators such as the GPU or Edge TPU (Tensor
+Processing Unit) for inference. This provides developers a flexible and
+decoupled method from the default TFLite to speed up inference.</p>
+<p>Diagram below summarizes the delegates, more details in the below sections.</p>
+<p><img alt="TFLite Delegates" src="images/tflite_delegate.png" title="TFLite Delegates" /></p>
+<h2>When should I create a Custom delegate?</h2>
+<p>TensorFlow Lite has a wide variety of delegates for target accelerators such as
+GPU, DSP, EdgeTPU and frameworks like Android NNAPI.</p>
+<p>Creating your own delegate is useful in the following scenarios:</p>
+<ul>
+<li>You want to integrate a new ML inference engine not supported by any
+    existing delegate.</li>
+<li>You have a custom hardware accelerator that improves runtime for known
+    scenarios.</li>
+<li>You are developing CPU optimizations (such as operator fusing) that can
+    speed up certain models.</li>
+</ul>
+<h2>How do delegates work?</h2>
+<p>Consider a simple model graph such as the following, and a delegate “MyDelegate”
+that has a faster implementation for Conv2D and Mean operations.</p>
+<p><img alt="Original graph" src="../images/performance/tflite_delegate_graph_1.png" title="Original Graph" /></p>
+<p>After applying this “MyDelegate”, the original TensorFlow Lite graph will be
+updated like the following:</p>
+<p><img alt="Graph with delegate" src="../images/performance/tflite_delegate_graph_2.png" title="Graph with delegate" /></p>
+<p>The graph above is obtained as TensorFlow Lite splits the original graph
+following two rules:</p>
+<ul>
+<li>Specific operations that could be handled by the delegate are put into a
+    partition while still satisfying the original computing workflow
+    dependencies among operations.</li>
+<li>Each to-be-delegated partition only has input and output nodes that are not
+    handled by the delegate.</li>
+</ul>
+<p>Each partition that is handled by a delegate is replaced by a delegate node (can
+also be called as a delegate kernel) in the original graph that evaluates the
+partition on its invoke call.</p>
+<p>Depending on the model, the final graph can end up with one or more nodes, the
+latter meaning that some ops are not supported by the delegate. In general, you
+don’t want to have multiple partitions handled by the delegate, because each
+time you switch from delegate to the main graph, there is an overhead for
+passing the results from the delegated subgraph to the main graph that results
+due to memory copies (for example, GPU to CPU). Such overhead might offset
+performance gains especially when there are a large amount of memory copies.</p>
+<h2>Implementing your own Custom delegate</h2>
+<p>The preferred method to add a delegate is using
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/utils/simple_delegate.h">SimpleDelegate API</a>.</p>
+<p>To create a new delegate, you need to implement 2 interfaces and provide your
+own implementation for the interface methods.</p>
+<h3>1 - <code>SimpleDelegateInterface</code></h3>
+<p>This class represents the capabilities of the delegate, which operations are
+supported, and a factory class for creating a kernel which encapsulates the
+delegated graph. For more details, see the interface defined in this
+<a href="https://github.com/tensorflow/tensorflow/blob/8a643858ce174b8bd1b4bb8fa4bfaa62f7e8c45f/tensorflow/lite/delegates/utils/simple_delegate.h#L71">C++ header file</a>.
+The comments in the code explain each API in detail.</p>
+<h3>2 - <code>SimpleDelegateKernelInterface</code></h3>
+<p>This class encapsulates the logic for initializing / preparing / and running the
+delegated partition.</p>
+<p>It has: (See
+<a href="https://github.com/tensorflow/tensorflow/blob/8a643858ce174b8bd1b4bb8fa4bfaa62f7e8c45f/tensorflow/lite/delegates/utils/simple_delegate.h#L43">definition</a>)</p>
+<ul>
+<li>Init(...): which will be called once to do any one-time initialization.</li>
+<li>Prepare(...): called for each different instance of this node - this happens
+    if you have multiple delegated partitions. Usually you want to do memory
+    allocations here, since this will be called everytime tensors are resized.</li>
+<li>Invoke(...): which will be called for inference.</li>
+</ul>
+<h3>Example</h3>
+<p>In this example, you will create a very simple delegate that can support only 2
+types of operations (ADD) and (SUB) with float32 tensors only.</p>
+<p>```
+// MyDelegate implements the interface of SimpleDelegateInterface.
+// This holds the Delegate capabilities.
+class MyDelegate : public SimpleDelegateInterface {
+ public:
+  bool IsNodeSupportedByDelegate(const TfLiteRegistration<em> registration,
+                                 const TfLiteNode</em> node,
+                                 TfLiteContext* context) const override {
+    // Only supports Add and Sub ops.
+    if (kTfLiteBuiltinAdd != registration-&gt;builtin_code &amp;&amp;
+        kTfLiteBuiltinSub != registration-&gt;builtin_code)
+      return false;
+    // This delegate only supports float32 types.
+    for (int i = 0; i &lt; node-&gt;inputs-&gt;size; ++i) {
+      auto&amp; tensor = context-&gt;tensors[node-&gt;inputs-&gt;data[i]];
+      if (tensor.type != kTfLiteFloat32) return false;
+    }
+    return true;
+  }</p>
+<p>TfLiteStatus Initialize(TfLiteContext* context) override { return kTfLiteOk; }</p>
+<p>const char* Name() const override {
+    static constexpr char kName[] = "MyDelegate";
+    return kName;
+  }</p>
+<p>std::unique_ptr<SimpleDelegateKernelInterface> CreateDelegateKernelInterface()
+      override {
+    return std::make_unique<MyDelegateKernel>();
+  }
+};
+```</p>
+<p>Next, create your own delegate kernel by inheriting from the
+<code>SimpleDelegateKernelInterface</code></p>
+<p>```
+// My delegate kernel.
+class MyDelegateKernel : public SimpleDelegateKernelInterface {
+ public:
+  TfLiteStatus Init(TfLiteContext<em> context,
+                    const TfLiteDelegateParams</em> params) override {
+    // Save index to all nodes which are part of this delegate.
+    inputs_.resize(params-&gt;nodes_to_replace-&gt;size);
+    outputs_.resize(params-&gt;nodes_to_replace-&gt;size);
+    builtin_code_.resize(params-&gt;nodes_to_replace-&gt;size);
+    for (int i = 0; i &lt; params-&gt;nodes_to_replace-&gt;size; ++i) {
+      const int node_index = params-&gt;nodes_to_replace-&gt;data[i];
+      // Get this node information.
+      TfLiteNode<em> delegated_node = nullptr;
+      TfLiteRegistration</em> delegated_node_registration = nullptr;
+      TF_LITE_ENSURE_EQ(
+          context,
+          context-&gt;GetNodeAndRegistration(context, node_index, &amp;delegated_node,
+                                          &amp;delegated_node_registration),
+          kTfLiteOk);
+      inputs_[i].push_back(delegated_node-&gt;inputs-&gt;data[0]);
+      inputs_[i].push_back(delegated_node-&gt;inputs-&gt;data[1]);
+      outputs_[i].push_back(delegated_node-&gt;outputs-&gt;data[0]);
+      builtin_code_[i] = delegated_node_registration-&gt;builtin_code;
+    }
+    return kTfLiteOk;
+  }</p>
+<p>TfLiteStatus Prepare(TfLiteContext<em> context, TfLiteNode</em> node) override {
+    return kTfLiteOk;
+  }</p>
+<p>TfLiteStatus Eval(TfLiteContext<em> context, TfLiteNode</em> node) override {
+    // Evaluate the delegated graph.
+    // Here we loop over all the delegated nodes.
+    // We know that all the nodes are either ADD or SUB operations and the
+    // number of nodes equals ''inputs_.size()'' and inputs[i] is a list of
+    // tensor indices for inputs to node ''i'', while outputs_[i] is the list of
+    // outputs for node
+    // ''i''. Note, that it is intentional we have simple implementation as this
+    // is for demonstration.</p>
+<pre><code>for (int i = 0; i &lt; inputs_.size(); ++i) {
+  // Get the node input tensors.
+  // Add/Sub operation accepts 2 inputs.
+  auto&amp; input_tensor_1 = context-&gt;tensors[inputs_[i][0]];
+  auto&amp; input_tensor_2 = context-&gt;tensors[inputs_[i][1]];
+  auto&amp; output_tensor = context-&gt;tensors[outputs_[i][0]];
+  TF_LITE_ENSURE_EQ(
+      context,
+      ComputeResult(context, builtin_code_[i], &amp;input_tensor_1,
+                    &amp;input_tensor_2, &amp;output_tensor),
+      kTfLiteOk);
+}
+return kTfLiteOk;
+</code></pre>
+<p>}</p>
+<p>private:
+  // Computes the result of addition of 'input_tensor_1' and 'input_tensor_2'
+  // and store the result in 'output_tensor'.
+  TfLiteStatus ComputeResult(TfLiteContext<em> context, int builtin_code,
+                             const TfLiteTensor</em> input_tensor_1,
+                             const TfLiteTensor<em> input_tensor_2,
+                             TfLiteTensor</em> output_tensor) {
+    if (NumElements(input_tensor_1) != NumElements(input_tensor_2) ||
+        NumElements(input_tensor_1) != NumElements(output_tensor)) {
+      return kTfLiteDelegateError;
+    }
+    // This code assumes no activation, and no broadcasting needed (both inputs
+    // have the same size).
+    auto<em> input_1 = GetTensorData<float>(input_tensor_1);
+    auto</em> input_2 = GetTensorData<float>(input_tensor_2);
+    auto* output = GetTensorData<float>(output_tensor);
+    for (int i = 0; i &lt; NumElements(input_tensor_1); ++i) {
+      if (builtin_code == kTfLiteBuiltinAdd)
+        output[i] = input_1[i] + input_2[i];
+      else
+        output[i] = input_1[i] - input_2[i];
+    }
+    return kTfLiteOk;
+  }</p>
+<p>// Holds the indices of the input/output tensors.
+  // inputs_[i] is list of all input tensors to node at index 'i'.
+  // outputs_[i] is list of all output tensors to node at index 'i'.
+  std::vector<std::vector\<int>> inputs_, outputs_;
+  // Holds the builtin code of the ops.
+  // builtin_code_[i] is the type of node at index 'i'
+  std::vector<int> builtin_code_;
+};</p>
+<p>```</p>
+<h2>Benchmark and evaluate the new delegate</h2>
+<p>TFLite has a set of tools that you can quickly test against a TFLite model.</p>
+<ul>
+<li><a href="https://github.com/tensorflow/tensorflow/tree/f9ef3a8a0b64ad6393785f3259e9a24af09c84ad/tensorflow/lite/tools/benchmark">Model Benchmark Tool</a>:
+    The tool takes a TFLite model, generates random inputs, and then repeatedly
+    runs the model for a specified number of runs. It prints aggregated latency
+    statistics at the end.</li>
+<li><a href="https://github.com/tensorflow/tensorflow/tree/f9ef3a8a0b64ad6393785f3259e9a24af09c84ad/tensorflow/lite/tools/evaluation/tasks/inference_diff">Inference Diff Tool</a>:
+    For a given model, the tool generates random Gaussian data and passes it
+    through two different TFLite interpreters, one running single threaded CPU
+    kernel and the other using a user-defined spec. It measures the absolute
+    difference between the output tensors from each interpreter, on a
+    per-element basis. This tool can also be helpful for debugging accuracy
+    issues.</li>
+<li>There are also task specific evaluation tools, for image classification and
+    object detection. These tools can be found
+    <a href="https://www.tensorflow.org/lite/performance/delegates#tools_for_evaluation">here</a></li>
+</ul>
+<p>In addition, TFLite has a large set of kernel and op unit tests that could be
+reused to test the new delegate with more coverage and to ensure the regular
+TFLite execution path is not broken.</p>
+<p>To achieve reusing TFLite tests and tooling for the new delegate, you can use
+either of the following two options:</p>
+<ul>
+<li>Utilize the
+    <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/delegates">delegate registrar</a>
+    mechanism.</li>
+<li>Utilize the
+    <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/external">external delegate</a>
+    mechanism.</li>
+</ul>
+<h3>Choosing the best approach</h3>
+<p>Both approaches require a few changes as detailed below. However, the first
+approach links the delegate statically and requires rebuilding the testing,
+benchmarking and evaluation tools. In contrast, the second one makes the
+delegate as a shared library and requires you to expose the create/delete
+methods from the shared library.</p>
+<p>As a result, the external-delegate mechanism will work with TFLite’s
+<a href="#download-links-for-nightly-pre-built-tflite-tooling-binaries">pre-built Tensorflow Lite tooling binaries</a>.
+But it is less explicit and it might be more complicated to set up in automated
+integration tests. Use the delegate registrar approach for better clarity.</p>
+<h3>Option 1: Leverage delegate registrar</h3>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/delegates">delegate registrar</a>
+keeps a list of delegate providers, each of which provides an easy way to create
+TFLite delegates based on command-line flags, and are hence, convenient for
+tooling. To plug in the new delegate to all the Tensorflow Lite tools mentioned
+above, you first create a new delegate provider like this
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/delegates/hexagon_delegate_provider.cc">one</a>,
+and then makes only a few changes to the BUILD rules. A full example of this
+integration process is shown below (and code can be found
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/utils/dummy_delegate">here</a>).</p>
+<p>Assuming you have a delegate that implements the SimpleDelegate APIs, and the
+extern "C" APIs of creating/deleting this 'dummy' delegate as shown below:</p>
+<p>```
+// Returns default options for DummyDelegate.
+DummyDelegateOptions TfLiteDummyDelegateOptionsDefault();</p>
+<p>// Creates a new delegate instance that need to be destroyed with
+// <code>TfLiteDummyDelegateDelete</code> when delegate is no longer used by TFLite.
+// When <code>options</code> is set to <code>nullptr</code>, the above default values are used:
+TfLiteDelegate<em> TfLiteDummyDelegateCreate(const DummyDelegateOptions</em> options);</p>
+<p>// Destroys a delegate created with <code>TfLiteDummyDelegateCreate</code> call.
+void TfLiteDummyDelegateDelete(TfLiteDelegate* delegate);
+```</p>
+<p>To integrate the “DummyDelegate” with Benchmark Tool and Inference Tool, define
+a DelegateProvider like below:</p>
+<p>```
+class DummyDelegateProvider : public DelegateProvider {
+ public:
+  DummyDelegateProvider() {
+    default_params_.AddParam("use_dummy_delegate",
+                             ToolParam::Create<bool>(false));
+  }</p>
+<p>std::vector<Flag> CreateFlags(ToolParams* params) const final;</p>
+<p>void LogParams(const ToolParams&amp; params) const final;</p>
+<p>TfLiteDelegatePtr CreateTfLiteDelegate(const ToolParams&amp; params) const final;</p>
+<p>std::string GetName() const final { return "DummyDelegate"; }
+};
+REGISTER_DELEGATE_PROVIDER(DummyDelegateProvider);</p>
+<p>std::vector<Flag> DummyDelegateProvider::CreateFlags(ToolParams* params) const {
+  std::vector<Flag> flags = {CreateFlag<bool>("use_dummy_delegate", params,
+                                              "use the dummy delegate.")};
+  return flags;
+}</p>
+<p>void DummyDelegateProvider::LogParams(const ToolParams&amp; params) const {
+  TFLITE_LOG(INFO) &lt;&lt; "Use dummy test delegate : ["
+                   &lt;&lt; params.Get<bool>("use_dummy_delegate") &lt;&lt; "]";
+}</p>
+<p>TfLiteDelegatePtr DummyDelegateProvider::CreateTfLiteDelegate(
+    const ToolParams&amp; params) const {
+  if (params.Get<bool>("use_dummy_delegate")) {
+    auto default_options = TfLiteDummyDelegateOptionsDefault();
+    return TfLiteDummyDelegateCreateUnique(&amp;default_options);
+  }
+  return TfLiteDelegatePtr(nullptr, <a href="TfLiteDelegate*"></a> {});
+}</p>
+<p>```</p>
+<p>The BUILD rule definitions are important as you need to make sure that the
+library is always linked and not dropped by optimizer.</p>
+<p>```</p>
+<h4>The following are for using the dummy test delegate in TFLite tooling</h4>
+<p>cc_library(
+    name = "dummy_delegate_provider",
+    srcs = ["dummy_delegate_provider.cc"],
+    copts = tflite_copts(),
+    deps = [
+        ":dummy_delegate",
+        "//tensorflow/lite/tools/delegates:delegate_provider_hdr",
+    ],
+    alwayslink = 1, # This is required so the optimizer doesn't optimize the library away.
+)
+```</p>
+<p>Now add these two wrapper rules in your BUILD file to create a version of
+Benchmark Tool and Inference Tool, and other evaluation tools, that could run
+with your own delegate.</p>
+<p>```
+cc_binary(
+    name = "benchmark_model_plus_dummy_delegate",
+    copts = tflite_copts(),
+    linkopts = task_linkopts(),
+    deps = [
+        ":dummy_delegate_provider",
+        "//tensorflow/lite/tools/benchmark:benchmark_model_main",
+    ],
+)</p>
+<p>cc_binary(
+    name = "inference_diff_plus_dummy_delegate",
+    copts = tflite_copts(),
+    linkopts = task_linkopts(),
+    deps = [
+        ":dummy_delegate_provider",
+        "//tensorflow/lite/tools/evaluation/tasks:task_executor_main",
+        "//tensorflow/lite/tools/evaluation/tasks/inference_diff:run_eval_lib",
+    ],
+)</p>
+<p>cc_binary(
+    name = "imagenet_classification_eval_plus_dummy_delegate",
+    copts = tflite_copts(),
+    linkopts = task_linkopts(),
+    deps = [
+        ":dummy_delegate_provider",
+        "//tensorflow/lite/tools/evaluation/tasks:task_executor_main",
+        "//tensorflow/lite/tools/evaluation/tasks/imagenet_image_classification:run_eval_lib",
+    ],
+)</p>
+<p>cc_binary(
+    name = "coco_object_detection_eval_plus_dummy_delegate",
+    copts = tflite_copts(),
+    linkopts = task_linkopts(),
+    deps = [
+        ":dummy_delegate_provider",
+        "//tensorflow/lite/tools/evaluation/tasks:task_executor_main",
+        "//tensorflow/lite/tools/evaluation/tasks/coco_object_detection:run_eval_lib",
+    ],
+)
+```</p>
+<p>You can also plug in this delegate provider to TFLite kernel tests as described
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/utils/dummy_delegate/README.md#kernel-tests">here</a>.</p>
+<h3>Option 2: Leverage external delegate</h3>
+<p>In this alternative, you first create an external delegate adaptor the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/utils/dummy_delegate/external_delegate_adaptor.cc">external_delegate_adaptor.cc</a>
+as shown below. Note, this approach is slightly less preferred as compared to
+Option 1 as has been <a href="#comparison-between-the-two-options">aforementioned</a>.</p>
+<p>```
+TfLiteDelegate<em> CreateDummyDelegateFromOptions(char</em><em> options_keys,
+                                               char</em>* options_values,
+                                               size_t num_options) {
+  DummyDelegateOptions options = TfLiteDummyDelegateOptionsDefault();</p>
+<p>// Parse key-values options to DummyDelegateOptions.
+  // You can achieve this by mimicking them as command-line flags.
+  std::unique_ptr<const char*> argv =
+      std::unique_ptr<const char*>(new const char*[num_options + 1]);
+  constexpr char kDummyDelegateParsing[] = "dummy_delegate_parsing";
+  argv.get()[0] = kDummyDelegateParsing;</p>
+<p>std::vector<std::string> option_args;
+  option_args.reserve(num_options);
+  for (int i = 0; i &lt; num_options; ++i) {
+    option_args.emplace_back("--");
+    option_args.rbegin()-&gt;append(options_keys[i]);
+    option_args.rbegin()-&gt;push_back('=');
+    option_args.rbegin()-&gt;append(options_values[i]);
+    argv.get()[i + 1] = option_args.rbegin()-&gt;c_str();
+  }</p>
+<p>// Define command-line flags.
+  // ...
+  std::vector<tflite::Flag> flag_list = {
+      tflite::Flag::CreateFlag(...),
+      ...,
+      tflite::Flag::CreateFlag(...),
+  };</p>
+<p>int argc = num_options + 1;
+  if (!tflite::Flags::Parse(&amp;argc, argv.get(), flag_list)) {
+    return nullptr;
+  }</p>
+<p>return TfLiteDummyDelegateCreate(&amp;options);
+}</p>
+<h1>ifdef __cplusplus</h1>
+<p>extern "C" {</p>
+<h1>endif  // __cplusplus</h1>
+<p>// Defines two symbols that need to be exported to use the TFLite external
+// delegate. See tensorflow/lite/delegates/external for details.
+TFL_CAPI_EXPORT TfLiteDelegate<em> tflite_plugin_create_delegate(
+    char</em><em> options_keys, char</em><em> options_values, size_t num_options,
+    void (</em>report_error)(const char*)) {
+  return tflite::tools::CreateDummyDelegateFromOptions(
+      options_keys, options_values, num_options);
+}</p>
+<p>TFL_CAPI_EXPORT void tflite_plugin_destroy_delegate(TfLiteDelegate* delegate) {
+  TfLiteDummyDelegateDelete(delegate);
+}</p>
+<h1>ifdef __cplusplus</h1>
+<p>}</p>
+<h1>endif  // __cplusplus</h1>
+<p>```</p>
+<p>Now create the corresponding BUILD target to build a dynamic library as shown
+below:</p>
+<p><code>cc_binary(
+    name = "dummy_external_delegate.so",
+    srcs = [
+        "external_delegate_adaptor.cc",
+    ],
+    linkshared = 1,
+    linkstatic = 1,
+    deps = [
+        ":dummy_delegate",
+        "//tensorflow/lite/c:common",
+        "//tensorflow/lite/tools:command_line_flags",
+        "//tensorflow/lite/tools:logging",
+    ],
+)</code></p>
+<p>After this external delegate .so file is created, you can build binaries or use
+pre-built ones to run with the new delegate as long as the binary is linked with
+the
+<a href="https://github.com/tensorflow/tensorflow/blob/8c6f2d55762f3fc94f98fdd8b3c5d59ee1276dba/tensorflow/lite/tools/delegates/BUILD#L145-L159">external_delegate_provider</a>
+library which supports command-line flags as described
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/delegates#external-delegate-provider">here</a>.
+Note: this external delegate provider has already been linked to existing
+testing and tooling binaries.</p>
+<p>Refer to descriptions
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/utils/dummy_delegate/README.md#option-2-utilize-tensorflow-lite-external-delegate">here</a>
+for an illustration of how to benchmark the dummy delegate via this
+external-delegate approach. You can use similar commands for the testing and
+evaluation tools mentioned earlier.</p>
+<p>It is worth noting the <em>external delegate</em> is the corresponding C++
+implementation of the <em>delegate</em> in Tensorflow Lite Python binding as shown
+<a href="https://github.com/tensorflow/tensorflow/blob/7145fc0e49be01ef6943f4df386ce38567e37797/tensorflow/lite/python/interpreter.py#L42">here</a>.
+Therefore, the dynamic external delegate adaptor library created here could be
+directly used with Tensorflow Lite Python APIs.</p>
+<h2>Resources</h2>
+<h3>Download links for nightly pre-built TFLite tooling binaries</h3>
+<table>
+  <tr>
+   <td>OS
+   </td>
+   <td>ARCH
+   </td>
+   <td>BINARY_NAME
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="3" >Linux
+   </td>
+   <td>x86_64
+   </td>
+   <td><ul>
+
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_benchmark_model">benchmark_model</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_eval_inference_diff">inference_diff</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_eval_imagenet_image_classification">imagenet_image_classification_eval</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_eval_coco_object_detection">coco_object_detection_eval</a></li></ul>
+
+   </td>
+  </tr>
+  <tr>
+   <td>arm
+   </td>
+   <td><ul>
+
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_benchmark_model">benchmark_model</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_eval_inference_diff">inference_diff</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_eval_imagenet_image_classification">imagenet_image_classification_eval</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_eval_coco_object_detection">coco_object_detection_eval</a></li></ul>
+
+   </td>
+  </tr>
+  <tr>
+   <td>aarch64
+   </td>
+   <td><ul>
+
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_benchmark_model">benchmark_model</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_eval_inference_diff">inference_diff</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_eval_imagenet_image_classification">imagenet_image_classification_eval</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_eval_coco_object_detection">coco_object_detection_eval</a></li></ul>
+
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2" >Android
+   </td>
+   <td>arm
+   </td>
+   <td><ul>
+
+<li><a href="http://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model">benchmark_model</a>
+<li><strong><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model.apk">benchmark_model.apk</a></strong>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_eval_inference_diff">inference_diff</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_eval_imagenet_image_classification">imagenet_image_classification_eval</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_eval_coco_object_detection">coco_object_detection_eval</a></li></ul>
+
+   </td>
+  </tr>
+  <tr>
+   <td>aarch64
+   </td>
+   <td><ul>
+
+<li><a href="http://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model">benchmark_model</a>
+<li><strong><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model.apk">benchmark_model.apk</a></strong>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_inference_diff">inference_diff</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_imagenet_image_classification">imagenet_image_classification_eval</a>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_eval_coco_object_detection">coco_object_detection_eval</a></li></ul>
+
+   </td>
+  </tr>
+</table>

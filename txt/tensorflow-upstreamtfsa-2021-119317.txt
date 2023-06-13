@@ -1,0 +1,35 @@
+<h2>TFSA-2021-119: Integer overflow due to conversion to unsigned</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37645</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.QuantizeAndDequantizeV4Grad</code> is vulnerable to
+an integer overflow issue caused by converting a signed integer value to an
+unsigned one and then allocating memory based on this value.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.QuantizeAndDequantizeV4Grad(
+  gradients=[1.0,2.0],
+  input=[1.0,1.0],
+  input_min=[0.0],
+  input_max=[10.0],
+  axis=-100)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/kernels/quantize_and_dequantize_op.cc#L126">implementation</a>
+uses the <code>axis</code> value as the size argument to <code>absl::InlinedVector</code> constructor.
+But, the constructor uses an unsigned type for the argument, so the implicit
+conversion transforms the negative value to a large integer.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/96f364a1ca3009f98980021c4b32be5fdcca33a1">96f364a1ca3009f98980021c4b32be5fdcca33a1</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, and TensorFlow 2.4.3, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

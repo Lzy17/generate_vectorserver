@@ -1,0 +1,56 @@
+<h1>API Updates <a name="api_updates"></a></h1>
+<p>This page provides information about updates made to the
+<code>tf.lite.TFLiteConverter</code> <a href="index.md">Python API</a> in TensorFlow 2.x.</p>
+<p>Note: If any of the changes raise concerns, please file a
+<a href="https://github.com/tensorflow/tensorflow/issues/new?template=60-tflite-converter-issue.md">GitHub issue</a>.</p>
+<ul>
+<li>
+<p>TensorFlow 2.3</p>
+<ul>
+<li>Support integer (previously, only float) input/output type for integer
+    quantized models using the new <code>inference_input_type</code> and
+    <code>inference_output_type</code> attributes. Refer to this
+    <a href="../../performance/post_training_quantization.md#integer_only">example usage</a>.</li>
+<li>Support conversion and resizing of models with dynamic dimensions.</li>
+<li>Added a new experimental quantization mode with 16-bit activations and
+    8-bit weights.</li>
+</ul>
+</li>
+<li>
+<p>TensorFlow 2.2</p>
+<ul>
+<li>By default, leverage <a href="https://mlir.llvm.org/">MLIR-based conversion</a>,
+    Google's cutting edge compiler technology for machine learning. This
+    enables conversion of new classes of models, including Mask R-CNN,
+    Mobile BERT, etc and supports models with functional control flow.</li>
+</ul>
+</li>
+<li>
+<p>TensorFlow 2.0 vs TensorFlow 1.x</p>
+<ul>
+<li>Renamed the <code>target_ops</code> attribute to <code>target_spec.supported_ops</code></li>
+<li>Removed the following attributes:<ul>
+<li><em>quantization</em>: <code>inference_type</code>, <code>quantized_input_stats</code>,
+    <code>post_training_quantize</code>, <code>default_ranges_stats</code>,
+    <code>reorder_across_fake_quant</code>, <code>change_concat_input_ranges</code>,
+    <code>get_input_arrays()</code>. Instead,
+    <a href="https://www.tensorflow.org/model_optimization/guide/quantization/training">quantize aware training</a>
+    is supported through the <code>tf.keras</code> API and
+    <a href="../../performance/post_training_quantization.md">post training quantization</a>
+    uses fewer attributes.</li>
+<li><em>visualization</em>: <code>output_format</code>, <code>dump_graphviz_dir</code>,
+    <code>dump_graphviz_video</code>. Instead, the recommended approach for
+    visualizing a TensorFlow Lite model is to use
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/visualize.py">visualize.py</a>.</li>
+<li><em>frozen graphs</em>: <code>drop_control_dependency</code>, as frozen graphs are
+    unsupported in TensorFlow 2.x.</li>
+</ul>
+</li>
+<li>Removed other converter APIs such as <code>tf.lite.toco_convert</code> and
+    <code>tf.lite.TocoConverter</code></li>
+<li>Removed other related APIs such as <code>tf.lite.OpHint</code> and
+    <code>tf.lite.constants</code> (the <code>tf.lite.constants.*</code> types have been mapped to
+    <code>tf.*</code> TensorFlow data types, to reduce duplication)</li>
+</ul>
+</li>
+</ul>

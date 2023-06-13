@@ -1,0 +1,20 @@
+<h2>TFSA-2022-040: Null dereference in <code>GetInitOp</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23577</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/cc/saved_model/loader_util.cc#L31-L61">implementation of <code>GetInitOp</code></a> is vulnerable to a crash caused by dereferencing a null pointer:</p>
+<p><code>cc
+const auto&amp; init_op_sig_it =
+    meta_graph_def.signature_def().find(kSavedModelInitOpSignatureKey);
+if (init_op_sig_it != sig_def_map.end()) {
+  *init_op_name = init_op_sig_it-&gt;second.outputs()
+                      .find(kSavedModelInitOpSignatureKey)
+                      -&gt;second.name();
+  return OkStatus();
+}</code></p>
+<p>Here, we have a nested map and we assume that if the first <code>.find</code> succeeds then so would be the search in the internal map. However, the maps are built based on the <code>SavedModel</code> protobuf format and a malicious user can alter that on disk before loading to cause the second <code>.find</code> to return <code>nullptr</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/4f38b1ac8e42727e18a2f0bde06d3bee8e77b250">4f38b1ac8e42727e18a2f0bde06d3bee8e77b250</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

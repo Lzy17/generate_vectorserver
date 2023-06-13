@@ -1,0 +1,30 @@
+<h2>TFSA-2021-080: Stack overflow due to looping TFLite subgraph</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29591</p>
+<h3>Impact</h3>
+<p>TFlite graphs must not have loops between nodes. However, this condition was not
+checked and an attacker could craft models that would result in infinite loop
+during evaluation. In certain cases, the infinite loop would be replaced by
+stack overflow due to too many recursive calls.</p>
+<p>For example, the <a href="https://github.com/tensorflow/tensorflow/blob/106d8f4fb89335a2c52d7c895b7a7485465ca8d9/tensorflow/lite/kernels/while.cc"><code>While</code>
+implementation</a>
+could be tricked into a scneario where both the body and the loop subgraphs are
+the same. Evaluating one of the subgraphs means calling the <code>Eval</code> function for
+the other and this quickly exhaust all stack space.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/9c1dc920d8ffb4893d6c9d27d1f039607b326743">9c1dc920d8ffb4893d6c9d27d1f039607b326743</a>
+(for the <code>While</code> operator) and in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c6173f5fe66cdbab74f4f869311fe6aae2ba35f4">c6173f5fe66cdbab74f4f869311fe6aae2ba35f4</a>
+(in general).</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,177 @@
+<h1>OCML User Guide</h1>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#what-is-ocml">What Is OCML</a></li>
+<li><a href="#using-ocml">Using OCML</a></li>
+<li><a href="#standard-usage">Standard Usage</a></li>
+<li><a href="#controls">Controls</a></li>
+<li><a href="#versioning">Versioning</a></li>
+<li><a href="#tables">Tables</a></li>
+<li><a href="#naming-convention">Naming convention</a></li>
+<li><a href="#supported-functions">Supported functions</a></li>
+</ul>
+<h2>Introduction</h2>
+<h3>What Is OCML</h3>
+<p>OCML is an LLVM-IR bitcode library designed to relieve language compiler and runtime implementers of the burden of implementing efficient and accurate mathematical functions.  It is essentially a “libm” in intermediate representation with a fixed, simple API that can be linked in to supply the implementations of most standard low-level mathematical functions provided by the language.</p>
+<h2>Using OCML</h2>
+<h3>Standard Usage</h3>
+<p>OCML is expected to be used in a standard LLVM compilation flow as follows:
+  * Compile source modules to LLVM-IR bitcode (clang)
+  * Link program bitcode, “wrapper” bitcode, OCML bitcode, other device library bitcode, and OCML control functions (llvm-link)
+  * Generic optimizations (opt)
+  * Code generation (llc)</p>
+<p>Here, “wrapper” bitcode denotes a thin library responsible for mapping language specific mangled built-in function calls as produced by clang to the OCML API.  An example for handling "sqrt" might look like</p>
+<pre><code>extern "C" __attribute__((const)) float __ocml_sqrt_f32(float);
+float sqrt(float x) { return __ocml_sqrt_f32(x); }
+</code></pre>
+<p>The next section describes OCML controls and how to use them.</p>
+<h3>Controls</h3>
+<p>OCML (and a few other device libraries) requires a number of control variables definitions to be provided.  These definitions may be provided by linking in specific OCLC libraries which define one specifically named variable or via other runtime specific means.  These variables are known at optimization time and optimizations will result in specific paths taken with no control flow overhead.  These variables all have the form (in C)</p>
+<p><code>__constant const int __oclc_&lt;name&gt; = N;</code></p>
+<p>The currently supported control <code>&lt;name&gt;</code>s and values <code>N</code> are
+  * <code>finite_only_opt</code> - floating point Inf and NaN are never expected to be consumed or produced.  <code>N</code> may be 1 (on/true/enabled), or 0 (off/false/disabled).
+  * <code>unsafe_math_opt</code> - lower accuracy results may be produced with higher performance.  <code>N</code> may be 1 (on/true/enabled) or 0 (off/false/disabled).
+  * <code>daz_opt</code> - subnormal values consumed and produced may be flushed to zero.  <code>N</code>may be 1 (on/true/enabled) or 0 (off/false/disabled).
+  * <code>correctly_rounded_sqrt32</code> - float square root must be correctly rounded.  <code>N</code> may be 1 (on/true/enabled) or 0 (off/false/disabled).
+  * <code>wavefrontsize64</code> - the wave front size is 64.  <code>N</code> may be 1 (on/true/enabled) or 0 (off/false/disabled).  Very few current devices support a value of 0.
+  * <code>ISA_version</code> - an integer representation of the ISA version of the target device</p>
+<p>The language runtime can link a specific set of OCLC control libraries to properly configure OCML and other device libraries which also use the controls.  If linking OCLC libraries is used to define the control variables, then the runtime must link in:</p>
+<ul>
+<li>Exactly one of <code>oclc_correctly_rounded_sqrt_on.amdgcn.bc</code> or <code>oclc_correctly_rounded_sqrt_off.amdgcn.bc</code> depending on the kernel's requirements</li>
+<li>Exactly one of <code>oclc_daz_opt_on.amdgcn.bc</code> or <code>oclc_daz_opt_off.amdgcn.bc</code> depending on the kernel's requirements</li>
+<li>Exactly one of <code>oclc_finite_only_on.amdgcn.bc</code> or <code>oclc_finite_only_off.amdgcn.bc</code> depending on the kernel's requirements</li>
+<li>Exactly one of <code>oclc_unsafe_math_on.amdgcn.bc</code> or <code>oclc_unsafe_math_off.amdgcn.bc</code> depending on the kernel's requirements</li>
+<li>Exactly one of <code>oclc_wavefrontsize64_on.amdgcn.bc</code> or <code>oclc_wavefrontsize64_off.amdgcn.bc</code> depending on the kernel's requirements</li>
+<li>Exactly one of <code>oclc_isa_version_XYZ.amdgcn.bc</code> where XYZ is the suffix of the <code>gfxXYZ</code> target name the kernel is being compiled for.</li>
+</ul>
+<p>If these rules are not followed, link time or execution time errors may result.</p>
+<h3>Versioning</h3>
+<p>OCML ships within the larger release as a single LLVM-IR bitcode file named</p>
+<pre><code>ocml.amdgcn.bc
+</code></pre>
+<p>Bitcode linking errors are possible if the library is not in-sync with the compiler shipped with the same release.</p>
+<h3>Tables</h3>
+<p>Some OCML functions require access to tables of constants.  These tables are currently named
+with the prefix <code>__ocmltbl_</code> and are placed in LLVM address space 2.</p>
+<h3>Naming convention</h3>
+<p>OCML functions follow a simple naming convention:</p>
+<pre><code>__ocml_{function}_{type suffix}
+</code></pre>
+<p>where <code>{function}</code> is generally the familiar libm name of the function, and <code>{type suffix}</code> indicates the type of the floating point arguments or results, and is one of
+  * <code>f16</code> – 16 bit floating point (half precision)
+  * <code>f32</code> – 32 bit floating point (single precision)
+  * <code>f64</code> – 64 bit floating point (double precision)</p>
+<p>For example, <code>__ocml_sqrt_f32</code> is the name of the OCML single precision square root function.</p>
+<p>OCML does not currently support higher precision than double precision due to the lack of hardware support for such precisions. </p>
+<h3>Supported functions</h3>
+<p>The following table contains a list of {function} currently supported by OCML, a brief description of each, and the maximum relative error in ULPs for each floating point type.  A “c” in the last 3 columns indicates that the function is required to be correctly rounded.</p>
+<p>| <strong>{function}</strong> | <strong>Description</strong> | <strong>f32 max err</strong> | <strong>f64 max err</strong> | <strong>f16 max err</strong> |
+| --- | --- | --- | --- | --- |
+| acos | arc cosine | 4 | 4 | 2 |
+| acosh | arc hyperbolic cosine | 4 | 4 | 2 |
+| acospi | arc cosine / π | 5 | 5 | 2 |
+| add_{rm} | add with specific rounding mode | c | c | c |
+| asin | arc sine | 4 | 4 | 2 |
+| asinh | arc hyperbolic sin | 4 | 4 | 2 |
+| asinpi | arc sine / pi | 5 | 5 | 2 |
+| atan2 | two argument arc tangent | 6 | 6 | 2 |
+| atan2pi | two argument arc tangent / pi | 6 | 6 | 2 |
+| atan | single argument arc tangent | 5 | 5 | 2 |
+| atanh | arc hyperbolic tangent | 5 | 5 | 2 |
+| atanpi | single argument arc tangent / pi | 5 | 5 | 2 |
+| cbrt | cube root | 2 | 2 | 2 |
+| ceil | round upwards to integer | c | c | c |
+| copysign | copy sign of second argument to absolute value of first | 0 | 0 | 0 |
+| cos | cosine | 4 | 4 | 2 |
+| cosh | hyperbolic cosine | 4 | 4 | 2 |
+| cospi | cosine of argument times pi | 4 | 4 | 2 |
+| div_{rm} | correctly rounded division with specific rounding mode | c | c | c |
+| erf | error function | 16 | 16 | 4 |
+| erfc | complementary error function | 16 | 16 | 4 |
+| erfcinv | inverse complementary error function | 7 | 8 | 3 |
+| erfcx | scaled error function | 6 | 6 | 2 |
+| erfinv | inverse error function | 3 | 8 | 2 |
+| exp10 | 10x | 3 | 3 | 2 |
+| exp2 | 2x | 3 | 3 | 2 |
+| exp | ex | 3 | 3 | 2 |
+| expm1 | ex -  1, accurate at 0 | 3 | 3 | 2 |
+| fabs | absolute value | 0 | 0 | 0 |
+| fdim | positive difference | c | c | c |
+| floor | round downwards to integer | c | c | c |
+| fma[<em>{rm}] | fused (i.e. singly rounded) multiply-add, with optional specific rounding | c | c | c |
+| fmax | maximum, avoids NaN | 0 | 0 | 0 |
+| fmin | minimum, avoids NaN | 0 | 0 | 0 |
+| fmod | floating point remainder | 0 | 0 | 0 |
+| fpclassify | classify floating point | - | - | - |
+| fract | fractional part | c | c | c |
+| frexp | extract significand and exponent | 0 | 0 | 0 |
+| hypot | length, with overflow control | 4 | 4 | 2 |
+| i0 | modified Bessel function of the first kind, order 0, I0 | 6 | 6 | 2 |
+| i1 | modified Bessel function of the first kind, order 1, I1 | 6 | 6 | 2 |
+| ilogb | extract exponent | 0 | 0 | 0 |
+| isfinite | tests finiteness | - | - | - |
+| isinf | test for Inf | - | - | - |
+| isnan | test for NaN | - | - | - |
+| isnormal | test for normal | - | - | - |
+| j0 | Bessel function of the first kind, order 0, J0 | 6 (&lt;12) | 6 (&lt;12) | 2 (&lt;12) |
+| j1 | Bessel function of the first kind, order 1, J1 | 6 (&lt;12) | 6 (&lt;12) | 2 (&lt;12) |
+| ldexp | multiply by 2 raised to an integral power | c | c | c |
+| len3 | three argument hypot | 2 | 2 | 2|
+| len4 | four argument hypot | 2 | 2 | 2|
+| lgamma | log Γ function | 6(&gt;0) | 4(&gt;0) | 3(&gt;0) |
+| lgamma_r | log Γ function with sign | 6(&gt;0) | 4(&gt;0) | 3(&gt;0) |
+| log10 | log base 10 | 3 | 3 | 2 |
+| log1p | log base e accurate near 1 | 2 | 2 | 2 |
+| log2 | log base 2 | 3 | 3 | 2 |
+| log | log base e | 3 | 3 | 2 |
+| logb | extract exponent | 0 | 0 | 0 |
+| mad | multiply-add, implementation defined if fused | c | c | c |
+| max | maximum without special NaN handling | 0 | 0 | 0 |
+| maxmag | maximum magnitude | 0 | 0 | 0 |
+| min | minimum without special NaN handling | 0 | 0 | 0 |
+| minmag | minimum magnitude | 0 | 0 | 0 |
+| modf | extract integer and fraction | 0 | 0 | 0 |
+| mul</em>{rm} | multiply with specific rounding mode | c | c | c |
+| nan | produce a NaN with a specific payload | 0 | 0 | 0 |
+| ncdf | standard normal cumulative distribution function | 16 | 16 | 4 |
+| ncdfinv | inverse standard normal cumulative distribution function | 16 | 16 | 4 |
+| nearbyint | round to nearest integer (see also rint) | 0 | 0 | 0 |
+| nextafter | next closest value above or below | 0 | 0 | 0 |
+| pow | general power | 16 | 16 | 4 |
+| pown | power with integral exponent | 16 | 16 | 4 |
+| powr | power with positive floating point exponent | 16 | 16 | 4 |
+| pred | predecessor | c | c | c |
+| rcbrt | reciprocal cube root | 2 | 2 | 2 |
+| remainder | floating point remainder | 0 | 0 | 0 |
+| remquo | floating point remainder and lowest integral quotient bits | 0 | 0 | 0 |
+| rhypot | reciprocal hypot | 2 | 2 | 2 |
+| rint | round to nearest integer | c | c | c |
+| rlen3 | reciprocal len3 | 2 | 2 | 2 |
+| rlen4 | reciprocal len4 | 2 | 2 | 2 |
+| rootn | nth root | 16 | 16 | 4 |
+| round | round to integer, always away from 0 | c | c | c |
+| rsqrt | reciprocal square root | 2 | 2 | 1 |
+| scalb | multiply by 2 raised to a power | c | c | c |
+| scalbn | multiply by 2 raised to an integral power (see also ldexp) | c | c | c |
+| signbit | nonzero if argument has sign bit set | - | - | - |
+| sin | sine function | 4 | 4 | 2 |
+| sincos | simultaneous sine and cosine evaluation | 4 | 4 | 2 |
+| sincospi | sincos function of argument times pi | 4 | 4 | 2 |
+| sinh | hyperbolic sin | 4 | 4 | 2 |
+| sinpi | sine of argument times pi | 4 | 4 | 2 |
+| sqrt | square root | 3/c | 3/c | c |
+| sub_{rm} | subtract with specific rounding mode | c | c | c |
+| succ | successor | c | c | c |
+| tan | tangent | 5 | 5 | 2 |
+| tanh | hyperbolic tangent | 5 | 5 | 2 |
+| tanpi | tangent of argument times pi | 6 | 6 | 2 |
+| tgamma | true Γ function | 16 | 16 | 4 |
+| trunc | round to integer, towards zero | c | c | c |
+| y0 | Bessel function of the second kind, order 0, Y0 | 2 (&lt;12) | 6 (&lt;12) | 6 (&lt;12) |
+| y1 | Bessel function of the second kind, order 1, Y1 | 2 (&lt;12) | 6 (&lt;12) | 6 (&lt;12) |</p>
+<p>For the functions supporting specific roundings, the rounding mode {rm} can be one of
+  * <code>rte</code> – round towards nearest even
+  * <code>rtp</code> – round towards positive infinity
+  * <code>rtn</code> – round towards negative infinity
+  * <code>rtz</code> – round towards zero</p>
+<p>Note that these functions are not currently available.</p>

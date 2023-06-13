@@ -1,0 +1,17 @@
+<h1>TensorFlow Lite API Reference</h1>
+<p>The API reference documentation provides detailed information for each of the
+classes and methods in the TensorFlow Lite library. Choose your preferred
+platform from the list below.</p>
+<ul>
+<li><a href="https://tensorflow.org/lite/api_docs/python/tf/lite">Python API reference</a></li>
+<li><a href="https://tensorflow.org/lite/api_docs/java/org/tensorflow/lite/package-summary">Android (Java) API reference</a></li>
+<li><a href="https://tensorflow.org/lite/api_docs/swift/Classes">Swift API reference</a></li>
+<li>Objective-C API reference (coming soon)</li>
+<li><a href="https://tensorflow.org/lite/api_docs/cc">C++ API reference</a></li>
+<li><a href="https://tensorflow.org/lite/api_docs/c">C API reference</a></li>
+</ul>
+<p>We also provide other tools related to TensorFlow Lite.</p>
+<ul>
+<li><a href="https://tensorflow.org/lite/api_docs/python/tflite_model_maker">TensorFlow Lite Model Maker Python API reference</a></li>
+<li><a href="https://tensorflow.org/lite/api_docs/python/tflite_support">TensorFlow Lite Python Support Library</a></li>
+</ul>

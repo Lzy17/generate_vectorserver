@@ -1,0 +1,83 @@
+<h1>Pre-trained models for TensorFlow Lite</h1>
+<p>There are a variety of already trained, open source models you can use
+immediately with TensorFlow Lite to accomplish many machine learning tasks.
+Using pre-trained TensorFlow Lite models lets you add machine learning
+functionality to your mobile and edge device application quickly, without having
+to build and train a model. This guide helps you find and decide on trained
+models for use with TensorFlow Lite.</p>
+<p>You can start browsing TensorFlow Lite models right away based on general use
+cases in the <a href="../../examples">TensorFlow Lite Examples</a> section, or browse a
+larger set of models on <a href="https://tfhub.dev/s?deployment-
+format=lite">TensorFlow Hub</a>.</p>
+<p><strong>Important:</strong> TensorFlow Hub lists both regular TensorFlow models and
+TensorFlow Lite format models. These model formats are not interchangeable.
+TensorFlow models can be converted into TensorFlow Lite models, but that process
+is not reversible.</p>
+<h2>Find a model for your application</h2>
+<p>Finding an existing TensorFlow Lite model for your use case can be tricky
+depending on what you are trying to accomplish. Here are a few recommended ways
+to discover models for use with TensorFlow Lite:</p>
+<p><strong>By example:</strong> The fastest way to find and start using models with TensorFlow
+Lite is to browse the <a href="../../examples">TensorFlow Lite Examples</a> section to find
+models that perform a task which is similar to your use case. This short catalog
+of examples provides models for common use cases with explanations of the models
+and sample code to get you started running and using them.</p>
+<p><strong>By data input type:</strong> Aside from looking at examples similar to your use
+case, another way to discover models for your own use is to consider the type of
+data you want to process, such as audio, text, images, or video data. Machine
+learning models are frequently designed for use with one of these types of data,
+so looking for models that handle the data type you want to use can help you
+narrow down what models to consider. On <a href="https://tfhub.dev/s?deployment-format=lite">TensorFlow
+Hub</a>, you can use the <strong>Problem
+domain</strong> filter to view model data types and narrow your list.</p>
+<p>Note: Processing video with machine learning models can frequently be
+accomplished with models that are designed for processing single images,
+depending on how fast and how many inferences you need to perform for your use
+case. If you intend to use video for your use case, consider using single-frame
+video sampling with a model built for fast processing of individual images.</p>
+<p>The following lists links to TensorFlow Lite models on <a href="https://tfhub.dev/s?deployment-format=lite">TensorFlow
+Hub</a> for common use cases:</p>
+<ul>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=image-classification">Image classification</a>
+    models</li>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=image-object-detection">Object detection</a>
+    models</li>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=text-classification">Text classification</a>
+    models</li>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=text-embedding">Text embedding</a>
+    models</li>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=audio-speech-synthesis">Audio speech synthesis</a>
+    models</li>
+<li><a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=audio-embedding">Audio embedding</a>
+    models</li>
+</ul>
+<h2>Choose between similar models</h2>
+<p>If your application follows a common use case such as image classification or
+object detection, you may find yourself deciding between multiple TensorFlow
+Lite models, with varying binary size, data input size, inference speed, and
+prediction accuracy ratings. When deciding between a number of models, you
+should narrow your options based first on your most limiting constraint: size of
+model, size of data, inference speed, or accuracy.</p>
+<p>Key Point: Generally, when choosing between similar models, pick the smallest
+model to allow for the broadest device compatibility and fast inference times.</p>
+<p>If you are not sure what your most limiting constraint is, assume it is the
+size of the model and pick the smallest model available. Picking a small model
+gives you the most flexibility in terms of the devices where you can
+successfully deploy and run the model. Smaller models also typically produce
+faster inferences, and speedier predictions generally create better end-user
+experiences. Smaller models typically have lower accuracy rates, so you may need
+to pick larger models if prediction accuracy is your primary concern.</p>
+<h2>Sources for models</h2>
+<p>Use the <a href="../../examples">TensorFlow Lite Examples</a>
+section and <a href="https://tfhub.dev/s?deployment-format=lite">TensorFlow Hub</a> as your
+first destinations for finding and selecting models for use with TensorFlow
+Lite. These sources generally have up to date, curated models for use with
+TensorFlow Lite, and frequently include sample code to accelerate your
+development process.</p>
+<h3>TensorFlow models</h3>
+<p>It is possible to <a href="https://www.tensorflow.org/lite/models/convert">convert</a> regular
+TensorFlow models to TensorFlow Lite format. For more information about
+converting models, see the <a href="https://www.tensorflow.org/lite/models/convert">TensorFlow Lite
+Converter</a> documentation. You can find
+TensorFlow models on <a href="https://tfhub.dev/">TensorFlow Hub</a> and in the
+<a href="https://github.com/tensorflow/models">TensorFlow Model Garden</a>.</p>

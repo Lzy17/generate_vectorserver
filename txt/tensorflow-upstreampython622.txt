@@ -1,0 +1,94 @@
+<h1>Quickstart for Linux-based devices with Python</h1>
+<p>Using TensorFlow Lite with Python is great for embedded devices based on Linux,
+such as <a href="https://www.raspberrypi.org/">Raspberry Pi</a>{:.external} and
+<a href="https://coral.withgoogle.com/">Coral devices with Edge TPU</a>{:.external},
+among many others.</p>
+<p>This page shows how you can start running TensorFlow Lite models with Python in
+just a few minutes. All you need is a TensorFlow model <a href="../models/convert/">converted to TensorFlow
+Lite</a>. (If you don't have a model converted yet, you can
+experiment using the model provided with the example linked below.)</p>
+<h2>About the TensorFlow Lite runtime package</h2>
+<p>To quickly start executing TensorFlow Lite models with Python, you can install
+just the TensorFlow Lite interpreter, instead of all TensorFlow packages. We
+call this simplified Python package <code>tflite_runtime</code>.</p>
+<p>The <code>tflite_runtime</code> package is a fraction the size of the full <code>tensorflow</code>
+package and includes the bare minimum code required to run inferences with
+TensorFlow Lite—primarily the
+<a href="https://www.tensorflow.org/api_docs/python/tf/lite/Interpreter"><code>Interpreter</code></a>
+Python class. This small package is ideal when all you want to do is execute
+<code>.tflite</code> models and avoid wasting disk space with the large TensorFlow library.</p>
+<p>Note: If you need access to other Python APIs, such as the
+<a href="../models/convert/">TensorFlow Lite Converter</a>, you must install the
+<a href="https://www.tensorflow.org/install/">full TensorFlow package</a>.
+For example, the [Select TF ops]
+(https://www.tensorflow.org/lite/guide/ops_select) are not included in the
+<code>tflite_runtime</code> package. If your models have any dependencies to the Select TF
+ops, you need to use the full TensorFlow package instead.</p>
+<h2>Install TensorFlow Lite for Python</h2>
+<p>You can install on Linux with pip:</p>
+<pre class="devsite-terminal devsite-click-to-copy">
+python3 -m pip install tflite-runtime
+</pre>
+
+<h2>Supported platforms</h2>
+<p>The <code>tflite-runtime</code> Python wheels are pre-built and provided for these
+platforms:
+* Linux armv7l (e.g. Raspberry Pi 2, 3, 4 and Zero 2 running Raspberry Pi OS
+  32-bit)
+* Linux aarch64 (e.g. Raspberry Pi 3, 4 running Debian ARM64)
+* Linux x86_64</p>
+<p>If you want to run TensorFlow Lite models on other platforms, you should either
+use the <a href="https://www.tensorflow.org/install/">full TensorFlow package</a>, or
+<a href="build_cmake_pip.md">build the tflite-runtime package from source</a>.</p>
+<p>If you're using TensorFlow with the Coral Edge TPU, you should
+instead follow the appropriate <a href="https://coral.ai/docs/setup">Coral setup documentation</a>.</p>
+<p>Note: We no longer update the Debian package <code>python3-tflite-runtime</code>. The
+latest Debian package is for TF version 2.5, which you can install by following
+<a href="https://github.com/tensorflow/tensorflow/blob/v2.5.0/tensorflow/lite/g3doc/guide/python.md#install-tensorflow-lite-for-python">these older instructions</a>.</p>
+<p>Note: We no longer release pre-built <code>tflite-runtime</code> wheels for Windows and
+macOS. For these platforms, you should use the
+<a href="https://www.tensorflow.org/install/">full TensorFlow package</a>, or
+<a href="build_cmake_pip.md">build the tflite-runtime package from source</a>.</p>
+<h2>Run an inference using tflite_runtime</h2>
+<p>Instead of importing <code>Interpreter</code> from the <code>tensorflow</code> module, you now need to
+import it from <code>tflite_runtime</code>.</p>
+<p>For example, after you install the package above, copy and run the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/examples/python/"><code>label_image.py</code></a>
+file. It will (probably) fail because you don't have the <code>tensorflow</code> library
+installed. To fix it, edit this line of the file:</p>
+<p><code>python
+import tensorflow as tf</code></p>
+<p>So it instead reads:</p>
+<p><code>python
+import tflite_runtime.interpreter as tflite</code></p>
+<p>And then change this line:</p>
+<p><code>python
+interpreter = tf.lite.Interpreter(model_path=args.model_file)</code></p>
+<p>So it reads:</p>
+<p><code>python
+interpreter = tflite.Interpreter(model_path=args.model_file)</code></p>
+<p>Now run <code>label_image.py</code> again. That's it! You're now executing TensorFlow Lite
+models.</p>
+<h2>Learn more</h2>
+<ul>
+<li>
+<p>For more details about the <code>Interpreter</code> API, read
+  <a href="inference.md#load-and-run-a-model-in-python">Load and run a model in Python</a>.</p>
+</li>
+<li>
+<p>If you have a Raspberry Pi, check out a <a href="https://www.youtube.com/watch?v=mNjXEybFn98&amp;list=PLQY2H8rRoyvz_anznBg6y3VhuSMcpN9oe">video series</a>
+  about how to run object detection on Raspberry Pi using TensorFlow Lite.</p>
+</li>
+<li>
+<p>If you're using a Coral ML accelerator, check out the
+  <a href="https://github.com/google-coral/tflite/tree/master/python/examples">Coral examples on GitHub</a>.</p>
+</li>
+<li>
+<p>To convert other TensorFlow models to TensorFlow Lite, read about the
+  <a href="../models/convert/">TensorFlow Lite Converter</a>.</p>
+</li>
+<li>
+<p>If you want to build <code>tflite_runtime</code> wheel, read
+  <a href="build_cmake_pip.md">Build TensorFlow Lite Python Wheel Package</a></p>
+</li>
+</ul>

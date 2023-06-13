@@ -1,0 +1,40 @@
+<h2>TFSA-2021-006: Division by zero in <code>Conv3D</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29517</p>
+<h3>Impact</h3>
+<p>A malicious user could trigger a division by 0 in <code>Conv3D</code> implementation:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[0, 0, 0, 0, 0], dtype=tf.float32)
+filter_tensor = tf.constant([], shape=[0, 0, 0, 0, 0], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3D(input=input_tensor, filter=filter_tensor, strides=[1, 56, 56, 56, 1], padding='VALID', data_format='NDHWC', dilations=[1, 1, 1, 23, 1])
+```</p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/42033603003965bffac51ae171b51801565e002d/tensorflow/core/kernels/conv_ops_3d.cc#L143-L145">implementation</a> does a modulo operation based on user controlled input:</p>
+<p><code>cc
+  const int64 out_depth = filter.dim_size(4);
+  OP_REQUIRES(context, in_depth % filter_depth == 0, ...);</code></p>
+<p>Thus, when <code>filter</code> has a 0 as the fifth element, this results in a division by 0.</p>
+<p>Additionally, if the shape of the two tensors is not valid, an Eigen assertion
+can be triggered, resulting in a program crash:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[2, 2, 2, 2, 0], dtype=tf.float32)
+filter_tensor = tf.constant([], shape=[0, 0, 2, 6, 2], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv3D(input=input_tensor, filter=filter_tensor, strides=[1, 56, 39, 34, 1], padding='VALID', data_format='NDHWC', dilations=[1, 1, 1, 1, 1])
+```</p>
+<p>The shape of the two tensors must follow the constraints specified in the <a href="https://www.tensorflow.org/api_docs/python/tf/raw_ops/Conv3D">op
+description</a>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/799f835a3dfa00a4d852defa29b15841eea9d64f">799f835a3dfa00a4d852defa29b15841eea9d64f</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

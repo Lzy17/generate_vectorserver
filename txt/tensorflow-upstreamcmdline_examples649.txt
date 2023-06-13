@@ -1,0 +1,293 @@
+<h1>Converter command line examples</h1>
+<p>This page shows how to use the TensorFlow Lite Converter in the command line.</p>
+<p><em>Note: If possible, use the <strong>recommended</strong> <a href="python_api.md">Python API</a>
+instead.</em></p>
+<h2>Command-line tools <a name="tools"></a></h2>
+<h3>Starting from TensorFlow 1.9</h3>
+<p>There are two approaches to running the converter in the command line.</p>
+<ul>
+<li><code>tflite_convert</code> (<strong>recommended</strong>):<ul>
+<li><em>Install</em>: TensorFlow using
+    <a href="https://www.tensorflow.org/install/pip">pip</a>.</li>
+<li><em>Example</em>: <code>tflite_convert --output_file=...</code></li>
+</ul>
+</li>
+<li><code>bazel</code>:<ul>
+<li><em>Install</em>: TensorFlow from
+    <a href="https://www.tensorflow.org/install/source">source</a>.</li>
+<li><em>Example</em>: <code>bazel run tensorflow/lite/python:tflite_convert --
+    --output_file=...</code></li>
+</ul>
+</li>
+</ul>
+<p><em>All of the following examples use <code>tflite_convert</code> for simplicity.
+Alternatively, you can replace '<code>tflite_convert</code>' with '<code>bazel run
+tensorflow/lite/python:tflite_convert --</code>'</em></p>
+<h3>Prior to TensorFlow 1.9 <a name="pre_tensorflow_1.9"></a></h3>
+<p>The recommended approach for using the converter prior to TensorFlow 1.9 is the
+<a href="python_api.md">Python API</a>. Only in TensorFlow 1.7, a command line tool <code>toco</code>
+was available (run <code>toco --help</code> for additional details).</p>
+<h2>Usage <a name="usage"></a></h2>
+<h3>Setup <a name="download_models"></a></h3>
+<p>Before we begin, download the models required to run the examples in this
+document:</p>
+<p>```
+echo "Download MobileNet V1"
+curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_0.50_128_frozen.tgz \
+  | tar xzv -C /tmp</p>
+<p>echo "Download Inception V1"
+curl https://storage.googleapis.com/download.tensorflow.org/models/inception_v1_2016_08_28_frozen.pb.tar.gz \
+  | tar xzv -C /tmp
+```</p>
+<h3>Basic examples <a name="basic"></a></h3>
+<p>The following section shows examples of how to convert a basic model from each
+of the supported data formats into a TensorFlow Lite model.</p>
+<h4>Convert a SavedModel <a name="savedmodel"></a></h4>
+<p><code>tflite_convert \
+  --saved_model_dir=/tmp/saved_model \
+  --output_file=/tmp/foo.tflite</code></p>
+<h4>Convert a tf.keras model <a name="keras"></a></h4>
+<p><code>tflite_convert \
+  --keras_model_file=/tmp/keras_model.h5 \
+  --output_file=/tmp/foo.tflite</code></p>
+<h4>Convert a Frozen GraphDef <a name="graphdef"></a></h4>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1</code></p>
+<p>Frozen GraphDef models (or frozen graphs) are produced by
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/tools/freeze_graph.py">freeze_graph.py</a>
+and require additional flags <code>--input_arrays</code> and <code>--output_arrays</code> as this
+information is not stored in the model format.</p>
+<h3>Advanced examples</h3>
+<h4>Convert a quantization aware trained model into a quantized TensorFlow Lite model</h4>
+<p>If you have a quantization aware trained model (i.e, a model inserted with
+<code>FakeQuant*</code> operations which record the (min, max) ranges of tensors in order
+to quantize them), then convert it into a quantized TensorFlow Lite model as
+shown below:</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/some_mobilenetv1_quantized_frozen_graph.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --inference_type=INT8 \
+  --mean_values=-0.5 \
+  --std_dev_values=127.7</code></p>
+<p><em>If you're setting <code>--inference_type=UINT8</code> then update <code>--mean_values=128</code> and
+<code>--std_dev_values=127</code></em></p>
+<h4>Convert a model with \"dummy-quantization\" into a quantized TensorFlow Lite model</h4>
+<p>If you have a regular float model and only want to estimate the benefit of a
+quantized model, i.e, estimate the performance of the model as if it were
+quantized aware trained, then perform "dummy-quantization" using the flags
+<code>--default_ranges_min</code> and <code>--default_ranges_max</code>. When specified, they will be
+used as default (min, max) range for all the tensors that lack (min, max) range
+information. This will allow quantization to proceed and help you emulate the
+performance of a quantized TensorFlow Lite model but it will have a lower
+accuracy.</p>
+<p>The example below contains a model using Relu6 activation functions. Therefore,
+a reasonable guess is that most activation ranges should be contained in [0, 6].</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --inference_type=INT8 \
+  --mean_values=-0.5 \
+  --std_dev_values=127.7 \
+  --default_ranges_min=0 \
+  --default_ranges_max=6</code></p>
+<p><em>If you're setting <code>--inference_type=UINT8</code> then update <code>--mean_values=128</code> and
+<code>--std_dev_values=127</code></em></p>
+<h4>Convert a model with select TensorFlow operators.</h4>
+<p>Since TensorFlow Lite only supports a limited number of TensorFlow operators,
+not every model is convertible. For details, refer to
+<a href="https://www.tensorflow.org/lite/guide/ops_compatibility">operator compatibility</a>.
+To allow conversion, users can enable the usage of
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/flex/allowlisted_flex_ops.cc">certain TensorFlow ops</a>
+in their TensorFlow Lite model, as shown in the following example.</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/foo.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --target_ops=TFLITE_BUILTINS,SELECT_TF_OPS</code></p>
+<p>When building and running <code>tflite_convert</code> with <code>bazel</code>, please pass
+<code>--define=tflite_convert_with_select_tf_ops=true</code> as an additional argument.</p>
+<p><code>bazel run --define=tflite_convert_with_select_tf_ops=true tflite_convert -- \
+  --graph_def_file=/tmp/foo.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --target_ops=TFLITE_BUILTINS,SELECT_TF_OPS</code></p>
+<h4>Convert a model with multiple input arrays</h4>
+<p>The flag <code>input_arrays</code> takes in a comma-separated list of input arrays as seen
+in the example below. This is useful for models or subgraphs with multiple
+inputs. Note that <code>--input_shapes</code> is provided as a colon-separated list. Each
+input shape corresponds to the input array at the same position in the
+respective list.</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/inception_v1_2016_08_28_frozen.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=InceptionV1/InceptionV1/Mixed_3b/Branch_1/Conv2d_0a_1x1/Relu,InceptionV1/InceptionV1/Mixed_3b/Branch_2/Conv2d_0a_1x1/Relu,InceptionV1/InceptionV1/Mixed_3b/Branch_3/MaxPool_0a_3x3/MaxPool,InceptionV1/InceptionV1/Mixed_3b/Branch_0/Conv2d_0a_1x1/Relu \
+  --input_shapes=1,28,28,96:1,28,28,16:1,28,28,192:1,28,28,64 \
+  --output_arrays=InceptionV1/Logits/Predictions/Reshape_1</code></p>
+<h4>Convert a model with multiple output arrays</h4>
+<p>The flag <code>--output_arrays</code> takes in a comma-separated list of output arrays as
+seen in the example below. This is useful for models or subgraphs with multiple
+outputs.</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/inception_v1_2016_08_28_frozen.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=InceptionV1/InceptionV1/Mixed_3b/Branch_1/Conv2d_0a_1x1/Relu,InceptionV1/InceptionV1/Mixed_3b/Branch_2/Conv2d_0a_1x1/Relu</code></p>
+<h3>Convert a model by specifying subgraphs</h3>
+<p>Any array in the input file can be specified as an input or output array in
+order to extract subgraphs out of an input model file. The TensorFlow Lite
+Converter discards the parts of the model outside of the specific subgraph. Use
+<a href="#visualization">visualization</a> to identify the input and output arrays that
+make up the desired subgraph.</p>
+<p>The follow command shows how to extract a single fused layer out of a TensorFlow
+GraphDef.</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/inception_v1_2016_08_28_frozen.pb \
+  --output_file=/tmp/foo.pb \
+  --input_arrays=InceptionV1/InceptionV1/Mixed_3b/Branch_1/Conv2d_0a_1x1/Relu,InceptionV1/InceptionV1/Mixed_3b/Branch_2/Conv2d_0a_1x1/Relu,InceptionV1/InceptionV1/Mixed_3b/Branch_3/MaxPool_0a_3x3/MaxPool,InceptionV1/InceptionV1/Mixed_3b/Branch_0/Conv2d_0a_1x1/Relu \
+  --input_shapes=1,28,28,96:1,28,28,16:1,28,28,192:1,28,28,64 \
+  --output_arrays=InceptionV1/InceptionV1/Mixed_3b/concat_v2</code></p>
+<p>Note that the final representation in TensorFlow Lite models tends to have
+coarser granularity than the very fine granularity of the TensorFlow GraphDef
+representation. For example, while a fully-connected layer is typically
+represented as at least four separate operations in TensorFlow GraphDef
+(Reshape, MatMul, BiasAdd, Relu...), it is typically represented as a single
+"fused" op (FullyConnected) in the converter's optimized representation and in
+the final on-device representation. As the level of granularity gets coarser,
+some intermediate arrays (say, the array between the MatMul and the BiasAdd in
+the TensorFlow GraphDef) are dropped.</p>
+<p>When specifying intermediate arrays as <code>--input_arrays</code> and <code>--output_arrays</code>,
+it is desirable (and often required) to specify arrays that are meant to survive
+in the final form of the model, after fusing. These are typically the outputs of
+activation functions (since everything in each layer until the activation
+function tends to get fused).</p>
+<h2>Visualization <a name="visualization"></a></h2>
+<h3>Using <code>--dump_graphviz_dir</code></h3>
+<p>The first way to get a Graphviz rendering is to pass the <code>--dump_graphviz_dir</code>
+flag, specifying a destination directory to dump Graphviz rendering to.</p>
+<p><code>tflite_convert \
+  --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb \
+  --output_file=/tmp/foo.tflite \
+  --input_arrays=input \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1 \
+  --dump_graphviz_dir=/tmp</code></p>
+<p>This generates a few files in the destination directory. The two most important
+files are <code>toco_AT_IMPORT.dot</code> and <code>/tmp/toco_AFTER_TRANSFORMATIONS.dot</code>.</p>
+<ul>
+<li>
+<p><code>toco_AT_IMPORT.dot</code> represents the original model containing only the
+    transformations done at import time. This tends to be a complex
+    visualization with limited information about each node. It is useful in
+    situations where a conversion command fails.</p>
+</li>
+<li>
+<p><code>toco_AFTER_TRANSFORMATIONS.dot</code> represents the model after all
+    transformations were applied to it, just before it is exported. Typically,
+    this is a much smaller model with more information about each node.</p>
+</li>
+</ul>
+<p>These can be rendered to PDFs:</p>
+<p><code>dot -Tpdf /tmp/toco_*.dot -O</code></p>
+<p>And the resulting <code>.dot.pdf</code> can be viewed in any PDF viewer, but we suggest one
+with a good ability to pan and zoom across a very large page. Google Chrome does
+well in that respect.</p>
+<p><code>google-chrome /tmp/foo.dot.pdf</code></p>
+<p>Sample output files can be seen here below. Note that it is the same
+<code>AveragePool</code> node in the top right of each image.</p>
+<table><tr>
+  <td>
+    <a target="_blank" href="https://storage.googleapis.com/download.tensorflow.org/example_images/toco_AT_IMPORT.dot.pdf">
+      <img src="../images/convert/sample_before.png"/>
+    </a>
+  </td>
+  <td>
+    <a target="_blank" href="https://storage.googleapis.com/download.tensorflow.org/example_images/toco_AFTER_TRANSFORMATIONS.dot.pdf">
+      <img src="../images/convert/sample_after.png"/>
+    </a>
+  </td>
+</tr>
+<tr><td>before</td><td>after</td></tr>
+</table>
+
+<h3>Using <code>--output_format=GRAPHVIZ_DOT</code> <a name="using_output_format_graphviz_dot"></a></h3>
+<p><em>Note: This only works when you set flag <code>experimental_new_converter=False</code>.
+Also, as this format leads to loss of TFLite specific transformations, we
+recommend that you use <code>--dump_graphviz_dir</code> instead to get a final
+visualization with all graph transformations.</em></p>
+<p>The second way to get a Graphviz rendering is to pass <code>GRAPHVIZ_DOT</code> into
+<code>--output_format</code>. This results in a plausible visualization of the model. This
+reduces the requirements that exist during conversion from a TensorFlow GraphDef
+to a TensorFlow Lite model. This may be useful if the conversion to TFLite is
+failing.</p>
+<p>```
+tflite_convert \
+  --experimental_new_converter=False
+  --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb \
+  --output_format=GRAPHVIZ_DOT \
+  --output_file=/tmp/foo.dot \
+  --output_format=GRAPHVIZ_DOT \
+  --input_arrays=input \
+  --input_shape=1,128,128,3 \
+  --output_arrays=MobilenetV1/Predictions/Reshape_1</p>
+<p>```</p>
+<p>The resulting <code>.dot</code> file can be rendered into a PDF as follows:</p>
+<p><code>dot -Tpdf /tmp/foo.dot -O</code></p>
+<p>And the resulting <code>.dot.pdf</code> can be viewed in any PDF viewer, but we suggest one
+with a good ability to pan and zoom across a very large page. Google Chrome does
+well in that respect.</p>
+<p><code>google-chrome /tmp/foo.dot.pdf</code></p>
+<h3>Video logging</h3>
+<p>When <code>--dump_graphviz_dir</code> is used, one may additionally pass
+<code>--dump_graphviz_video</code>. This causes a model visualization to be dumped after
+each individual model transformation, resulting in thousands of files.
+Typically, one would then bisect into these files to understand when a given
+change was introduced in the model.</p>
+<h3>Legend for the Visualizations <a name="graphviz_legend"></a></h3>
+<ul>
+<li>Operators are red square boxes with the following hues of red:<ul>
+<li>Most operators are
+    <span style="background-color:#db4437;color:white;border:1px;border-style:solid;border-color:black;padding:1px">bright
+    red</span>.</li>
+<li>Some typically heavy operators (e.g. Conv) are rendered in a
+    <span style="background-color:#c53929;color:white;border:1px;border-style:solid;border-color:black;padding:1px">darker
+    red</span>.</li>
+</ul>
+</li>
+<li>Arrays are octagons with the following colors:<ul>
+<li>Constant arrays are
+    <span style="background-color:#4285f4;color:white;border:1px;border-style:solid;border-color:black;padding:1px">blue</span>.</li>
+<li>Activation arrays are gray:<ul>
+<li>Internal (intermediate) activation arrays are
+    <span style="background-color:#f5f5f5;border:1px;border-style:solid;border-color:black;border:1px;border-style:solid;border-color:black;padding:1px">light
+    gray</span>.</li>
+<li>Those activation arrays that are designated as <code>--input_arrays</code> or
+    <code>--output_arrays</code> are
+    <span style="background-color:#9e9e9e;border:1px;border-style:solid;border-color:black;padding:1px">dark
+    gray</span>.</li>
+</ul>
+</li>
+<li>RNN state arrays are green. Because of the way that the converter
+    represents RNN back-edges explicitly, each RNN state is represented by a
+    pair of green arrays:<ul>
+<li>The activation array that is the source of the RNN back-edge (i.e.
+    whose contents are copied into the RNN state array after having been
+    computed) is
+    <span style="background-color:#b7e1cd;border:1px;border-style:solid;border-color:black;padding:1px">light
+    green</span>.</li>
+<li>The actual RNN state array is
+    <span style="background-color:#0f9d58;color:white;border:1px;border-style:solid;border-color:black;padding:1px">dark
+    green</span>. It is the destination of the RNN back-edge updating
+    it.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>

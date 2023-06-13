@@ -1,0 +1,20 @@
+<h2>TFSA-2022-035: Crash when type cannot be specialized</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23572</p>
+<h3>Impact</h3>
+<p>Under certain scenarios, TensorFlow can fail to specialize a type during <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/shape_inference.cc#L168-L174">shape inference</a>:</p>
+<p><code>cc
+void InferenceContext::PreInputInit(
+    const OpDef&amp; op_def, const std::vector&lt;const Tensor*&gt;&amp; input_tensors,
+    const std::vector&lt;ShapeHandle&gt;&amp; input_tensors_as_shapes) {
+  const auto ret = full_type::SpecializeType(attrs_, op_def);
+  DCHECK(ret.status().ok()) &lt;&lt; "while instantiating types: " &lt;&lt; ret.status();
+  ret_types_ = ret.ValueOrDie();
+  // ...
+}</code></p>
+<p>However, <code>DCHECK</code> is a no-op in production builds and an assertion failure in debug builds. In the first case execution proceeds to the <code>ValueOrDie</code> line. This results in an assertion failure as <code>ret</code> contains an error <code>Status</code>, not a value. In the second case we also get a crash due to the assertion failure.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/cb164786dc891ea11d3a900e90367c339305dc7b">cb164786dc891ea11d3a900e90367c339305dc7b</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, and TensorFlow 2.6.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

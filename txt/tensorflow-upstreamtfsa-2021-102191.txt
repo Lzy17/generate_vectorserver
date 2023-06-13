@@ -1,0 +1,64 @@
+<h2>TFSA-2021-102: Interpreter crash from <code>tf.io.decode_raw</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29614</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.io.decode_raw</code> produces incorrect results and crashes
+the Python interpreter when combining <code>fixed_length</code> and wider datatypes.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.io.decode_raw(tf.constant(["1","2","3","4"]), tf.uint16, fixed_length=4)
+```</p>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/1d8903e5b167ed0432077a3db6e462daf781d1fe/tensorflow/core/kernels/decode_padded_raw_op.cc">implementation of the padded
+version</a>
+is buggy due to a confusion about pointer arithmetic rules.</p>
+<p>First, the code
+<a href="https://github.com/tensorflow/tensorflow/blob/1d8903e5b167ed0432077a3db6e462daf781d1fe/tensorflow/core/kernels/decode_padded_raw_op.cc#L61">computes</a>
+the width of each output element by dividing the <code>fixed_length</code> value to the
+size of the type argument:</p>
+<p><code>cc
+int width = fixed_length / sizeof(T);</code></p>
+<p>The <code>fixed_length</code> argument is also used to determine the <a href="https://github.com/tensorflow/tensorflow/blob/1d8903e5b167ed0432077a3db6e462daf781d1fe/tensorflow/core/kernels/decode_padded_raw_op.cc#L63-L79">size needed for the
+output
+tensor</a>:</p>
+<p>```cc
+TensorShape out_shape = input.shape();
+out_shape.AddDim(width);
+Tensor* output_tensor = nullptr;
+OP_REQUIRES_OK(context, context-&gt;allocate_output("output", out_shape, &amp;output_tensor));</p>
+<p>auto out = output_tensor-&gt;flat_inner_dims<T>();
+T* out_data = out.data();
+memset(out_data, 0, fixed_length * flat_in.size());
+```</p>
+<p>This is followed by <a href="https://github.com/tensorflow/tensorflow/blob/1d8903e5b167ed0432077a3db6e462daf781d1fe/tensorflow/core/kernels/decode_padded_raw_op.cc#L85-L94">reencoding
+code</a>:</p>
+<p>```cc
+for (int64 i = 0; i &lt; flat_in.size(); ++i) {
+  const T* in_data = reinterpret_cast<const T*>(flat_in(i).data());</p>
+<p>if (flat_in(i).size() &gt; fixed_length) {
+    memcpy(out_data, in_data, fixed_length);
+  } else {
+    memcpy(out_data, in_data, flat_in(i).size());
+  }
+  out_data += fixed_length;
+}
+```</p>
+<p>The erroneous code is the last line above: it is moving the <code>out_data</code> pointer
+by <code>fixed_length * sizeof(T)</code> bytes whereas it only copied at most
+<code>fixed_length</code> bytes from the input. This results in parts of the input not
+being decoded into the output.</p>
+<p>Furthermore, because the pointer advance is far wider than desired, this quickly
+leads to writing to outside the bounds of the backing data. This OOB write leads
+to interpreter crash in the reproducer mentioned here, but more severe attacks
+can be mounted too, given that this gadget allows writing to periodically placed
+locations in memory.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/698e01511f62a3c185754db78ebce0eee1f0184d">698e01511f62a3c185754db78ebce0eee1f0184d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>

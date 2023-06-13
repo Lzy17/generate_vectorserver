@@ -1,0 +1,161 @@
+<h1>Integrate BERT question answerer</h1>
+<p>The Task Library <code>BertQuestionAnswerer</code> API loads a Bert model and answers
+questions based on the content of a given passage. For more information, see the
+documentation for the Question-Answer model
+<a href="../../examples/bert_qa/overview">here</a>.</p>
+<h2>Key features of the BertQuestionAnswerer API</h2>
+<ul>
+<li>
+<p>Takes two text inputs as question and context and outputs a list of possible
+    answers.</p>
+</li>
+<li>
+<p>Performs out-of-graph Wordpiece or Sentencepiece tokenizations on input
+    text.</p>
+</li>
+</ul>
+<h2>Supported BertQuestionAnswerer models</h2>
+<p>The following models are compatible with the <code>BertNLClassifier</code> API.</p>
+<ul>
+<li>
+<p>Models created by
+    <a href="https://www.tensorflow.org/lite/models/modify/model_maker/question_answer">TensorFlow Lite Model Maker for BERT Question Answer</a>.</p>
+</li>
+<li>
+<p>The
+    <a href="https://tfhub.dev/tensorflow/collections/lite/task-library/bert-question-answerer/1">pretrained BERT models on TensorFlow Hub</a>.</p>
+</li>
+<li>
+<p>Custom models that meet the
+    <a href="#model-compatibility-requirements">model compatibility requirements</a>.</p>
+</li>
+</ul>
+<h2>Run inference in Java</h2>
+<h3>Step 1: Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> model file to the assets directory of the Android module
+where the model will be run. Specify that the file should not be compressed, and
+add the TensorFlow Lite library to the module’s <code>build.gradle</code> file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import the Task Text Library dependency (NNAPI is included)
+implementation 'org.tensorflow:tensorflow-lite-task-text:0.3.0'
+</code></pre>
+<p>}
+```</p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>
+<h3>Step 2: Run inference using the API</h3>
+<p>```java
+// Initialization
+BertQuestionAnswererOptions options =
+    BertQuestionAnswererOptions.builder()
+        .setBaseOptions(BaseOptions.builder().setNumThreads(4).build())
+        .build();
+BertQuestionAnswerer answerer =
+    BertQuestionAnswerer.createFromFileAndOptions(
+        androidContext, modelFile, options);</p>
+<p>// Run inference
+List<QaAnswer> answers = answerer.answer(contextOfTheQuestion, questionToAsk);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/java/src/java/org/tensorflow/lite/task/text/qa/BertQuestionAnswerer.java">source code</a>
+for more details.</p>
+<h2>Run inference in Swift</h2>
+<h3>Step 1: Import CocoaPods</h3>
+<p>Add the TensorFlowLiteTaskText pod in Podfile</p>
+<p><code>target 'MySwiftAppWithTaskAPI' do
+  use_frameworks!
+  pod 'TensorFlowLiteTaskText', '~&gt; 0.2.0'
+end</code></p>
+<h3>Step 2: Run inference using the API</h3>
+<p>```swift
+// Initialization
+let mobileBertAnswerer = TFLBertQuestionAnswerer.questionAnswerer(
+      modelPath: mobileBertModelPath)</p>
+<p>// Run inference
+let answers = mobileBertAnswerer.answer(
+      context: context, question: question)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/ios/task/text/qa/Sources/TFLBertQuestionAnswerer.h">source code</a>
+for more details.</p>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+BertQuestionAnswererOptions options;
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_path);
+std::unique_ptr<BertQuestionAnswerer> answerer = BertQuestionAnswerer::CreateFromOptions(options).value();</p>
+<p>// Run inference with your inputs, <code>context_of_question</code> and <code>question_to_ask</code>.
+std::vector<QaAnswer> positive_results = answerer-&gt;Answer(context_of_question, question_to_ask);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/text/bert_question_answerer.h">source code</a>
+for more details.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install the pip package</h3>
+<p><code>pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python</p>
+<h1>Imports</h1>
+<p>from tflite_support.task import text</p>
+<h1>Initialization</h1>
+<p>answerer = text.BertQuestionAnswerer.create_from_file(model_path)</p>
+<h1>Run inference</h1>
+<p>bert_qa_result = answerer.answer(context, question)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/text/bert_question_answerer.py">source code</a>
+for more options to configure <code>BertQuestionAnswerer</code>.</p>
+<h2>Example results</h2>
+<p>Here is an example of the answer results of
+<a href="https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1">ALBERT model</a>.</p>
+<p>Context: "The Amazon rainforest, alternatively, the Amazon Jungle, also known in
+English as Amazonia, is a moist broadleaf tropical rainforest in the Amazon
+biome that covers most of the Amazon basin of South America. This basin
+encompasses 7,000,000 km2 (2,700,000 sq mi), of which
+5,500,000 km2 (2,100,000 sq mi) are covered by the rainforest. This region
+includes territory belonging to nine nations."</p>
+<p>Question: "Where is Amazon rainforest?"</p>
+<p>Answers:</p>
+<p>```
+answer[0]:  'South America.'
+logit: 1.84847, start_index: 39, end_index: 40
+answer[1]:  'most of the Amazon basin of South America.'
+logit: 1.2921, start_index: 34, end_index: 40
+answer[2]:  'the Amazon basin of South America.'
+logit: -0.0959535, start_index: 36, end_index: 40
+answer[3]:  'the Amazon biome that covers most of the Amazon basin of South America.'
+logit: -0.498558, start_index: 28, end_index: 40
+answer[4]:  'Amazon basin of South America.'
+logit: -0.774266, start_index: 37, end_index: 40</p>
+<p>```</p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/examples/task/text/desktop/README.md#bert-question-answerer">CLI demo tool for BertQuestionAnswerer</a>
+with your own model and test data.</p>
+<h2>Model compatibility requirements</h2>
+<p>The <code>BertQuestionAnswerer</code> API expects a TFLite model with mandatory
+<a href="../../models/convert/metadata">TFLite Model Metadata</a>.</p>
+<p>The Metadata should meet the following requirements:</p>
+<ul>
+<li>
+<p><code>input_process_units</code> for Wordpiece/Sentencepiece Tokenizer</p>
+</li>
+<li>
+<p>3 input tensors with names "ids", "mask" and "segment_ids" for the output of
+    the tokenizer</p>
+</li>
+<li>
+<p>2 output tensors with names "end_logits" and "start_logits" to indicate the
+    answer's relative position in the context</p>
+</li>
+</ul>

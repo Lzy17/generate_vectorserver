@@ -1,0 +1,10 @@
+<h2>TFSA-2022-033: <code>CHECK</code>-fail when decoding invalid tensors from proto</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23571</p>
+<h3>Impact</h3>
+<p>When decoding a tensor from protobuf, a TensorFlow process can encounter cases where a <code>CHECK</code> assertion is invalidated based on user controlled arguments, if the tensors have an invalid <code>dtype</code> and 0 elements or an invalid shape. This allows attackers to cause denial of services in TensorFlow processes.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/5b491cd5e41ad63735161cec9c2a568172c8b6a3">5b491cd5e41ad63735161cec9c2a568172c8b6a3</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,10 @@
+<h2>TFSA-2022-050: <code>CHECK</code>-fails due to attempting to build a reference tensor</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23588</p>
+<h3>Impact</h3>
+<p>A malicious user can cause a denial of service by altering a <code>SavedModel</code> such that <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/optimizers/constant_folding.cc#L1328-L1402">Grappler optimizer would attempt to build a tensor using a reference <code>dtype</code></a>. This would result in a crash due to a <code>CHECK</code>-fail <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/tensor.cc#L733-L781">in the <code>Tensor</code> constructor</a> as reference types are not allowed.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/6b5adc0877de832b2a7c189532dbbbc64622eeb6">6b5adc0877de832b2a7c189532dbbbc64622eeb6</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,132 @@
+<h1>Uninstallation with package manager (Linux)</h1>
+<p>This section describes how to uninstall ROCm with the Linux distribution's
+package manager. This method should be used if ROCm was installed via the package
+manager. If the installer script was used for installation, then it should be
+used for uninstallation too, refer to {doc}<code>/deploy/linux/installer/uninstall</code>.</p>
+<p>::::::{tab-set}
+:::::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p>::::{rubric} Uninstalling Specific Meta-packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall single-version ROCm packages</h1>
+<p>sudo apt autoremove <package-name></p>
+<h1>Uninstall multiversion ROCm packages</h1>
+<p>sudo apt autoremove <package-name with release version>
+```</p>
+<p>::::{rubric} Complete Uninstallation of ROCm Packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall single-version ROCm packages</h1>
+<p>sudo apt autoremove rocm-core</p>
+<h1>Uninstall multiversion ROCm packages</h1>
+<p>sudo apt autoremove rocm-core<release version>
+```</p>
+<p>::::{rubric} Uninstall Kernel-mode Driver
+::::</p>
+<p><code>shell
+sudo apt autoremove amdgpu-dkms</code></p>
+<p>::::{rubric} Remove ROCm and AMDGPU Repositories
+::::</p>
+<ol>
+<li>Execute these commands:</li>
+</ol>
+<p><code>shell
+   sudo rm /etc/apt/sources.list.d/&lt;rocm_repository-name&gt;.list
+   sudo rm /etc/apt/sources.list.d/&lt;amdgpu_repository-name&gt;.list</code></p>
+<ol>
+<li>Clear the cache and clean the system.</li>
+</ol>
+<p><code>shell
+   sudo rm -rf /var/cache/apt/*
+   sudo apt-get clean all</code></p>
+<ol>
+<li>Restart the system.</li>
+</ol>
+<p><code>shell
+   sudo reboot</code></p>
+<p>:::::
+:::::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p>::::{rubric} Uninstalling Specific Meta-packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall single-version ROCm packages</h1>
+<p>sudo yum remove <package-name></p>
+<h1>Uninstall multiversion ROCm packages</h1>
+<p>sudo yum remove <package-name with release version>
+```</p>
+<p>::::{rubric} Complete Uninstallation of ROCm Packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall single-version ROCm packages</h1>
+<p>sudo yum remove rocm-core</p>
+<h1>Uninstall multiversion ROCm packages</h1>
+<p>sudo yum remove rocm-core<release version>
+```</p>
+<p>::::{rubric} Uninstall Kernel-mode Driver
+::::</p>
+<p><code>shell
+sudo yum autoremove amdgpu-dkms</code></p>
+<p>::::{rubric} Remove ROCm and AMDGPU Repositories
+::::</p>
+<ol>
+<li>Execute these commands:</li>
+</ol>
+<p><code>shell
+   sudo rm -rf /etc/yum.repos.d/&lt;rocm_repository-name&gt; # Remove only rocm repo
+   sudo rm -rf /etc/yum.repos.d/&lt;amdgpu_repository-name&gt; # Remove only amdgpu repo</code></p>
+<ol>
+<li>Clear the cache and clean the system.</li>
+</ol>
+<p><code>shell
+   sudo rm -rf /var/cache/yum #Remove the cache
+   sudo yum clean all</code></p>
+<ol>
+<li>Restart the system.</li>
+</ol>
+<p><code>shell
+   sudo reboot</code></p>
+<p>:::::
+:::::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES15</p>
+<p>::::{rubric} Uninstalling Specific Meta-packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall all single-version ROCm packages</h1>
+<p>sudo zypper remove <package-name></p>
+<h1>Uninstall all multiversion ROCm packages</h1>
+<p>sudo zypper remove <package-name with release version>
+```</p>
+<p>::::{rubric} Complete Uninstallation of ROCm Packages
+::::</p>
+<p>```shell</p>
+<h1>Uninstall all single-version ROCm packages</h1>
+<p>sudo zypper remove rocm-core</p>
+<h1>Uninstall all multiversion ROCm packages</h1>
+<p>sudo zypper remove rocm-core<release version>
+```</p>
+<p>::::{rubric} Uninstall Kernel-mode Driver
+::::</p>
+<p><code>shell
+sudo zypper remove --clean-deps amdgpu-dkms</code></p>
+<p>::::{rubric} Remove ROCm and AMDGPU Repositories
+::::</p>
+<ol>
+<li>Execute these commands:</li>
+</ol>
+<p><code>shell
+   sudo zypper removerepo &lt;rocm_repository-name&gt;
+   sudo zypper removerepo &lt;amdgpu_repository-name&gt;</code></p>
+<ol>
+<li>Clear the cache and clean the system.</li>
+</ol>
+<p><code>shell
+   sudo zypper clean --all</code></p>
+<ol>
+<li>Restart the system.</li>
+</ol>
+<p><code>shell
+   sudo reboot</code></p>
+<p>:::::
+::::::</p>

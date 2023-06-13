@@ -1,0 +1,37 @@
+<h2>TFSA-2021-092: Integer overflow in TFLite memory allocation</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29605</p>
+<h3>Impact</h3>
+<p>The TFLite code for allocating <code>TFLiteIntArray</code>s is <a href="https://github.com/tensorflow/tensorflow/blob/4ceffae632721e52bf3501b736e4fe9d1221cdfa/tensorflow/lite/c/common.c#L24-L27">vulnerable to an integer
+overflow
+issue</a>:</p>
+<p><code>cc
+int TfLiteIntArrayGetSizeInBytes(int size) {
+  static TfLiteIntArray dummy;
+  return sizeof(dummy) + sizeof(dummy.data[0]) * size;
+}</code></p>
+<p>An attacker can craft a model such that the <code>size</code> multiplier is so large that
+the return value overflows the <code>int</code> datatype and becomes negative. In turn,
+this results in <a href="https://github.com/tensorflow/tensorflow/blob/4ceffae632721e52bf3501b736e4fe9d1221cdfa/tensorflow/lite/c/common.c#L47-L52">invalid value being given to
+<code>malloc</code></a>:</p>
+<p><code>cc
+TfLiteIntArray* TfLiteIntArrayCreate(int size) {
+  TfLiteIntArray* ret = (TfLiteIntArray*)malloc(TfLiteIntArrayGetSizeInBytes(size));
+  ret-&gt;size = size;
+  return ret;
+}</code></p>
+<p>In this case, <code>ret-&gt;size</code> would dereference an invalid pointer.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/7c8cc4ec69cd348e44ad6a2699057ca88faad3e5">7c8cc4ec69cd348e44ad6a2699057ca88faad3e5</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

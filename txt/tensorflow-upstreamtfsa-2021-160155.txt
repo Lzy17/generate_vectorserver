@@ -1,0 +1,41 @@
+<h2>TFSA-2021-160: Heap OOB in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37685</p>
+<h3>Impact</h3>
+<p>TFLite's
+<a href="https://github.com/tensorflow/tensorflow/blob/149562d49faa709ea80df1d99fc41d005b81082a/tensorflow/lite/kernels/expand_dims.cc#L36-L50"><code>expand_dims.cc</code></a>
+contains a vulnerability which allows reading one element outside of bounds of
+heap allocated data:</p>
+<p>```cc
+  if (axis &lt; 0) {
+    axis = input_dims.size + 1 + axis;
+  }
+  TF_LITE_ENSURE(context, axis &lt;= input_dims.size);</p>
+<p>TfLiteIntArray* output_dims = TfLiteIntArrayCreate(input_dims.size + 1);
+  for (int i = 0; i &lt; output_dims-&gt;size; ++i) {
+    if (i &lt; axis) {
+      output_dims-&gt;data[i] = input_dims.data[i];
+    } else if (i == axis) {
+      output_dims-&gt;data[i] = 1;
+    } else {
+      output_dims-&gt;data[i] = input_dims.data[i - 1];
+    }
+  }
+```</p>
+<p>If <code>axis</code> is a large negative value (e.g., <code>-100000</code>), then after the first <code>if</code>
+it would still be negative. The check following the <code>if</code> statement will pass and
+the <code>for</code> loop would read one element before the start of <code>input_dims.data</code>
+(when <code>i = 0</code>).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/d94ffe08a65400f898241c0374e9edc6fa8ed257">d94ffe08a65400f898241c0374e9edc6fa8ed257</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

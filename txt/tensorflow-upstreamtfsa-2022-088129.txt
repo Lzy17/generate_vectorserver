@@ -1,0 +1,16 @@
+<h2>TFSA-2022-088: <code>CHECK</code> failure in <code>TensorListReserve</code> via missing validation</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35960</p>
+<h3>Impact</h3>
+<p>In <a href="https://github.com/tensorflow/tensorflow/blob/c8ba76d48567aed347508e0552a257641931024d/tensorflow/core/kernels/list_kernels.cc#L322-L325"><code>core/kernels/list_kernels.cc's TensorListReserve</code></a>, <code>num_elements</code> is assumed to be a tensor of size 1. When a <code>num_elements</code> of more than 1 element is provided, then <code>tf.raw_ops.TensorListReserve</code> fails the <code>CHECK_EQ</code> in <code>CheckIsAlignedAndSingleElement</code>.
+```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.TensorListReserve(element_shape=(1,1), num_elements=tf.constant([1,1], dtype=tf.int32), element_dtype=tf.int8)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Kang Hong Jin from Singapore Management University.</p>

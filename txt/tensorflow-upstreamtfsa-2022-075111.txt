@@ -1,0 +1,32 @@
+<h2>TFSA-2022-075: Missing validation results in undefined behavior in <code>QuantizedConv2D</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29201</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/kernels/quantized_conv_ops.cc"><code>tf.raw_ops.QuantizedConv2D</code></a> does not fully validate the input arguments:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant(1, shape=[1, 2, 3, 3], dtype=tf.quint8)
+filter = tf.constant(1, shape=[1, 2, 3, 3], dtype=tf.quint8)</p>
+<h1>bad args</h1>
+<p>min_input = tf.constant([], shape=[0], dtype=tf.float32)
+max_input = tf.constant(0, shape=[], dtype=tf.float32)
+min_filter = tf.constant(0, shape=[], dtype=tf.float32)
+max_filter = tf.constant(0, shape=[], dtype=tf.float32)</p>
+<p>tf.raw_ops.QuantizedConv2D(
+  input=input,
+  filter=filter,
+  min_input=min_input,
+  max_input=max_input,
+  min_filter=min_filter,
+  max_filter=max_filter,
+  strides=[1, 1, 1, 1],
+  padding="SAME")
+```</p>
+<p>In this case, references get bound to <code>nullptr</code> for each argument that is empty (in the example, all arguments in the <code>bad args</code> section).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/0f0b080ecde4d3dfec158d6f60da34d5e31693c4">0f0b080ecde4d3dfec158d6f60da34d5e31693c4</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

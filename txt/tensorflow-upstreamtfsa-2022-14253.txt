@@ -1,0 +1,17 @@
+<h2>TFSA-2022-142: <code>CHECK</code>-fail in <code>tensorflow::full_type::SubstituteFromAttrs</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36016</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ops/math_ops.cc"><code>tensorflow::full_type::SubstituteFromAttrs</code></a> receives a <code>FullTypeDef&amp; t</code> that is not exactly three args, it triggers a <code>CHECK</code>-fail instead of returning a status.
+```cpp
+Status SubstituteForEach(AttrMap&amp; attrs, FullTypeDef&amp; t) {
+  DCHECK_EQ(t.args_size(), 3);</p>
+<p>const auto&amp; cont = t.args(0);
+  const auto&amp; tmpl = t.args(1);
+  const auto&amp; t_var = t.args(2);
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/6104f0d4091c260ce9352f9155f7e9b725eab012">6104f0d4091c260ce9352f9155f7e9b725eab012</a>.
+The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,21 @@
+<h2>TFSA-2020-028: Float cast overflow undefined behavior</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15266</p>
+<h3>Impact</h3>
+<p>When the <code>boxes</code> argument of <code>tf.image.crop_and_resize</code> has a very large value,
+the CPU kernel implementation receives it as a C++ <code>nan</code> floating point value.
+Attempting to operate on this is undefined behavior which later produces a
+segmentation fault.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/c0319231333f0f16e1cc75ec83660b01fedd4182">c0319231333f0f16e1cc75ec83660b01fedd4182</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported in
+<a href="https://github.com/tensorflow/issues/42129">#42129</a>.</p>

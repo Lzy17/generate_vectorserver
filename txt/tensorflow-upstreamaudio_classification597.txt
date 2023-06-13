@@ -1,0 +1,328 @@
+<h1>Sound and word recognition for Android</h1>
+<p>This tutorial shows you how to use TensorFlow Lite with pre-built machine
+learning models to recognize sounds and spoken words in an Android app. Audio
+classification models like the ones shown in this tutorial can be used to detect
+activity, identify actions, or recognize voice commands.</p>
+<p><img alt="Audio recognition animated demo" src="https://storage.googleapis.com/download.tensorflow.org/tflite/examples/audio_classification.gif" />{: .attempt-right}
+This tutorial shows you how to download the example code, load the project into
+<a href="https://developer.android.com/studio/">Android Studio</a>, and explains key parts
+of the code example so you can start adding this functionality to your own app.
+The example app code uses the TensorFlow
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/audio_classifier">Task Library for Audio</a>,
+which handles most of the audio data recording and preprocessing. For more
+information on how audio is pre-processed for use with machine learning models,
+see
+<a href="https://www.tensorflow.org/io/tutorials/audio">Audio Data Preparation and Augmentation</a>.</p>
+<h2>Audio classification with machine learning</h2>
+<p>The machine learning model in this tutorial recognizes sounds or words from
+audio samples recorded with a microphone on an Android device. The example app
+in this tutorial allows you to switch between the
+<a href="https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1">YAMNet/classifier</a>,
+a model that recognizes sounds, and a model that recognizes specific spoken
+words, that was
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/speech_recognition">trained</a>
+using the TensorFlow Lite <a href="https://www.tensorflow.org/lite/models/modify/model_maker">Model
+Maker</a> tool. The
+models run predictions on audio clips that contain 15600 individual samples per
+clip and are about 1 second in length.</p>
+<h2>Setup and run example</h2>
+<p>For the first part of this tutorial, you download the sample from GitHub and run
+it using Android Studio. The following sections of this tutorial explore the
+relevant sections of the example, so you can apply them to your own Android
+apps.</p>
+<h3>System requirements</h3>
+<ul>
+<li><a href="https://developer.android.com/studio/index.html">Android Studio</a>
+    version 2021.1.1 (Bumblebee) or higher.</li>
+<li>Android SDK version 31 or higher</li>
+<li>Android device with a minimum OS version of SDK 24 (Android 7.0 -
+    Nougat) with developer mode enabled.</li>
+</ul>
+<h3>Get the example code</h3>
+<p>Create a local copy of the example code. You will use this code to create a
+project in Android Studio and run the sample application.</p>
+<p>To clone and setup the example code:
+1.  Clone the git repository
+    <pre class="devsite-click-to-copy">
+    git clone https://github.com/tensorflow/examples.git
+    </pre>
+1.  Optionally, configure your git instance to use sparse checkout, so you
+    have only the files for the example app:
+    <code>cd examples
+    git sparse-checkout init --cone
+    git sparse-checkout set lite/examples/audio_classification/android</code></p>
+<h3>Import and run the project</h3>
+<p>Create a project from the downloaded example code, build the project, and then
+run it.</p>
+<p>To import and build the example code project:
+1.  Start <a href="https://developer.android.com/studio">Android Studio</a>.
+1.  In Android Studio, choose <strong>File &gt; New &gt; Import Project</strong>.
+1.  Navigate to the example code directory containing the <code>build.gradle</code> file
+    (<code>.../examples/lite/examples/audio_classification/android/build.gradle</code>)
+    and select that directory.</p>
+<p>If you select the correct directory, Android Studio creates a new project and
+builds it. This process can take a few minutes, depending on the speed of your
+computer and if you have used Android Studio for other projects. When the build
+completes, the Android Studio displays a <code>BUILD SUCCESSFUL</code> message in the
+<strong>Build Output</strong> status panel.</p>
+<p>To run the project:
+1.  From Android Studio, run the project by selecting <strong>Run &gt; Run 'app'</strong>.
+1.  Select an attached Android device with a microphone to test the app.</p>
+<p>Note: If you use an emulator to run the app, make sure you
+<a href="https://developer.android.com/studio/releases/emulator#29.0.6-host-audio">enable audio input</a>
+from the host machine.</p>
+<p>The next sections show you the modifications you need to make to your existing
+project to add this functionality to your own app, using this example app as a
+reference point.</p>
+<h2>Add project dependencies</h2>
+<p>In your own application, you must add specific project dependencies to run
+TensorFlow Lite machine learning models, and access utility functions that
+convert standard data formats, such as audio, into a tensor data format that can
+be processed by the model you are using.</p>
+<p>The example app uses the following TensorFlow Lite libraries:</p>
+<ul>
+<li><a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/audio/classifier/package-summary">TensorFlow Lite Task library Audio API</a> -
+    Provides the required audio data input classes, execution of the machine
+    learning model, and output results from the model processing.</li>
+</ul>
+<p>The following instructions show how to add the required project dependencies to
+your own Android app project.</p>
+<p>To add module dependencies:
+1.  In the module that uses TensorFlow Lite, update the module's
+    <code>build.gradle</code> file to include the following dependencies. In the example
+    code, this file is located here:
+    <code>.../examples/lite/examples/audio_classification/android/build.gradle</code>
+    <code>dependencies {
+    ...
+        implementation 'org.tensorflow:tensorflow-lite-task-audio'
+    }</code>
+1.  In Android Studio, sync the project dependencies by selecting: <strong>File &gt;
+    Sync Project with Gradle Files</strong>.</p>
+<h2>Initialize the ML model</h2>
+<p>In your Android app, you must initialize the TensorFlow Lite machine learning
+model with parameters before running predictions with the model. These
+initialization parameters are dependent on the model and can include settings
+such as default minimum accuracy thresholds for predictions and labels for words
+or sounds that the model can recognize.</p>
+<p>A TensorFlow Lite model includes a <code>*.tflite</code> file containing the model. The
+model file contains the prediction logic and typically includes <a href="../../models/convert/metadata">metadata</a>
+about how to interpret prediction results, such as prediction class names. Model
+files should be stored in the <code>src/main/assets</code> directory of your development
+project, as in the code example:</p>
+<ul>
+<li><code>&lt;project&gt;/src/main/assets/yamnet.tflite</code></li>
+</ul>
+<p>For convenience and code readability, the example declares a companion object
+that defines the settings for the model.</p>
+<p>To initialize the model in your app:</p>
+<ol>
+<li>Create a companion object to define the settings for the model:
+    <code>companion object {
+      const val DISPLAY_THRESHOLD = 0.3f
+      const val DEFAULT_NUM_OF_RESULTS = 2
+      const val DEFAULT_OVERLAP_VALUE = 0.5f
+      const val YAMNET_MODEL = "yamnet.tflite"
+      const val SPEECH_COMMAND_MODEL = "speech.tflite"
+    }</code></li>
+<li>Create the settings for the model by building an
+    <code>AudioClassifier.AudioClassifierOptions</code> object:
+    <code>val options = AudioClassifier.AudioClassifierOptions.builder()
+      .setScoreThreshold(classificationThreshold)
+      .setMaxResults(numOfResults)
+      .setBaseOptions(baseOptionsBuilder.build())
+      .build()</code></li>
+<li>Use this settings object to construct a TensorFlow Lite
+    <a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/audio_classifier"><code>AudioClassifier</code></a>
+    object that contains the model:
+    <code>classifier = AudioClassifier.createFromFileAndOptions(context, "yamnet.tflite", options)</code></li>
+</ol>
+<h3>Enable hardware acceleration</h3>
+<p>When initializing a TensorFlow Lite model in your app, you should consider using
+hardware acceleration features to speed up the prediction calculations of the
+model. TensorFlow Lite
+<a href="https://www.tensorflow.org/lite/performance/delegates">delegates</a> are software
+modules that accelerate execution of machine learning models using specialized
+processing hardware on a mobile device, such as graphics processing unit (GPUs)
+or tensor processing units (TPUs). The code example uses the NNAPI Delegate to
+handle hardware acceleration of the model execution:</p>
+<p><code>val baseOptionsBuilder = BaseOptions.builder()
+   .setNumThreads(numThreads)
+...
+when (currentDelegate) {
+   DELEGATE_CPU -&gt; {
+       // Default
+   }
+   DELEGATE_NNAPI -&gt; {
+       baseOptionsBuilder.useNnapi()
+   }
+}</code></p>
+<p>Using delegates for running TensorFlow Lite models is recommended, but not
+required. For more information about using delegates with TensorFlow Lite, see
+<a href="https://www.tensorflow.org/lite/performance/delegates">TensorFlow Lite Delegates</a>.</p>
+<h2>Prepare data for the model</h2>
+<p>In your Android app, your code provides data to the model for interpretation by
+transforming existing data such as audio clips into a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/Tensor">Tensor</a>
+data format that can be processed by your model. The data in a Tensor you pass
+to a model must have specific dimensions, or shape, that matches the format of
+data used to train the model.</p>
+<p>The
+<a href="https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1">YAMNet/classifier model</a>
+and the customized
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/speech_recognition">speech commands</a>
+models used in this code example accepts Tensor data objects that represent
+single-channel, or mono, audio clips recorded at 16kHz in 0.975 second clips
+(15600 samples). Running predictions on new audio data, your app must transform
+that audio data into Tensor data objects of that size and shape. The TensorFlow
+Lite Task Library
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/audio_classifier">Audio API</a>
+handles the data transformation for you.</p>
+<p>In the example code <code>AudioClassificationHelper</code> class, the app records live
+audio from the device microphones using an Android
+<a href="https://developer.android.com/reference/android/media/AudioRecord">AudioRecord</a>
+object. The code uses
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/audio/classifier/AudioClassifier">AudioClassifier</a>
+to build and configure that object to record audio at a sampling rate
+appropriate for the model. The code also uses AudioClassifier to build a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/support/audio/TensorAudio">TensorAudio</a>
+object to store the transformed audio data. Then the TensorAudio object is
+passed to the model for analysis.</p>
+<p>To provide audio data to the ML model:
+-   Use the <code>AudioClassifier</code> object to create a <code>TensorAudio</code> object and a
+    <code>AudioRecord</code> object:
+    <code>fun initClassifier() {
+    ...
+      try {
+        classifier = AudioClassifier.createFromFileAndOptions(context, currentModel, options)
+        // create audio input objects
+        tensorAudio = classifier.createInputTensorAudio()
+        recorder = classifier.createAudioRecord()
+      }</code></p>
+<p>Note: Your app must request permission to record audio using an Android device
+microphone. See the <code>fragments/PermissionsFragment</code> class in the project for an
+example. For more information on requesting permissions, see
+<a href="https://developer.android.com/guide/topics/permissions/overview">Permissions on Android</a>.</p>
+<h2>Run predictions</h2>
+<p>In your Android app, once you have connected an
+<a href="https://developer.android.com/reference/android/media/AudioRecord">AudioRecord</a>
+object and a
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/support/audio/TensorAudio">TensorAudio</a>
+object to an AudioClassifier object,  you can run the model against that data to
+produce a prediction, or <em>inference</em>. The example code for this tutorial runs
+predictions on clips from a live-recorded audio input stream at a specific
+rate.</p>
+<p>Model execution consumes significant resources, so it's important to run ML
+model predictions on a separate, background thread. The example app uses a
+<code>[ScheduledThreadPoolExecutor](https://developer.android.com/reference/java/util/concurrent/ScheduledThreadPoolExecutor)</code>
+object to isolate the model processing from other functions of the app.</p>
+<p>Audio classification models that recognize sounds with a clear beginning and
+end, such as words, can produce more accurate predictions on an incoming audio
+stream by analyzing overlapping audio clips. This approach
+helps the model avoid missing predictions for words that are cut off at the end
+of a clip. In the example app, each time you run a prediction the code grabs the
+latest 0.975 second clip from the audio recording buffer and analyzes it. You
+can make the model analyze overlapping audio clips by setting the model analysis
+thread execution pool <code>interval</code> value to a length that's shorter than the
+length of the clips being analyzed. For example, if your model analyzes 1 second
+clips and you set the interval to 500 milliseconds, the model will analyze the
+last half of the previous clip and 500 milliseconds of new audio data each time,
+creating a clip analysis overlap of 50%.</p>
+<p>To start running predictions on the audio data:</p>
+<ol>
+<li>Use the <code>AudioClassificationHelper.startAudioClassification()</code> method
+    to start the audio recording for the model:
+    <code>fun startAudioClassification() {
+      if (recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+        return
+      }
+      recorder.startRecording()
+    }</code></li>
+<li>Set how frequently the model generates an inference from the audio
+    clips by setting a fixed rate <code>interval</code> in the
+    <code>ScheduledThreadPoolExecutor</code> object:
+    <code>executor = ScheduledThreadPoolExecutor(1)
+    executor.scheduleAtFixedRate(
+      classifyRunnable,
+      0,
+      interval,
+      TimeUnit.MILLISECONDS)</code></li>
+<li>The <code>classifyRunnable</code> object in the code above executes the
+    <code>AudioClassificationHelper.classifyAudio()</code> method, which loads the latest
+    available audio data from the recorder and performs a prediction:
+    <code>private fun classifyAudio() {
+      tensorAudio.load(recorder)
+      val output = classifier.classify(tensorAudio)
+      ...
+    }</code></li>
+</ol>
+<p>Caution: Do not run the ML model predictions on the main execution thread of
+your application. Doing so can cause your app user interface to become slow or
+unresponsive.</p>
+<h3>Stop prediction processing</h3>
+<p>Make sure your app code stops doing audio classification when your app's audio
+processing Fragment or Activity loses focus. Running a machine learning model
+continuously has a significant impact on the battery life of an Android device.
+Use the <code>onPause()</code> method of the Android activity or fragment associated with
+the audio classification to stop audio recording and prediction processing.</p>
+<p>To stop audio recording and classification:
+-   Use the <code>AudioClassificationHelper.stopAudioClassification()</code> method to
+    stop recording and the model execution, as shown below in the
+    <code>AudioFragment</code> class:
+    <code>override fun onPause() {
+      super.onPause()
+      if (::audioHelper.isInitialized ) {
+        audioHelper.stopAudioClassification()
+      }
+    }</code></p>
+<h2>Handle model output</h2>
+<p>In your Android app, after you process an audio clip, the model produces a list
+of predictions which your app code must handle by executing additional business
+logic, displaying results to the user, or taking other actions.  The output of
+any given TensorFlow Lite model varies in terms of the number of predictions it
+produces (one or many), and the descriptive information for each prediction. In
+the case of the models in the example app, the predictions are either a list of
+recognized sounds or words. The AudioClassifier options object used in the code
+example lets you set the maximum number of predictions with the
+<code>setMaxResults()</code> method, as shown in <a href="#Initialize_the_ML_model">Initialize the ML
+model</a> section.</p>
+<p>To get the prediction results from the model:</p>
+<ol>
+<li>Get the results of the
+    <a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/audio/classifier/AudioClassifier">AudioClassifier</a>
+    object's <code>classify()</code> method and pass them to the listener object (code
+    reference):
+    <code>private fun classifyAudio() {
+      ...
+      val output = classifier.classify(tensorAudio)
+      listener.onResult(output[0].categories, inferenceTime)
+    }</code></li>
+<li>Use the listener's onResult() function handle the output by executing
+    business logic or displaying results to the user:
+    <code>private val audioClassificationListener = object : AudioClassificationListener {
+      override fun onResult(results: List&lt;Category&gt;, inferenceTime: Long) {
+        requireActivity().runOnUiThread {
+          adapter.categoryList = results
+          adapter.notifyDataSetChanged()
+          fragmentAudioBinding.bottomSheetLayout.inferenceTimeVal.text =
+            String.format("%d ms", inferenceTime)
+        }
+      }</code></li>
+</ol>
+<p>The model used in this example generates a list of predictions with a label
+for the classified sound or word, and a prediction score between 0 and 1 as a
+Float representing the confidence of the prediction, with 1 being the highest
+confidence rating. In general, predictions with a score below 50% (0.5) are
+considered inconclusive. However, how you handle low-value prediction results is
+up to you and the needs of your application.</p>
+<p>Once the model has returned a set of prediction results, your application can
+act on those predictions by presenting the result to your user or executing
+additional logic. In the case of the example code, the application lists the
+identified sounds or words in the app user interface.</p>
+<h2>Next steps</h2>
+<p>You can find additional TensorFlow Lite models for audio processing on
+<a href="https://tfhub.dev/s?deployment-format=lite&amp;module-type=audio-embedding,audio-pitch-extraction,audio-event-classification,audio-stt">TensorFlow Hub</a>
+and through the <a href="https://www.tensorflow.org/lite/models/trained">Pre-trained models
+guide</a> page. For more
+information about implementing machine learning in your mobile application with
+TensorFlow Lite, see the <a href="https://www.tensorflow.org/lite/guide">TensorFlow Lite Developer
+Guide</a>.</p>

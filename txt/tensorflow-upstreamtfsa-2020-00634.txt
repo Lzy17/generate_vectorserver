@@ -1,0 +1,30 @@
+<h2>TFSA-2020-006: Segmentation fault and/or data corruption due to invalid TFLite model</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15210</p>
+<h3>Impact</h3>
+<p>If a TFLite saved model uses the same tensor as both input and output of an
+operator, then, depending on the operator, we can observe a segmentation fault
+or just memory corruption.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/d58c96946b">d58c96946b</a> and
+will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>Workarounds</h3>
+<p>A potential workaround would be to add a custom <code>Verifier</code> to the model loading
+code to ensure that no operator reuses tensors as both inputs and outputs. Care
+should be taken to check all types of inputs (i.e., constant or variable tensors
+as well as optional tensors).</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been discovered through a variant analysis of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2020-005.md">a
+vulnerability reported by members of the Aivul Team from Qihoo
+360</a>.</p>

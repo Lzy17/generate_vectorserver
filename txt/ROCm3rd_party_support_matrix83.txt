@@ -1,0 +1,41 @@
+<h1>3rd Party Support Matrix</h1>
+<p>ROCm™ supports various 3rd party libraries and frameworks. Supported versions
+are tested and known to work. Non-supported versions of 3rd parties may also
+work, but aren't tested.</p>
+<p>(ml_framework_compat_matrix)=</p>
+<h2>Deep Learning</h2>
+<p>ROCm releases support the most recent and two prior releases of PyTorch and
+TensorFlow</p>
+<p>| ROCm  | <a href="https://github.com/pytorch/pytorch/releases/">PyTorch</a> | <a href="https://github.com/tensorflow/tensorflow/releases/">TensorFlow</a> | <a href="https://icl.utk.edu/magma/index.html">MAGMA</a> |
+|:------|:--------------------------:|:--------------------:|:-----:|
+| 5.0.2 | 1.8,  1.9,  1.10           | 2.6, 2.7, 2.8        |       |
+| 5.1.3 | 1.9,  1.10, 1.11           | 2.7, 2.8, 2.9        |       |
+| 5.2.x | 1.10, 1.11, 1.12           | 2.8, 2.9, 2.9        |       |
+| 5.3.x | 1.10.1, 1.11, 1.12.1, 1.13 | 2.8, 2.9, 2.10       |       |
+| 5.4.x | 1.10.1, 1.11, 1.12.1, 1.13 | 2.8, 2.9, 2.10, 2.11 | 2.5.4 |
+| 5.5.x | 1.10.1, 1.11, 1.12.1, 1.13 | 2.10, 2.11           | 2.5.4 |</p>
+<h2>Communication libraries</h2>
+<p>ROCm supports <a href="https://openucx.org/">OpenUCX</a> an "an open-source,
+production-grade communication framework for data-centric and high-performance
+applications".</p>
+<p>UCX version | ROCm 5.4 and older | ROCm 5.5 and newer |
+|:----------|:------------------:|:------------------:|
+| -1.14.0   | COMPATIBLE         | INCOMPATIBLE       |
+|  1.14.1+  | COMPATIBLE         | COMPATIBLE         |</p>
+<h2>Algorithm libraries</h2>
+<p>ROCm releases provide algorithm libraries with interfaces compatible with
+contemporary CUDA / NVIDIA HPC SDK alternatives.</p>
+<ul>
+<li>Thrust → rocThrust</li>
+<li>CUB → hipCUB</li>
+</ul>
+<p>| ROCm  | Thrust / CUB | HPC SDK |
+|:------|:------------:|:-------:|
+| 5.0.2 | 1.14         | 21.9       |
+| 5.1.3 | 1.15         | 22.1       |
+| 5.2.x | 1.15         | 22.2, 22.3 |
+| 5.3.x | 1.16         | 22.7       |
+| 5.4.x | 1.16         | 22.9       |
+| 5.5.x | 1.17         | 22.9       |</p>
+<p>For the latest documentation of these libraries, refer to the
+<a href="../reference/gpu_libraries/c%2B%2B_primitives.md">associated documentation</a>.</p>

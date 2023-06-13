@@ -1,0 +1,291 @@
+<h1>Custom operators</h1>
+<p>Since the TensorFlow Lite builtin operator library only supports a limited
+number of TensorFlow operators, not every model is convertible. For details,
+refer to <a href="ops_compatibility.md">operator compatibility</a>.</p>
+<p>To allow conversion, users can provide their own custom implementation of an
+unsupported TensorFlow operator in TensorFlow Lite, known as a custom operator.
+<em>If instead, you wish to combine a series of unsupported (or supported)
+TensorFlow operators into a single fused optimized custom operator, refer to
+<a href="https://www.tensorflow.org/lite/models/convert/operation_fusion">operator fusing</a>.</em></p>
+<p>Using custom operators consists of four steps.</p>
+<ul>
+<li>
+<p><a href="#create-a-tensorflow-model">Create a TensorFlow Model.</a> Make sure the Saved
+    Model (or Graph Def) refers to the correctly named TensorFlow Lite operator.</p>
+</li>
+<li>
+<p><a href="#convert-to-a-tensorflow-lite-model">Convert to a TensorFlow Lite Model.</a>
+    Make sure you set the right TensorFlow Lite converter attribute in order to
+    successfully convert the model.</p>
+</li>
+<li>
+<p><a href="#create-and-register-the-operator">Create and register the operator.</a> This
+    is so that the TensorFlow Lite runtime knows how to map your operator and
+    parameters in your graph to executable C/C++ code.</p>
+</li>
+<li>
+<p><a href="#test-and-profile-your-operator">Test and profile your operator.</a> If you
+    wish to test just your custom operator, it is best to create a model with
+    just your custom operator and use the
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/tools/benchmark/benchmark_model.cc">benchmark_model</a>
+    program.</p>
+</li>
+</ul>
+<p>Let’s walk through an end-to-end example of running a model with a custom
+operator <code>tf.atan</code> (named as <code>Atan</code>, refer to #create-a-tensorflow-model) which
+is supported in TensorFlow, but unsupported in TensorFlow Lite.</p>
+<p>Note: The <code>tf.atan</code> function is <strong>not</strong> a custom operator. It is a regular
+operator
+which is supported by both TensorFlow and TensorFlow Lite. But we <strong>assume</strong>
+that it is a custom operator in the following example in order to demonstrate a
+simple workflow.</p>
+<p>The TensorFlow Text operator is an example of a custom operator. See the
+<a href="https://tensorflow.org/text/guide/text_tf_lite" class="external">
+  Convert TF Text to TF Lite</a> tutorial for a code example.</p>
+<h2>Example: Custom <code>Atan</code> operator</h2>
+<p>Let’s walk through an example of supporting a TensorFlow operator that
+TensorFlow Lite does not have. Assume we are using the <code>Atan</code> operator and that
+we are building a very simple model for a function <code>y = atan(x + offset)</code>, where
+<code>offset</code> is trainable.</p>
+<h3>Create a TensorFlow Model</h3>
+<p>The following code snippet trains a simple TensorFlow model. This model just
+contains a custom operator named <code>Atan</code>, which is a function <code>y = atan(x +
+offset)</code>, where <code>offset</code> is trainable.</p>
+<p>```python
+import tensorflow as tf</p>
+<h1>Define training dataset and variables</h1>
+<p>x = [-8, 0.5, 2, 2.2, 201]
+y = [-1.4288993, 0.98279375, 1.2490457, 1.2679114, 1.5658458]
+offset = tf.Variable(0.0)</p>
+<h1>Define a simple model which just contains a custom operator named <code>Atan</code></h1>
+<p>@tf.function(input_signature=[tf.TensorSpec.from_tensor(tf.constant(x))])
+def atan(x):
+  return tf.atan(x + offset, name="Atan")</p>
+<h1>Train model</h1>
+<p>optimizer = tf.optimizers.Adam(0.01)
+def train(x, y):
+    with tf.GradientTape() as t:
+      predicted_y = atan(x)
+      loss = tf.reduce_sum(tf.square(predicted_y - y))
+    grads = t.gradient(loss, [offset])
+    optimizer.apply_gradients(zip(grads, [offset]))</p>
+<p>for i in range(1000):
+    train(x, y)</p>
+<p>print("The actual offset is: 1.0")
+print("The predicted offset is:", offset.numpy())
+```</p>
+<p><code>python
+The actual offset is: 1.0
+The predicted offset is: 0.99999905</code></p>
+<p>At this point, if you try to generate a TensorFlow Lite model with the default
+converter flags, you will get the following error message:</p>
+<p><code>none
+Error:
+error: 'tf.Atan' op is neither a custom op nor a flex op.</code></p>
+<h3>Convert to a TensorFlow Lite Model</h3>
+<p>Create a TensorFlow Lite model with custom operators, by setting the converter
+attribute <code>allow_custom_ops</code> as shown below:</p>
+<pre>
+converter = tf.lite.TFLiteConverter.from_concrete_functions([atan.get_concrete_function()], atan)
+<b>converter.allow_custom_ops = True</b>
+tflite_model = converter.convert()
+</pre>
+
+<p>At this point, if you run it with the default interpreter using commands such as
+follows:</p>
+<p><code>python
+interpreter = tf.lite.Interpreter(model_content=tflite_model)
+interpreter.allocate_tensors()</code></p>
+<p>You will still get the error:</p>
+<p><code>none
+Encountered unresolved custom op: Atan.</code></p>
+<h3>Create and register the operator.</h3>
+<p>All TensorFlow Lite operators (both custom and builtin) are defined using a
+simple pure-C interface that consists of four functions:</p>
+<p><code>c++
+typedef struct {
+  void* (*init)(TfLiteContext* context, const char* buffer, size_t length);
+  void (*free)(TfLiteContext* context, void* buffer);
+  TfLiteStatus (*prepare)(TfLiteContext* context, TfLiteNode* node);
+  TfLiteStatus (*invoke)(TfLiteContext* context, TfLiteNode* node);
+} TfLiteRegistration;</code></p>
+<p>Refer to
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/c/common.h"><code>common.h</code></a>
+for details on <code>TfLiteContext</code> and <code>TfLiteNode</code>. The former provides error
+reporting facilities and access to global objects, including all the tensors.
+The latter allows implementations to access their inputs and outputs.</p>
+<p>When the interpreter loads a model, it calls <code>init()</code> once for each node in the
+graph. A given <code>init()</code> will be called more than once if the op is used multiple
+times in the graph. For custom ops a configuration buffer will be provided,
+containing a flexbuffer that maps parameter names to their values. The buffer is
+empty for builtin ops because the interpreter has already parsed the op
+parameters. Kernel implementations that require state should initialize it here
+and transfer ownership to the caller. For each <code>init()</code> call, there will be a
+corresponding call to <code>free()</code>, allowing implementations to dispose of the
+buffer they might have allocated in <code>init()</code>.</p>
+<p>Whenever the input tensors are resized, the interpreter will go through the
+graph notifying implementations of the change. This gives them the chance to
+resize their internal buffer, check validity of input shapes and types, and
+recalculate output shapes. This is all done through <code>prepare()</code>, and
+implementations can access their state using <code>node-&gt;user_data</code>.</p>
+<p>Finally, each time inference runs, the interpreter traverses the graph calling
+<code>invoke()</code>, and here too the state is available as <code>node-&gt;user_data</code>.</p>
+<p>Custom ops can be implemented in exactly the same way as builtin ops, by
+defining those four functions and a global registration function that usually
+looks like this:</p>
+<p><code>c++
+namespace tflite {
+namespace ops {
+namespace custom {
+  TfLiteRegistration* Register_MY_CUSTOM_OP() {
+    static TfLiteRegistration r = {my_custom_op::Init,
+                                   my_custom_op::Free,
+                                   my_custom_op::Prepare,
+                                   my_custom_op::Eval};
+    return &amp;r;
+  }
+}  // namespace custom
+}  // namespace ops
+}  // namespace tflite</code></p>
+<p>Note that registration is not automatic and an explicit call to
+<code>Register_MY_CUSTOM_OP</code> should be made. While the standard <code>BuiltinOpResolver</code>
+(available from the <code>:builtin_ops</code> target) takes care of the registration of
+builtins, custom ops will have to be collected in separate custom libraries.</p>
+<h3>Defining the kernel in the TensorFlow Lite runtime</h3>
+<p>All we need to do to use the op in TensorFlow Lite is define two functions
+(<code>Prepare</code> and <code>Eval</code>), and construct a <code>TfLiteRegistration</code>:</p>
+<p>```cpp
+TfLiteStatus AtanPrepare(TfLiteContext<em> context, TfLiteNode</em> node) {
+  using namespace tflite;
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);</p>
+<p>const TfLiteTensor<em> input = GetInput(context, node, 0);
+  TfLiteTensor</em> output = GetOutput(context, node, 0);</p>
+<p>int num_dims = NumDimensions(input);</p>
+<p>TfLiteIntArray* output_size = TfLiteIntArrayCreate(num_dims);
+  for (int i=0; i<num_dims; ++i) {
+    output_size->data[i] = input-&gt;dims-&gt;data[i];
+  }</p>
+<p>return context-&gt;ResizeTensor(context, output, output_size);
+}</p>
+<p>TfLiteStatus AtanEval(TfLiteContext<em> context, TfLiteNode</em> node) {
+  using namespace tflite;
+  const TfLiteTensor<em> input = GetInput(context, node, 0);
+  TfLiteTensor</em> output = GetOutput(context, node, 0);</p>
+<p>float<em> input_data = GetTensorData<float>(input);
+  float</em> output_data = GetTensorData<float>(output);</p>
+<p>size_t count = 1;
+  int num_dims = NumDimensions(input);
+  for (int i = 0; i &lt; num_dims; ++i) {
+    count *= input-&gt;dims-&gt;data[i];
+  }</p>
+<p>for (size_t i=0; i&lt;count; ++i) {
+    output_data[i] = atan(input_data[i]);
+  }
+  return kTfLiteOk;
+}</p>
+<p>TfLiteRegistration* Register_ATAN() {
+  static TfLiteRegistration r = {nullptr, nullptr, AtanPrepare, AtanEval};
+  return &r;
+}
+```</p>
+<p>When initializing the <code>OpResolver</code>, add the custom op into the resolver (see
+below for an example). This will register the operator with Tensorflow Lite so
+that TensorFlow Lite can use the new implementation. Note that the last two
+arguments in <code>TfLiteRegistration</code> correspond to the <code>AtanPrepare</code> and <code>AtanEval</code>
+functions you defined for the custom op. If you used <code>AtanInit</code> and <code>AtanFree</code>
+functions to initialize variables used in the op and to free up space,
+respectively, then they would be added to the first two arguments of
+<code>TfLiteRegistration</code>; those arguments are set to <code>nullptr</code> in this example.</p>
+<h3>Register the operator with the kernel library</h3>
+<p>Now we need to register the operator with the kernel library. This is done with
+an <code>OpResolver</code>. Behind the scenes, the interpreter will load a library of
+kernels which will be assigned to execute each of the operators in the model.
+While the default library only contains builtin kernels, it is possible to
+replace/augment it with a custom library op operators.</p>
+<p>The <code>OpResolver</code> class, which translates operator codes and names into actual
+code, is defined like this:</p>
+<p><code>c++
+class OpResolver {
+  virtual TfLiteRegistration* FindOp(tflite::BuiltinOperator op) const = 0;
+  virtual TfLiteRegistration* FindOp(const char* op) const = 0;
+  virtual void AddBuiltin(tflite::BuiltinOperator op, TfLiteRegistration* registration) = 0;
+  virtual void AddCustom(const char* op, TfLiteRegistration* registration) = 0;
+};</code></p>
+<p>Regular usage requires that you use the <code>BuiltinOpResolver</code> and write:</p>
+<p><code>c++
+tflite::ops::builtin::BuiltinOpResolver resolver;</code></p>
+<p>To add the custom op created above, you call <code>AddOp</code> (before you pass the
+resolver to the <code>InterpreterBuilder</code>):</p>
+<p><code>c++
+resolver.AddCustom("Atan", Register_ATAN());</code></p>
+<p>If the set of builtin ops is deemed to be too large, a new <code>OpResolver</code> could be
+code-generated based on a given subset of ops, possibly only the ones contained
+in a given model. This is the equivalent of TensorFlow's selective registration
+(and a simple version of it is available in the <code>tools</code> directory).</p>
+<p>If you want to define your custom operators in Java, you would currently need to
+build your own custom JNI layer and compile your own AAR
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/java/src/main/native/nativeinterpreterwrapper_jni.cc">in this jni code</a>.
+Similarly, if you wish to define these operators available in Python you can
+place your registrations in the
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/python/interpreter_wrapper/interpreter_wrapper.cc">Python wrapper code</a>.</p>
+<p>Note that a similar process as above can be followed for supporting a set of
+operations instead of a single operator. Just add as many <code>AddCustom</code> operators
+as you need. In addition, <code>BuiltinOpResolver</code> also allows you to override
+implementations of builtins by using the <code>AddBuiltin</code>.</p>
+<h3>Test and profile your operator</h3>
+<p>To profile your op with the TensorFlow Lite benchmark tool, you can use the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#tflite-model-benchmark-tool">benchmark model tool</a>
+for TensorFlow Lite. For testing purposes, you can make your local build of
+TensorFlow Lite aware of your custom op by adding the appropriate <code>AddCustom</code>
+call (as show above) to
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/core/kernels/register.cc">register.cc</a></p>
+<h2>Best practices</h2>
+<ol>
+<li>
+<p>Optimize memory allocations and de-allocations cautiously. Allocating memory
+    in <code>Prepare</code> is more efficient than in <code>Invoke</code>, and allocating memory
+    before a loop is better than in every iteration. Use temporary tensors data
+    rather than mallocing yourself (see item 2). Use pointers/references instead
+    of copying as much as possible.</p>
+</li>
+<li>
+<p>If a data structure will persist during the entire operation, we advise
+    pre-allocating the memory using temporary tensors. You may need to use
+    OpData struct to reference the tensor indices in other functions. See the
+    example in the
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/conv.cc">kernel for convolution</a>.
+    A sample code snippet is below</p>
+<p><code>auto* op_data = reinterpret_cast&lt;OpData*&gt;(node-&gt;user_data);
+TfLiteIntArrayFree(node-&gt;temporaries);
+node-&gt;temporaries = TfLiteIntArrayCreate(1);
+node-&gt;temporaries-&gt;data[0] = op_data-&gt;temp_tensor_index;
+TfLiteTensor* temp_tensor = &amp;context-&gt;tensors[op_data-&gt;temp_tensor_index];
+temp_tensor-&gt;type =  kTfLiteFloat32;
+temp_tensor-&gt;allocation_type = kTfLiteArenaRw;</code></p>
+</li>
+<li>
+<p>If it doesn't cost too much wasted memory, prefer using a static fixed size
+    array (or a pre-allocated <code>std::vector</code> in <code>Resize</code>) rather than using a
+    dynamically allocated <code>std::vector</code> every iteration of execution.</p>
+</li>
+<li>
+<p>Avoid instantiating standard library container templates that don't already
+    exist, because they affect binary size. For example, if you need a
+    <code>std::map</code> in your operation that doesn't exist in other kernels, using a
+    <code>std::vector</code> with direct indexing mapping could work while keeping the
+    binary size small. See what other kernels use to gain insight (or ask).</p>
+</li>
+<li>
+<p>Check the pointer to the memory returned by <code>malloc</code>. If this pointer is
+    <code>nullptr</code>, no operations should be performed using that pointer. If you
+    <code>malloc</code> in a function and have an error exit, deallocate memory before you
+    exit.</p>
+</li>
+<li>
+<p>Use <code>TF_LITE_ENSURE(context, condition)</code> to check for a specific condition.
+    Your code must not leave memory hanging when <code>TF_LITE_ENSURE</code> is used, i.e.,
+    these macros should be used before any resources are allocated that will
+    leak.</p>
+</li>
+</ol>

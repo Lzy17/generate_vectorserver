@@ -1,0 +1,143 @@
+<h1>TensorFlow Lite NNAPI delegate</h1>
+<p>The
+<a href="https://developer.android.com/ndk/guides/neuralnetworks">Android Neural Networks API (NNAPI)</a>
+is available on all Android devices running Android 8.1 (API level 27) or
+higher. It provides acceleration for TensorFlow Lite models on Android devices
+with supported hardware accelerators including:</p>
+<ul>
+<li>Graphics Processing Unit (GPU)</li>
+<li>Digital Signal Processor (DSP)</li>
+<li>Neural Processing Unit (NPU)</li>
+</ul>
+<p>Performance will vary depending on the specific hardware available on device.</p>
+<p>This page describes how to use the NNAPI delegate with the TensorFlow Lite
+Interpreter in Java and Kotlin. For Android C APIs, please refer to
+<a href="https://developer.android.com/ndk/guides/neuralnetworks">Android Native Developer Kit documentation</a>.</p>
+<h2>Trying the NNAPI delegate on your own model</h2>
+<h3>Gradle import</h3>
+<p>The NNAPI delegate is part of the TensorFlow Lite Android interpreter, release
+1.14.0 or higher. You can import it to your project by adding the following to
+your module gradle file:</p>
+<p><code>groovy
+dependencies {
+   implementation 'org.tensorflow:tensorflow-lite:2.0.0'
+}</code></p>
+<h3>Initializing the NNAPI delegate</h3>
+<p>Add the code to initialize the NNAPI delegate before you initialize the
+TensorFlow Lite interpreter.</p>
+<p>Note: Although NNAPI is supported from API Level 27 (Android Oreo MR1), the
+support for operations improved significantly for API Level 28 (Android Pie)
+onwards. As a result, we recommend developers use the NNAPI delegate for Android
+Pie or above for most scenarios.</p>
+<p>```java
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.nnapi.NnApiDelegate;</p>
+<p>Interpreter.Options options = (new Interpreter.Options());
+NnApiDelegate nnApiDelegate = null;
+// Initialize interpreter with NNAPI delegate for Android Pie or above
+if(Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P) {
+    nnApiDelegate = new NnApiDelegate();
+    options.addDelegate(nnApiDelegate);
+}</p>
+<p>// Initialize TFLite interpreter
+try {
+    tfLite = new Interpreter(loadModelFile(assetManager, modelFilename), options);
+} catch (Exception e) {
+    throw new RuntimeException(e);
+}</p>
+<p>// Run inference
+// ...</p>
+<p>// Unload delegate
+tfLite.close();
+if(null != nnApiDelegate) {
+    nnApiDelegate.close();
+}
+```</p>
+<h2>Best practices</h2>
+<h3>Test performance before deploying</h3>
+<p>Runtime performance can vary significantly due to model architecture, size,
+operations, hardware availability, and runtime hardware utilization. For
+example, if an app heavily utilizes the GPU for rendering, NNAPI acceleration
+may not improve performance due to resource contention. We recommend running a
+simple performance test using the debug logger to measure inference time. Run
+the test on several phones with different chipsets (manufacturer or models from
+the same manufacturer) that are representative of your user base before enabling
+NNAPI in production.</p>
+<p>For advanced developers, TensorFlow Lite also offers
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark">a model benchmark tool for Android</a>.</p>
+<h3>Create a device exclusion list</h3>
+<p>In production, there may be cases where NNAPI does not perform as expected. We
+recommend developers maintain a list of devices that should not use NNAPI
+acceleration in combination with particular models. You can create this list
+based on the value of <code>"ro.board.platform"</code>, which you can retrieve using the
+following code snippet:</p>
+<p>```java
+String boardPlatform = "";</p>
+<p>try {
+    Process sysProcess =
+        new ProcessBuilder("/system/bin/getprop", "ro.board.platform").
+        redirectErrorStream(true).start();</p>
+<pre><code>BufferedReader reader = new BufferedReader
+    (new InputStreamReader(sysProcess.getInputStream()));
+String currentLine = null;
+
+while ((currentLine=reader.readLine()) != null){
+    boardPlatform = line;
+}
+sysProcess.destroy();
+</code></pre>
+<p>} catch (IOException e) {}</p>
+<p>Log.d("Board Platform", boardPlatform);
+```</p>
+<p>For advanced developers, consider maintaining this list via a remote
+configuration system. The TensorFlow team is actively working on ways to
+simplify and automate discovering and applying the optimal NNAPI configuration.</p>
+<h3>Quantization</h3>
+<p>Quantization reduces model size by using 8-bit integers or 16-bit floats instead
+of 32-bit floats for computation. 8-bit integer model sizes are a quarter of the
+32-bit float versions; 16-bit floats are half of the size. Quantization can
+improve performance significantly though the process could trade off some model
+accuracy.</p>
+<p>There are multiple types of post-training quantization techniques available,
+but, for maximum support and acceleration on current hardware, we recommend
+<a href="post_training_quantization#full_integer_quantization_of_weights_and_activations">full integer quantization</a>.
+This approach converts both the weight and the operations into integers. This
+quantization process requires a representative dataset to work.</p>
+<h3>Use supported models and ops</h3>
+<p>If the NNAPI delegate does not support some of the ops or parameter combinations
+in a model, the framework only runs the supported parts of the graph on the
+accelerator. The remainder runs on the CPU, which results in split execution.
+Due to the high cost of CPU/accelerator synchronization, this may result in
+slower performance than executing the whole network on the CPU alone.</p>
+<p>NNAPI performs best when models only use
+<a href="https://developer.android.com/ndk/guides/neuralnetworks#model">supported ops</a>.
+The following models are known to be compatible with NNAPI:</p>
+<ul>
+<li><a href="https://ai.googleblog.com/2017/06/mobilenets-open-source-models-for.html">MobileNet v1 (224x224) image classification (float model download)</a>
+    <a href="http://download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224_quant.tgz">(quantized model download)</a>
+    \
+    <em>(image classification model designed for mobile and embedded based vision
+    applications)</em></li>
+<li><a href="https://ai.googleblog.com/2018/07/accelerated-training-and-inference-with.html">MobileNet v2 SSD object detection</a>
+    <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/mobile_ssd_v2_float_coco.tflite">(download)</a>
+    \
+    <em>(image classification model that detects multiple objects with bounding
+    boxes)</em></li>
+<li><a href="https://ai.googleblog.com/2018/07/accelerated-training-and-inference-with.html">MobileNet v1(300x300) Single Shot Detector (SSD) object detection</a>
+[(download)] (https://storage.googleapis.com/download.tensorflow.org/models/tflite/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29.zip)</li>
+<li><a href="https://github.com/tensorflow/tfjs-models/tree/master/posenet">PoseNet for pose estimation</a>
+    <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite">(download)</a>
+    \
+    <em>(vision model that estimates the poses of a person(s) in image or video)</em></li>
+</ul>
+<p>NNAPI acceleration is also not supported when the model contains
+dynamically-sized outputs. In this case, you will get a warning like:</p>
+<p><code>none
+ERROR: Attempting to use a delegate that only supports static-sized tensors \
+with a graph that has dynamic-sized tensors.</code></p>
+<h3>Enable NNAPI CPU implementation</h3>
+<p>A graph that can't be processed completely by an accelerator can fall back to
+the NNAPI CPU implementation. However, since this is typically less performant
+than the TensorFlow interpreter, this option is disabled by default in the NNAPI
+delegate for Android 10 (API Level 29) or above. To override this behavior, set
+<code>setUseNnapiCpu</code> to <code>true</code> in the <code>NnApiDelegate.Options</code> object.</p>

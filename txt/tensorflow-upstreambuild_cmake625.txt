@@ -1,0 +1,206 @@
+<h1>Build TensorFlow Lite with CMake</h1>
+<p>This page describes how to build and use the TensorFlow Lite library with
+<a href="https://cmake.org/">CMake</a> tool.</p>
+<p>The following instructions have been tested on Ubuntu 16.04.3 64-bit PC (AMD64)
+, macOS Catalina (x86_64), Windows 10 and TensorFlow devel Docker image
+<a href="https://hub.docker.com/r/tensorflow/tensorflow/tags/">tensorflow/tensorflow:devel</a>.</p>
+<p><strong>Note:</strong> This feature is available since version 2.4.</p>
+<h3>Step 1. Install CMake tool</h3>
+<p>It requires CMake 3.16 or higher. On Ubuntu, you can simply run the following
+command.</p>
+<p><code>sh
+sudo apt-get install cmake</code></p>
+<p>Or you can follow
+<a href="https://cmake.org/install/">the official cmake installation guide</a></p>
+<h3>Step 2. Clone TensorFlow repository</h3>
+<p><code>sh
+git clone https://github.com/tensorflow/tensorflow.git tensorflow_src</code></p>
+<p><strong>Note:</strong> If you're using the TensorFlow Docker image, the repo is already
+provided in <code>/tensorflow_src/</code>.</p>
+<h3>Step 3. Create CMake build directory</h3>
+<p><code>sh
+mkdir tflite_build
+cd tflite_build</code></p>
+<h3>Step 4. Run CMake tool with configurations</h3>
+<h4>Release build</h4>
+<p>It generates an optimized release binary by default. If you want to build for
+your workstation, simply run the following command.</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite</code></p>
+<h4>Debug build</h4>
+<p>If you need to produce a debug build which has symbol information, you need to
+provide the <code>-DCMAKE_BUILD_TYPE=Debug</code> option.</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite -DCMAKE_BUILD_TYPE=Debug</code></p>
+<h4>Build with kernel unit tests</h4>
+<p>In order to be able to run kernel tests, you need to provide the
+<code>-DTFLITE_KERNEL_TEST=on</code> flag. Unit test cross-compilation specifics can be
+found in the next subsection.</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite -DTFLITE_KERNEL_TEST=on</code></p>
+<h4>Build installable package</h4>
+<p>To build an installable package that can be used as a dependency by another
+CMake project with <code>find_package(tensorflow-lite CONFIG)</code>, use the
+<code>-DTFLITE_ENABLE_INSTALL=ON</code> option.</p>
+<p>You should ideally also provide your own versions of library dependencies.
+These will also need to used by the project that depends on TF Lite. You can
+use the <code>-DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON</code> and set the <code>&lt;PackageName&gt;_DIR</code>
+variables to point to your library installations.</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite -DTFLITE_ENABLE_INSTALL=ON \
+  -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
+  -DSYSTEM_FARMHASH=ON \
+  -Dabsl_DIR=&lt;install path&gt;/lib/cmake/absl \
+  -DEigen3_DIR=&lt;install path&gt;/share/eigen3/cmake \
+  -DFlatBuffers_DIR=&lt;install path&gt;/lib/cmake/flatbuffers \
+  -DNEON_2_SSE_DIR=&lt;install path&gt;/lib/cmake/NEON_2_SSE \
+  -Dcpuinfo_DIR=&lt;install path&gt;/share/cpuinfo \
+  -Druy_DIR=&lt;install path&gt;/lib/cmake/ruy</code></p>
+<p><strong>Note:</strong> Refer to CMake documentation for
+<a href="https://cmake.org/cmake/help/latest/command/find_package.html"><code>find_package</code></a>
+to learn more about handling and locating packages.</p>
+<h4>Cross-compilation</h4>
+<p>You can use CMake to build binaries for ARM64 or Android target architectures.</p>
+<p>In order to cross-compile the TF Lite, you namely need to provide the path to
+the SDK (e.g. ARM64 SDK or NDK in Android's case) with <code>-DCMAKE_TOOLCHAIN_FILE</code>
+flag.</p>
+<p><code>sh
+cmake -DCMAKE_TOOLCHAIN_FILE=&lt;CMakeToolchainFileLoc&gt; ../tensorflow/lite/</code></p>
+<h5>Specifics of Android cross-compilation</h5>
+<p>For Android cross-compilation, you need to install
+<a href="https://developer.android.com/ndk">Android NDK</a> and provide the NDK path with
+<code>-DCMAKE_TOOLCHAIN_FILE</code> flag mentioned above. You also need to set target ABI
+with<code>-DANDROID_ABI</code> flag.</p>
+<p><code>sh
+cmake -DCMAKE_TOOLCHAIN_FILE=&lt;NDK path&gt;/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a ../tensorflow_src/tensorflow/lite</code></p>
+<h5>Specifics of kernel (unit) tests cross-compilation</h5>
+<p>Cross-compilation of the unit tests requires flatc compiler for the host
+architecture. For this purpose, there is a CMakeLists located in
+<code>tensorflow/lite/tools/cmake/native_tools/flatbuffers</code> to build the flatc
+compiler with CMake in advance in a separate build directory using the host
+toolchain.</p>
+<p><code>sh
+mkdir flatc-native-build &amp;&amp; cd flatc-native-build
+cmake ../tensorflow_src/tensorflow/lite/tools/cmake/native_tools/flatbuffers
+cmake --build .</code></p>
+<p>It is also possible <strong>to install</strong> the <em>flatc</em> to a custom installation location
+(e.g. to a directory containing other natively-built tools instead of the CMake
+build directory):</p>
+<p><code>sh
+cmake -DCMAKE_INSTALL_PREFIX=&lt;native_tools_dir&gt; ../tensorflow_src/tensorflow/lite/tools/cmake/native_tools/flatbuffers
+cmake --build .</code></p>
+<p>For the TF Lite cross-compilation itself, additional parameter
+<code>-DTFLITE_HOST_TOOLS_DIR=&lt;flatc_dir_path&gt;</code> pointing to the directory containing
+the native <em>flatc</em> binary needs to be provided along with the
+<code>-DTFLITE_KERNEL_TEST=on</code> flag mentioned above.</p>
+<p><code>sh
+cmake -DCMAKE_TOOLCHAIN_FILE=${OE_CMAKE_TOOLCHAIN_FILE} -DTFLITE_KERNEL_TEST=on -DTFLITE_HOST_TOOLS_DIR=&lt;flatc_dir_path&gt; ../tensorflow/lite/</code></p>
+<h5>Cross-compiled kernel (unit) tests launch on target</h5>
+<p>Unit tests can be run as separate executables or using the CTest utility. As far
+as CTest is concerned, if at least one of the parameters <code>TFLITE_ENABLE_NNAPI,
+TFLITE_ENABLE_XNNPACK</code> or <code>TFLITE_EXTERNAL_DELEGATE</code> is enabled for the TF Lite
+build, the resulting tests are generated with two different <strong>labels</strong>
+(utilizing the same test executable): - <em>plain</em> - denoting the tests ones run on
+CPU backend - <em>delegate</em> - denoting the tests expecting additional launch
+arguments used for the used delegate specification</p>
+<p>Both <code>CTestTestfile.cmake</code> and <code>run-tests.cmake</code> (as referred below) are
+available in <code>&lt;build_dir&gt;/kernels</code>.</p>
+<p>Launch of unit tests with CPU backend (provided the <code>CTestTestfile.cmake</code> is
+present on target in the current directory):</p>
+<p><code>sh
+ctest -L plain</code></p>
+<p>Launch examples of unit tests using delegates (provided the
+<code>CTestTestfile.cmake</code> as well as <code>run-tests.cmake</code> file are present on target in
+the current directory):</p>
+<p><code>sh
+cmake -E env TESTS_ARGUMENTS=--use_nnapi=true\;--nnapi_accelerator_name=vsi-npu ctest -L delegate
+cmake -E env TESTS_ARGUMENTS=--use_xnnpack=true ctest -L delegate
+cmake -E env TESTS_ARGUMENTS=--external_delegate_path=&lt;PATH&gt; ctest -L delegate</code></p>
+<p><strong>A known limitation</strong> of this way of providing additional delegate-related
+launch arguments to unit tests is that it effectively supports only those with
+an <strong>expected return value of 0</strong>. Different return values will be reported as a
+test failure.</p>
+<h4>OpenCL GPU delegate</h4>
+<p>If your target machine has OpenCL support, you can use
+<a href="https://www.tensorflow.org/lite/performance/gpu">GPU delegate</a> which can
+leverage your GPU power.</p>
+<p>To configure OpenCL GPU delegate support:</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite -DTFLITE_ENABLE_GPU=ON</code></p>
+<p><strong>Note:</strong> It's experimental and available starting from TensorFlow 2.5. There
+could be compatibility issues. It's only verified with Android devices and
+NVidia CUDA OpenCL 1.2.</p>
+<h3>Step 5. Build TensorFlow Lite</h3>
+<p>In the <code>tflite_build</code> directory,</p>
+<p><code>sh
+cmake --build . -j</code></p>
+<p><strong>Note:</strong> This generates a static library <code>libtensorflow-lite.a</code> in the current
+directory but the library isn't self-contained since all the transitive
+dependencies are not included. To use the library properly, you need to create a
+CMake project. Please refer the
+<a href="#create_a_cmake_project_which_uses_tensorflow_lite">"Create a CMake project which uses TensorFlow Lite"</a>
+section.</p>
+<h3>Step 6. Build TensorFlow Lite Benchmark Tool and Label Image Example (Optional)</h3>
+<p>In the <code>tflite_build</code> directory,</p>
+<p><code>sh
+cmake --build . -j -t benchmark_model</code></p>
+<p><code>sh
+cmake --build . -j -t label_image</code></p>
+<h2>Available Options to build TensorFlow Lite</h2>
+<p>Here is the list of available options. You can override it with
+<code>-D&lt;option_name&gt;=[ON|OFF]</code>. For example, <code>-DTFLITE_ENABLE_XNNPACK=OFF</code> to
+disable XNNPACK which is enabled by default.</p>
+<p>| Option Name             | Feature        | Android | Linux | macOS | Windows |
+| ----------------------- | -------------- | ------- | ----- | ----- | ------- |
+| <code>TFLITE_ENABLE_RUY</code>     | Enable RUY     | ON      | OFF   | OFF   | OFF     |
+:                         : matrix         :         :       :       :         :
+:                         : multiplication :         :       :       :         :
+:                         : library        :         :       :       :         :
+| <code>TFLITE_ENABLE_NNAPI</code>   | Enable NNAPI   | ON      | OFF   | N/A   | N/A     |
+:                         : delegate       :         :       :       :         :
+| <code>TFLITE_ENABLE_GPU</code>     | Enable GPU     | OFF     | OFF   | N/A   | N/A     |
+:                         : delegate       :         :       :       :         :
+| <code>TFLITE_ENABLE_XNNPACK</code> | Enable XNNPACK | ON      | ON    | ON    | ON      |
+:                         : delegate       :         :       :       :         :
+| <code>TFLITE_ENABLE_MMAP</code>    | Enable MMAP    | ON      | ON    | ON    | N/A     |</p>
+<h2>Create a CMake project which uses TensorFlow Lite</h2>
+<p>Here is the CMakeLists.txt of
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/examples/minimal">TFLite minimal example</a>.</p>
+<p>You need to have add_subdirectory() for TensorFlow Lite directory and link
+<code>tensorflow-lite</code> with target_link_libraries().</p>
+<p>```
+cmake_minimum_required(VERSION 3.16)
+project(minimal C CXX)</p>
+<p>set(TENSORFLOW_SOURCE_DIR "" CACHE PATH
+  "Directory that contains the TensorFlow project" )
+if(NOT TENSORFLOW_SOURCE_DIR)
+  get_filename_component(TENSORFLOW_SOURCE_DIR
+    "${CMAKE_CURRENT_LIST_DIR}/../../../../" ABSOLUTE)
+endif()</p>
+<p>add_subdirectory(
+  "${TENSORFLOW_SOURCE_DIR}/tensorflow/lite"
+  "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite" EXCLUDE_FROM_ALL)</p>
+<p>add_executable(minimal minimal.cc)
+target_link_libraries(minimal tensorflow-lite)
+```</p>
+<h2>Build TensorFlow Lite C library</h2>
+<p>If you want to build TensorFlow Lite shared library for
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/c/README.md">C API</a>,
+follow <a href="#step-1-install-cmake-tool">step 1</a> to
+<a href="#step-3-create-cmake-build-directory">step 3</a> first. After that, run the
+following commands.</p>
+<p><code>sh
+cmake ../tensorflow_src/tensorflow/lite/c
+cmake --build . -j</code></p>
+<p>This command generates the following shared library in the current directory.</p>
+<p>Platform | Library name
+-------- | ---------------------------
+Linux    | <code>libtensorflowlite_c.so</code>
+macOS    | <code>libtensorflowlite_c.dylib</code>
+Windows  | <code>tensorflowlite_c.dll</code></p>
+<p><strong>Note:</strong> You need the public headers (<code>tensorflow/lite/c_api.h</code>,
+<code>tensorflow/lite/c_api_experimental.h</code>, <code>tensorflow/lite/c_api_types.h</code>, and
+<code>tensorflow/lite/common.h</code>), and the private headers that those public headers
+include (<code>tensorflow/lite/core/builtin_ops.h</code>, <code>tensorflow/lite/core/c/*.h</code>, and
+<code>tensorflow/lite/core/async/c/*.h</code>, ) to use the generated shared library.</p>

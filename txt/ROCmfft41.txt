@@ -1,0 +1,21 @@
+<h1>Fast Fourier Transforms</h1>
+<p>ROCm libraries for FFT are as follows:</p>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>rocFFT &lt;rocfft:index&gt;</code>
+rocFFT is an AMD GPU optimized library for FFT.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocfft:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocFFT/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipFFT &lt;hipfft:index&gt;</code>
+hipFFT is a compatibility layer for GPU accelerated FFT optimized for AMD GPUs
+using rocFFT. hipFFT allows for a common interface for other non AMD GPU
+FFT libraries.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hipfft:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipFFT/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

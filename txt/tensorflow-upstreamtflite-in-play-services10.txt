@@ -1,0 +1,19 @@
+<hr />
+<p>name: TensorFlow Lite in Play Services issue
+about: Use this template for issues with TensorFlow Lite in Google Play Services
+labels: 'comp:lite-in-play-services'</p>
+<hr />
+<p><strong>System information</strong>
+- Android Device information (use <code>adb shell getprop ro.build.fingerprint</code>
+  if possible):
+- TensorFlow Lite in Play Services SDK version (found in <code>build.gradle</code>):
+- Google Play Services version
+  (<code>Settings</code> &gt; <code>Apps</code> &gt; <code>Google Play Services</code> &gt; <code>App details</code>):</p>
+<p><strong>Standalone code to reproduce the issue</strong>
+Provide a reproducible test case that is the bare minimum necessary to generate
+the problem. If possible, please share a link to or attach code demonstrating
+the problem.</p>
+<p><strong>Any other info / logs</strong>
+Include any logs or source code that would be helpful to diagnose the problem.
+If including tracebacks, please include the full traceback. Large logs and files
+should be attached.</p>

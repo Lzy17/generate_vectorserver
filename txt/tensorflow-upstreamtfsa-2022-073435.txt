@@ -1,0 +1,18 @@
+<h2>TFSA-2022-073: Segfault due to missing support for quantized types</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29205</p>
+<h3>Impact</h3>
+<p>There is a potential for segfault / denial of service in TensorFlow by calling <code>tf.compat.v1.*</code> ops which don't yet have support for quantized types (added after migration to TF 2.x):</p>
+<p>```python
+import numpy as np
+import tensorflow as tf</p>
+<p>tf.compat.v1.placeholder_with_default(input=np.array([2]),shape=tf.constant(dtype=tf.qint8, value=np.array([1])))
+```</p>
+<p>In these scenarios, since the kernel is missing, a <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/python/eager/pywrap_tfe_src.cc#L480-L482"><code>nullptr</code> value is passed</a> to <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/python/eager/pywrap_tfe_src.cc#L296-L320"><code>ParseDimensionValue</code></a> for the <code>py_value</code> argument. Then, this is dereferenced, resulting in segfault.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/237822b59fc504dda2c564787f5d3ad9c4aa62d9">237822b59fc504dda2c564787f5d3ad9c4aa62d9</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Hong Jin from Singapore Management University.</p>

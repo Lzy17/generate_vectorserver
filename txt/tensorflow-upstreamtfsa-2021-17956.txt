@@ -1,0 +1,31 @@
+<h2>TFSA-2021-179: Heap buffer overflow in <code>Transpose</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41216</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/ops/array_ops.cc#L121-L185">shape inference function for <code>Transpose</code></a> is vulnerable to a heap buffer overflow:</p>
+<p>```python
+import tensorflow as tf
+@tf.function
+def test():
+  y = tf.raw_ops.Transpose(x=[1,2,3,4],perm=[-10])
+  return y</p>
+<p>test()
+```</p>
+<p>This occurs whenever <code>perm</code> contains negative elements. The shape inference function does not validate that the indices in <code>perm</code> are all valid:</p>
+<p><code>cc
+for (int32_t i = 0; i &lt; rank; ++i) {
+  int64_t in_idx = data[i];
+  if (in_idx &gt;= rank) {
+    return errors::InvalidArgument("perm dim ", in_idx,
+                                   " is out of range of input rank ", rank);
+  }
+  dims[i] = c-&gt;Dim(input, in_idx);
+}</code></p>
+<p>where <code>Dim(tensor, index)</code> accepts either a positive index less than the rank of the tensor or the special value <code>-1</code> for unknown dimensions.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c79ba87153ee343401dbe9d1954d7f79e521eb14">c79ba87153ee343401dbe9d1954d7f79e521eb14</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

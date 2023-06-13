@@ -1,0 +1,11 @@
+<h2>TFSA-2022-057: Multiple crashes, heap OOB accesses in TFG dialect (MLIR)</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23594</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/tree/274df9b02330b790aa8de1cee164b70f72b9b244/tensorflow/core/ir/importexport">TFG dialect of TensorFlow (MLIR)</a> makes several assumptions about the incoming <code>GraphDef</code> before converting it to the MLIR-based dialect.</p>
+<p>If an attacker changes the <code>SavedModel</code> format on disk to invalidate these assumptions and the <code>GraphDef</code> is then converted to MLIR-based IR then they can cause a crash in the Python interpreter. Under certain scenarios, heap OOB read/writes are possible.</p>
+<p>These issues have been discovered via fuzzing and it is possible that more weaknesses exist. We will patch them as they are discovered.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in multiple GitHub commits and these will be included in TensorFlow 2.8.0 and TensorFlow 2.7.1, as both are affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

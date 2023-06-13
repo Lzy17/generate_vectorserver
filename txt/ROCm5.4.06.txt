@@ -1,0 +1,152 @@
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable no-duplicate-header -->
+<h3>What's New in This Release</h3>
+<h4>HIP Enhancements</h4>
+<p>The ROCm v5.4 release consists of the following HIP enhancements:</p>
+<h5>Support for Wall Clock64</h5>
+<p>A new timer function wall_clock64() is supported, which returns wall clock count at a constant frequency on the device.</p>
+<p><code>h
+long long int wall_clock64();</code></p>
+<p>It returns wall clock count at a constant frequency on the device, which can be queried via HIP API with the hipDeviceAttributeWallClockRate attribute of the device in the HIP application code.</p>
+<p>Example:</p>
+<p><code>h
+int wallClkRate = 0; //in kilohertz
++HIPCHECK(hipDeviceGetAttribute(&amp;wallClkRate, hipDeviceAttributeWallClockRate, deviceId));</code></p>
+<p>Where hipDeviceAttributeWallClockRate is a device attribute.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>The wall clock frequency is a per-device attribute.</p>
+</blockquote>
+<h5>New Registry Added for GPU_MAX_HW_QUEUES</h5>
+<p>The GPU_MAX_HW_QUEUES registry defines the maximum number of independent hardware queues allocated per process per device.</p>
+<p>The environment variable controls how many independent hardware queues HIP runtime can create per process, per device. If the application allocates more HIP streams than this number, then the HIP runtime reuses the same hardware queues for the new streams in a round-robin manner.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>This maximum number does not apply to hardware queues created for CU-masked HIP streams or cooperative queues for HIP Cooperative Groups (there is only one queue per device).</p>
+</blockquote>
+<p>For more details, refer to the HIP Programming Guide.</p>
+<h4>New HIP APIs in This Release</h4>
+<p>The following new HIP APIs are available in the ROCm v5.4 release.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>This is a pre-official version (beta) release of the new APIs.</p>
+</blockquote>
+<h5>Error Handling</h5>
+<p><code>h
+hipError_t hipDrvGetErrorName(hipError_t hipError, const char** errorString);</code></p>
+<p>This returns HIP errors in the text string format.</p>
+<p><code>h
+hipError_t hipDrvGetErrorString(hipError_t hipError, const char** errorString);</code></p>
+<p>This returns text string messages with more details about the error.</p>
+<p>For more information, refer to the HIP API Guide.</p>
+<h5>HIP Tests Source Separation</h5>
+<p>With ROCm v5.4, a separate GitHub project is created at</p>
+<p><a href="https://github.com/ROCm-Developer-Tools/hip-tests">https://github.com/ROCm-Developer-Tools/hip-tests</a></p>
+<p>This contains HIP catch2 tests and samples, and new tests will continue to develop.</p>
+<p>In future ROCm releases, catch2 tests and samples will be removed from the HIP project.</p>
+<h3>OpenMP Enhancements</h3>
+<p>This release consists of the following OpenMP enhancements:</p>
+<ul>
+<li>Enable new device RTL in libomptarget as default.</li>
+<li>New flag <code>-fopenmp-target-fast</code> to imply <code>-fopenmp-target-ignore-env-vars -fopenmp-assume-no-thread-state -fopenmp-assume-no-nested-parallelism</code>.</li>
+<li>Support for the collapse clause and non-unit stride in cases where the No-Loop specialized kernel is generated.</li>
+<li>Initial implementation of optimized cross-team sum reduction for float and double type scalars.</li>
+<li>Pool-based optimization in the OpenMP runtime to reduce locking during data transfer.</li>
+</ul>
+<h3>Deprecations and Warnings</h3>
+<h4>HIP Perl Scripts Deprecation</h4>
+<p>The <code>hipcc</code> and <code>hipconfig</code> Perl scripts are deprecated. In a future release, compiled binaries will be available as <code>hipcc.bin</code> and <code>hipconfig.bin</code> as replacements for the Perl scripts.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>There will be a transition period where the Perl scripts and compiled binaries are available  before the scripts are removed. There will be no functional difference between the Perl scripts and their compiled binary counterpart. No user action is required. Once these are available, users can optionally switch to <code>hipcc.bin</code> and <code>hipconfig.bin</code>. The <code>hipcc</code>/<code>hipconfig</code> soft link will be assimilated to point from <code>hipcc</code>/<code>hipconfig</code> to the respective compiled binaries as the default option.</p>
+</blockquote>
+<p>(5_4_0_filesystem_reorg_deprecation_notice)=</p>
+<h5>Linux Filesystem Hierarchy Standard for ROCm</h5>
+<p>ROCm packages have adopted the Linux foundation filesystem hierarchy standard in this release to ensure ROCm components follow open source conventions for Linux-based distributions. While moving to a new filesystem hierarchy, ROCm ensures backward compatibility with its 5.1 version or older filesystem hierarchy. See below for a detailed explanation of the new filesystem hierarchy and backward compatibility.</p>
+<h5>New Filesystem Hierarchy</h5>
+<p>The following is the new filesystem hierarchy:</p>
+<p>```text
+/opt/rocm-<ver>
+    | --bin
+      | --All externally exposed Binaries
+    | --libexec
+        | --<component>
+            | -- Component specific private non-ISA executables (architecture independent)
+    | --include
+        | -- <component>
+            | --<header files>
+    | --lib
+        | --lib<soname>.so -&gt; lib<soname>.so.major -&gt; lib<soname>.so.major.minor.patch
+            (public libraries linked with application)
+        | --<component> (component specific private library, executable data)
+        | --<cmake>
+            | --components
+                | --<component>.config.cmake
+    | --share
+        | --html/<component>/<em>.html
+        | --info/<component>/</em>.[pdf, md, txt]
+        | --man
+        | --doc
+            | --<component>
+                | --<licenses>
+        | --<component>
+            | --<misc files> (arch independent non-executable)
+            | --samples</p>
+<p>```</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will not support backward compatibility with the v5.1(old) file system hierarchy in its next major release.</p>
+</blockquote>
+<p>For more information, refer to <a href="https://refspecs.linuxfoundation.org/fhs.shtml">https://refspecs.linuxfoundation.org/fhs.shtml</a>.</p>
+<h5>Backward Compatibility with Older Filesystems</h5>
+<p>ROCm has moved header files and libraries to its new location as indicated in the above structure and included symbolic-link and wrapper header files in its old location for backward compatibility.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will continue supporting backward compatibility until the next major release.</p>
+</blockquote>
+<h5>Wrapper header files</h5>
+<p>Wrapper header files are placed in the old location (<code>/opt/rocm-xxx/&lt;component&gt;/include</code>) with a warning message to include files from the new location (<code>/opt/rocm-xxx/include</code>) as shown in the example below:</p>
+<p>```h
+// Code snippet from hip_runtime.h</p>
+<h1>pragma message “This file is deprecated. Use file from include path /opt/rocm-ver/include/ and prefix with hip”.</h1>
+<h1>include "hip/hip_runtime.h"</h1>
+<p>```</p>
+<p>The wrapper header files’ backward compatibility deprecation is as follows:</p>
+<ul>
+<li><code>#pragma</code> message announcing deprecation -- ROCm v5.2 release</li>
+<li><code>#pragma</code> message changed to <code>#warning</code> -- Future release</li>
+<li><code>#warning</code> changed to <code>#error</code> -- Future release</li>
+<li>Backward compatibility wrappers removed -- Future release</li>
+</ul>
+<h5>Library files</h5>
+<p>Library files are available in the <code>/opt/rocm-xxx/lib</code> folder. For backward compatibility, the old library location (<code>/opt/rocm-xxx/&lt;component&gt;/lib</code>) has a soft link to the library at the new location.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/
+total 4
+drwxr-xr-x 4 root root 4096 May 12 10:45 cmake
+lrwxrwxrwx 1 root root   24 May 10 23:32 libamdhip64.so -&gt; ../../lib/libamdhip64.so</code></p>
+<h5>CMake Config files</h5>
+<p>All CMake configuration files are available in the <code>/opt/rocm-xxx/lib/cmake/&lt;component&gt;</code> folder. For backward compatibility, the old CMake locations (<code>/opt/rocm-xxx/&lt;component&gt;/lib/cmake</code>) consist of a soft link to the new CMake config.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/cmake/hip/
+total 0
+lrwxrwxrwx 1 root root 42 May 10 23:32 hip-config.cmake -&gt; ../../../../lib/cmake/hip/hip-config.cmake</code></p>
+<h3>Fixed Defects</h3>
+<p>The following defects are fixed in this release.</p>
+<p>These defects were identified and documented as known issues in previous ROCm releases and are fixed in this release.</p>
+<h4>Memory Allocated Using hipHostMalloc() with Flags Did Not Exhibit Fine-Grain Behavior</h4>
+<h5>Issue</h5>
+<p>The test was incorrectly using the <code>hipDeviceAttributePageableMemoryAccess</code> device attribute to determine coherent support.</p>
+<h5>Fix</h5>
+<p><code>hipHostMalloc()</code> allocates memory with fine-grained access by default when the environment variable <code>HIP_HOST_COHERENT=1</code> is used.</p>
+<p>For more information, refer to {doc}<code>hip:.doxygen/docBin/html/index</code>.</p>
+<h4>SoftHang with <code>hipStreamWithCUMask</code> test on AMD Instinct™</h4>
+<h5>Issue</h5>
+<p>On GFX10 GPUs, kernel execution hangs when it is launched on streams created using <code>hipStreamWithCUMask</code>.</p>
+<h5>Fix</h5>
+<p>On GFX10 GPUs, each workgroup processor encompasses two compute units, and the compute units must be enabled as a pair. The <code>hipStreamWithCUMask</code> API unit test cases are updated to set compute unit mask (cuMask) in pairs for GFX10 GPUs.</p>
+<h4>ROCm Tools GPU IDs</h4>
+<p>The HIP language device IDs are not the same as the GPU IDs reported by the tools. GPU IDs are globally unique and guaranteed to be consistent across APIs and processes.</p>
+<p>GPU IDs reported by ROCTracer and ROCProfiler or ROCm Tools are HSA Driver Node ID of that GPU, as it is a unique ID for that device in that particular node.</p>

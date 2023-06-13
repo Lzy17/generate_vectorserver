@@ -1,0 +1,31 @@
+<h2>TFSA-2021-078: Heap OOB read in TFLite's implementation of <code>Minimum</code> or <code>Maximum</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29590</p>
+<h3>Impact</h3>
+<p>The implementations of the <code>Minimum</code> and <code>Maximum</code> TFLite operators can be used
+to read data outside of bounds of heap allocated objects, if any of the two
+input tensor arguments are empty.</p>
+<p>This is because <a href="https://github.com/tensorflow/tensorflow/blob/0d45ea1ca641b21b73bcf9c00e0179cda284e7e7/tensorflow/lite/kernels/internal/reference/maximum_minimum.h#L52-L56">the broadcasting
+implementation</a>
+indexes in both tensors with the same index but does not validate that the index
+is within bounds:</p>
+<p><code>cc
+auto maxmin_func = [&amp;](int indexes[N]) {
+  output_data[SubscriptToIndex(output_desc, indexes)] =
+    op(input1_data[SubscriptToIndex(desc1, indexes)],
+        input2_data[SubscriptToIndex(desc2, indexes)]);
+};</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/953f28dca13c92839ba389c055587cfe6c723578">953f28dca13c92839ba389c055587cfe6c723578</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

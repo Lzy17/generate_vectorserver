@@ -1,0 +1,51 @@
+<h2>TFSA-2021-100: Heap buffer overflow in <code>BandedTriangularSolve</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29612</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a heap buffer overflow in Eigen implementation of
+<code>tf.raw_ops.BandedTriangularSolve</code>:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>matrix_array = np.array([])
+matrix_tensor = tf.convert_to_tensor(np.reshape(matrix_array,(0,1)),dtype=tf.float32)
+rhs_array = np.array([1,1])
+rhs_tensor = tf.convert_to_tensor(np.reshape(rhs_array,(1,2)),dtype=tf.float32)
+tf.raw_ops.BandedTriangularSolve(matrix=matrix_tensor,rhs=rhs_tensor)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/eccb7ec454e6617738554a255d77f08e60ee0808/tensorflow/core/kernels/linalg/banded_triangular_solve_op.cc#L269-L278">implementation</a>
+calls <code>ValidateInputTensors</code> for input validation but fails to validate that the
+two tensors are not empty:</p>
+<p>```cc
+void ValidateInputTensors(OpKernelContext* ctx, const Tensor&amp; in0, const Tensor&amp; in1) {
+  OP_REQUIRES(
+      ctx, in0.dims() &gt;= 2,
+      errors::InvalidArgument("In[0] ndims must be &gt;= 2: ", in0.dims()));</p>
+<p>OP_REQUIRES(
+      ctx, in1.dims() &gt;= 2,
+      errors::InvalidArgument("In[1] ndims must be &gt;= 2: ", in1.dims()));
+}
+```</p>
+<p>Furthermore, since <code>OP_REQUIRES</code> macro only stops execution of current function
+after setting <code>ctx-&gt;status()</code> to a non-OK value, callers of helper functions
+that use <code>OP_REQUIRES</code> must check value of <code>ctx-&gt;status()</code> before continuing.
+This doesn't happen <a href="https://github.com/tensorflow/tensorflow/blob/eccb7ec454e6617738554a255d77f08e60ee0808/tensorflow/core/kernels/linalg/banded_triangular_solve_op.cc#L219">in this op's
+implementation</a>,
+hence the validation that is present is also not effective.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ba6822bd7b7324ba201a28b2f278c29a98edbef2">ba6822bd7b7324ba201a28b2f278c29a98edbef2</a>
+followed by GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/0ab290774f91a23bebe30a358fde4e53ab4876a0">0ab290774f91a23bebe30a358fde4e53ab4876a0</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ye Zhang and Yakun Zhang of Baidu
+X-Team.</p>

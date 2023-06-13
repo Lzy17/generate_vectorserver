@@ -1,0 +1,37 @@
+<h2>TFSA-2021-001: Heap buffer overflow in <code>RaggedBinCount</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29512</p>
+<h3>Impact</h3>
+<p>If the <code>splits</code> argument of <code>RaggedBincount</code> does not specify a valid
+<a href="https://www.tensorflow.org/api_docs/python/tf/sparse/SparseTensor"><code>SparseTensor</code></a>,
+then an attacker can trigger a heap buffer overflow:</p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.RaggedBincount(splits=[0], values=[1,1,1,1,1], size=5, weights=[1,2,3,4], binary_output=False)</code></p>
+<p>This will cause a read from outside the bounds of the <code>splits</code> tensor buffer in
+the <a href="https://github.com/tensorflow/tensorflow/blob/8b677d79167799f71c42fd3fa074476e0295413a/tensorflow/core/kernels/bincount_op.cc#L430-L433">implementation of the <code>RaggedBincount</code>
+op</a>:</p>
+<p><code>cc
+    for (int idx = 0; idx &lt; num_values; ++idx) {
+      while (idx &gt;= splits(batch_idx)) {
+        batch_idx++;
+      }
+      ...
+    }</code></p>
+<p>Before the <code>for</code> loop, <code>batch_idx</code> is set to 0. The user controls the <code>splits</code>
+array, making it contain only one element, 0. Thus, the code in the <code>while</code> loop
+would increment <code>batch_idx</code> and then try to read <code>splits(1)</code>, which is outside
+of bounds.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/eebb96c2830d48597d055d247c0e9aebaea94cd5">eebb96c2830d48597d055d247c0e9aebaea94cd5</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2 and TensorFlow 2.3.3, as these are also affected.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

@@ -1,0 +1,13 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>Fixed Defects</h3>
+<h4>Issue with rocTHRUST and rocPRIM Libraries</h4>
+<p>There was a known issue with rocTHRUST and rocPRIM libraries supporting iterator and types in ROCm v5.3.x releases.</p>
+<ul>
+<li><code>thrust::merge</code> no longer correctly supports different iterator types for <code>keys_input1</code> and <code>keys_input2</code>.</li>
+<li><code>rocprim::device_merge</code> no longer correctly supports using different types for <code>keys_input1</code> and <code>keys_input2</code>.</li>
+</ul>
+<p>This issue is resolved with the following fixes to compilation failures:</p>
+<ul>
+<li>rocPRIM: in device_merge if the two key iterators do not match.</li>
+<li>rocTHRUST: in thrust::merge if the two key iterators do not match.</li>
+</ul>

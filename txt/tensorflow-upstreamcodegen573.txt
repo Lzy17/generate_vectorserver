@@ -1,0 +1,217 @@
+<h1>Generate model interfaces using metadata</h1>
+<p>Using <a href="../models/convert/metadata">TensorFlow Lite Metadata</a>, developers can generate
+wrapper code to enable integration on Android. For most developers, the
+graphical interface of <a href="#mlbinding">Android Studio ML Model Binding</a> is the
+easiest to use. If you require more customisation or are using command line
+tooling, the <a href="#codegen">TensorFlow Lite Codegen</a> is also available.</p>
+<h2>Use Android Studio ML Model Binding {:#mlbinding}</h2>
+<p>For TensorFlow Lite models enhanced with <a href="../models/convert/metadata.md">metadata</a>,
+developers can use Android Studio ML Model Binding to automatically configure
+settings for the project and generate wrapper classes based on the model
+metadata. The wrapper code removes the need to interact directly with
+<code>ByteBuffer</code>. Instead, developers can interact with the TensorFlow Lite model
+with typed objects such as <code>Bitmap</code> and <code>Rect</code>.</p>
+<p>Note: Required <a href="https://developer.android.com/studio">Android Studio 4.1</a> or
+above</p>
+<h3>Import a TensorFlow Lite model in Android Studio</h3>
+<ol>
+<li>
+<p>Right-click on the module you would like to use the TFLite model or click on
+    <code>File</code>, then <code>New</code> &gt; <code>Other</code> &gt; <code>TensorFlow Lite Model</code>
+    <img alt="Right-click menus to access the TensorFlow Lite import functionality" src="../images/android/right_click_menu.png" /></p>
+</li>
+<li>
+<p>Select the location of your TFLite file. Note that the tooling will
+    configure the module's dependency on your behalf with ML Model binding and
+    all dependencies automatically inserted into your Android module's
+    <code>build.gradle</code> file.</p>
+<p>Optional: Select the second checkbox for importing TensorFlow GPU if you
+want to use GPU acceleration.
+<img alt="Import dialog for TFLite model" src="../images/android/import_dialog.png" /></p>
+</li>
+<li>
+<p>Click <code>Finish</code>.</p>
+</li>
+<li>
+<p>The following screen will appear after the import is successful. To start
+    using the model, select Kotlin or Java, copy and paste the code under the
+    <code>Sample Code</code> section. You can get back to this screen by double clicking
+    the TFLite model under the <code>ml</code> directory in Android Studio.
+    <img alt="Model details page in Android Studio" src="../images/android/model_details.png" /></p>
+</li>
+</ol>
+<h3>Accelerating model inference {:#acceleration}</h3>
+<p>ML Model Binding provides a way for developers to accelerate their code through
+the use of delegates and the number of threads.</p>
+<p>Note: The TensorFlow Lite Interpreter must be created on the same thread as when
+is run. Otherwise, TfLiteGpuDelegate Invoke: GpuDelegate must run on the same
+thread where it was initialized. may occur.</p>
+<p>Step 1. Check the module <code>build.gradle</code> file that it contains the following
+dependency:</p>
+<p><code>java
+    dependencies {
+        ...
+        // TFLite GPU delegate 2.3.0 or above is required.
+        implementation 'org.tensorflow:tensorflow-lite-gpu:2.3.0'
+    }</code></p>
+<p>Step 2. Detect if GPU running on the device is compatible with TensorFlow GPU
+delegate, if not run the model using multiple CPU threads:</p>
+<div>
+    <devsite-selector>
+    <section>
+      <h3>Kotlin</h3>
+      <p><pre class="prettyprint lang-kotlin">
+    import org.tensorflow.lite.gpu.CompatibilityList
+    import org.tensorflow.lite.gpu.GpuDelegate
+
+    val compatList = CompatibilityList()
+
+    val options = if(compatList.isDelegateSupportedOnThisDevice) {
+        // if the device has a supported GPU, add the GPU delegate
+        Model.Options.Builder().setDevice(Model.Device.GPU).build()
+    } else {
+        // if the GPU is not supported, run on 4 threads
+        Model.Options.Builder().setNumThreads(4).build()
+    }
+
+    // Initialize the model as usual feeding in the options object
+    val myModel = MyModel.newInstance(context, options)
+
+    // Run inference per sample code
+      </pre></p>
+    </section>
+    <section>
+      <h3>Java</h3>
+      <p><pre class="prettyprint lang-java">
+    import org.tensorflow.lite.support.model.Model
+    import org.tensorflow.lite.gpu.CompatibilityList;
+    import org.tensorflow.lite.gpu.GpuDelegate;
+
+    // Initialize interpreter with GPU delegate
+    Model.Options options;
+    CompatibilityList compatList = CompatibilityList();
+
+    if(compatList.isDelegateSupportedOnThisDevice()){
+        // if the device has a supported GPU, add the GPU delegate
+        options = Model.Options.Builder().setDevice(Model.Device.GPU).build();
+    } else {
+        // if the GPU is not supported, run on 4 threads
+        options = Model.Options.Builder().setNumThreads(4).build();
+    }
+
+    MyModel myModel = new MyModel.newInstance(context, options);
+
+    // Run inference per sample code
+      </pre></p>
+    </section>
+    </devsite-selector>
+</div>
+
+<h2>Generate model interfaces with TensorFlow Lite code generator {:#codegen}</h2>
+<p>Note: TensorFlow Lite wrapper code generator currently only supports Android.</p>
+<p>For TensorFlow Lite model enhanced with <a href="../models/convert/metadata.md">metadata</a>,
+developers can use the TensorFlow Lite Android wrapper code generator to create
+platform specific wrapper code. The wrapper code removes the need to interact
+directly with <code>ByteBuffer</code>. Instead, developers can interact with the TensorFlow
+Lite model with typed objects such as <code>Bitmap</code> and <code>Rect</code>.</p>
+<p>The usefulness of the code generator depend on the completeness of the
+TensorFlow Lite model's metadata entry. Refer to the <code>&lt;Codegen usage&gt;</code> section
+under relevant fields in
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/metadata/metadata_schema.fbs">metadata_schema.fbs</a>,
+to see how the codegen tool parses each field.</p>
+<h3>Generate wrapper Code</h3>
+<p>You will need to install the following tooling in your terminal:</p>
+<p><code>sh
+pip install tflite-support</code></p>
+<p>Once completed, the code generator can be used using the following syntax:</p>
+<p><code>sh
+tflite_codegen --model=./model_with_metadata/mobilenet_v1_0.75_160_quantized.tflite \
+    --package_name=org.tensorflow.lite.classify \
+    --model_class_name=MyClassifierModel \
+    --destination=./classify_wrapper</code></p>
+<p>The resulting code will be located in the destination directory. If you are
+using <a href="https://colab.research.google.com/">Google Colab</a> or other remote
+environment, it maybe easier to zip up the result in a zip archive and download
+it to your Android Studio project:</p>
+<p>```python</p>
+<h1>Zip up the generated code</h1>
+<p>!zip -r classify_wrapper.zip classify_wrapper/</p>
+<h1>Download the archive</h1>
+<p>from google.colab import files
+files.download('classify_wrapper.zip')
+```</p>
+<h3>Using the generated code</h3>
+<h4>Step 1: Import the generated code</h4>
+<p>Unzip the generated code if necessary into a directory structure. The root of
+the generated code is assumed to be <code>SRC_ROOT</code>.</p>
+<p>Open the Android Studio project where you would like to use the TensorFlow lite
+model and import the generated module by: And File -&gt; New -&gt; Import Module -&gt;
+select <code>SRC_ROOT</code></p>
+<p>Using the above example, the directory and the module imported would be called
+<code>classify_wrapper</code>.</p>
+<h4>Step 2: Update the app's <code>build.gradle</code> file</h4>
+<p>In the app module that will be consuming the generated library module:</p>
+<p>Under the android section, add the following:</p>
+<p><code>build
+aaptOptions {
+   noCompress "tflite"
+}</code></p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>
+<p>Under the dependencies section, add the following:</p>
+<p><code>build
+implementation project(":classify_wrapper")</code></p>
+<h4>Step 3: Using the model</h4>
+<p>```java
+// 1. Initialize the model
+MyClassifierModel myImageClassifier = null;</p>
+<p>try {
+    myImageClassifier = new MyClassifierModel(this);
+} catch (IOException io){
+    // Error reading the model
+}</p>
+<p>if(null != myImageClassifier) {</p>
+<pre><code>// 2. Set the input with a Bitmap called inputBitmap
+MyClassifierModel.Inputs inputs = myImageClassifier.createInputs();
+inputs.loadImage(inputBitmap));
+
+// 3. Run the model
+MyClassifierModel.Outputs outputs = myImageClassifier.run(inputs);
+
+// 4. Retrieve the result
+Map&lt;String, Float&gt; labeledProbability = outputs.getProbability();
+</code></pre>
+<p>}
+```</p>
+<h3>Accelerating model inference</h3>
+<p>The generated code provides a way for developers to accelerate their code
+through the use of <a href="../performance/delegates.md">delegates</a> and the number of
+threads. These can be set when initializing the model object as it takes three
+parameters:</p>
+<ul>
+<li><strong><code>Context</code></strong>: Context from the Android Activity or Service</li>
+<li>(Optional) <strong><code>Device</code></strong>: TFLite acceleration delegate for example
+    GPUDelegate or NNAPIDelegate</li>
+<li>(Optional) <strong><code>numThreads</code></strong>: Number of threads used to run the model -
+    default is one.</li>
+</ul>
+<p>For example, to use a NNAPI delegate and up to three threads, you can initialize
+the model like this:</p>
+<p><code>java
+try {
+    myImageClassifier = new MyClassifierModel(this, Model.Device.NNAPI, 3);
+} catch (IOException io){
+    // Error reading the model
+}</code></p>
+<h3>Troubleshooting</h3>
+<p>If you get a 'java.io.FileNotFoundException: This file can not be opened as a
+file descriptor; it is probably compressed' error, insert the following lines
+under the android section of the app module that will uses the library module:</p>
+<p><code>build
+aaptOptions {
+   noCompress "tflite"
+}</code></p>
+<p>Note: starting from version 4.1 of the Android Gradle plugin, .tflite will be
+added to the noCompress list by default and the aaptOptions above is not needed
+anymore.</p>

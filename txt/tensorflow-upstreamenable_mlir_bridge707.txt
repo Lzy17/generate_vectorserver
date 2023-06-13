@@ -1,0 +1,21 @@
+<h1>Enable MLIR-Based new TPU Bridge</h1>
+<p><strong>MLIR-Based new TPU Bridge is an experimental feature, tread lightly.</strong></p>
+<h2>For TF 1.x-Based Models</h2>
+<p>In tf.ConfigProto.Experimental, there is a knob controlling whether the new TPU
+Bridge is enabled or not. You can set it by using the following example code:</p>
+<p><code>session_config = tf.ConfigProto(
+  ......
+  experimental=tf.ConfigProto.Experimental(
+    enable_mlir_bridge=True,
+  ),
+  ......
+)</code></p>
+<h2>For TF 2.x-Based Models</h2>
+<p>Sessions and Session Configs are no longer available in TF 2.x. Instead, there
+is a global <strong>Context</strong> that holds all the equivalences. You can manipulate the
+<strong>Context</strong> with following code. Note that it must be added early in your
+program (at least before any of your model computation).</p>
+<p><code>tf.config.experimental.enable_mlir_bridge()</code></p>
+<h2>How to disable the old TPU bridge?</h2>
+<p>Due to how TPU bridges are designed to work, you don't actually need to disable
+the old bridge as they would not interfere with each other.</p>

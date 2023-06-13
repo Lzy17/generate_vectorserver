@@ -1,0 +1,63 @@
+<h1>System Debugging Guide</h1>
+<h2>ROCm Language and System Level Debug, Flags, and Environment Variables</h2>
+<p>Kernel options to avoid: the Ethernet port getting renamed every time you change graphics cards, <code>net.ifnames=0 biosdevname=0</code></p>
+<h2>ROCr Error Code</h2>
+<ul>
+<li>
+<p>2 Invalid Dimension</p>
+</li>
+<li>
+<p>4 Invalid Group Memory</p>
+</li>
+<li>
+<p>8 Invalid (or Null) Code</p>
+</li>
+<li>
+<p>32 Invalid Format</p>
+</li>
+<li>
+<p>64 Group is too large</p>
+</li>
+<li>
+<p>128 Out of VGPRs</p>
+</li>
+<li>
+<p>0x80000000 Debug Options</p>
+</li>
+</ul>
+<h2>Command to Dump Firmware Version and Get Linux Kernel Version</h2>
+<p><code>sudo cat /sys/kernel/debug/dri/1/amdgpu_firmware_info</code></p>
+<p><code>uname -a</code></p>
+<h2>Debug Flags</h2>
+<p>Debug messages when developing/debugging base ROCm driver. You could enable the printing from <code>libhsakmt.so</code> by setting an environment variable, <code>HSAKMT_DEBUG_LEVEL</code>. Available debug levels are 3-7. The higher level you set, the more messages will print.</p>
+<ul>
+<li>
+<p><code>export HSAKMT_DEBUG_LEVEL=3</code> : Only pr_err() prints.</p>
+</li>
+<li>
+<p><code>export HSAKMT_DEBUG_LEVEL=4</code> : pr_err() and pr_warn() print.</p>
+</li>
+<li>
+<p><code>export HSAKMT_DEBUG_LEVEL=5</code> : We currently do not implement “notice”. Setting to 5 is same as setting to 4.</p>
+</li>
+<li>
+<p><code>export HSAKMT_DEBUG_LEVEL=6</code> : pr_err(), pr_warn(), and pr_info print.</p>
+</li>
+<li>
+<p><code>export HSAKMT_DEBUG_LEVEL=7</code> : Everything including pr_debug prints.</p>
+</li>
+</ul>
+<h2>ROCr Level Environment Variables for Debug</h2>
+<p><code>HSA_ENABLE_SDMA=0</code></p>
+<p><code>HSA_ENABLE_INTERRUPT=0</code></p>
+<p><code>HSA_SVM_GUARD_PAGES=0</code></p>
+<p><code>HSA_DISABLE_CACHE=1</code></p>
+<h2>Turn Off Page Retry on GFX9/Vega Devices</h2>
+<p><code>sudo -s</code></p>
+<p><code>echo 1 &gt; /sys/module/amdkfd/parameters/noretry</code></p>
+<h2>HIP Environment Variables 3.x</h2>
+<h3>OpenCL Debug Flags</h3>
+<p><code>AMD_OCL_WAIT_COMMAND=1 (0 = OFF, 1 = On)</code></p>
+<h2>PCIe-Debug</h2>
+<p>Refer to ROCm PCIe Debug, <a href="https://rocmdocs.amd.com/en/latest/Other_Solutions/PCIe-Debug.html#pcie-debug" target="_blank">https://rocmdocs.amd.com/en/latest/Other_Solutions/PCIe-Debug.html#pcie-debug</a>.
+For information on how to debug and profile HIP applications, see {doc}<code>hip:how_to_guides/debugging</code></p>

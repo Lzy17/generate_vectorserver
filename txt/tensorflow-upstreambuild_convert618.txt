@@ -1,0 +1,67 @@
+<h1>Build and convert models</h1>
+<p>Microcontrollers have limited RAM and storage, which places constraints on the
+sizes of machine learning models. In addition, TensorFlow Lite for
+Microcontrollers currently supports a limited subset of operations, so not all
+model architectures are possible.</p>
+<p>This document explains the process of converting a TensorFlow model to run on
+microcontrollers. It also outlines the supported operations and gives some
+guidance on designing and training a model to fit in limited memory.</p>
+<p>For an end-to-end, runnable example of building and converting a model, see the
+following Colab which is part of the <em>Hello World</em> example:</p>
+<p><a class="button button-primary" href="https://colab.research.google.com/github/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/hello_world/train/train_hello_world_model.ipynb">train_hello_world_model.ipynb</a></p>
+<h2>Model conversion</h2>
+<p>To convert a trained TensorFlow model to run on microcontrollers, you should use
+the
+<a href="https://www.tensorflow.org/lite/models/convert/">TensorFlow Lite converter Python API</a>.
+This will convert the model into a
+<a href="https://google.github.io/flatbuffers/"><code>FlatBuffer</code></a>, reducing the model size,
+and modify it to use TensorFlow Lite operations.</p>
+<p>To obtain the smallest possible model size, you should consider using
+<a href="https://www.tensorflow.org/lite/performance/post_training_quantization">post-training quantization</a>.</p>
+<h3>Convert to a C array</h3>
+<p>Many microcontroller platforms do not have native filesystem support. The
+easiest way to use a model from your program is to include it as a C array and
+compile it into your program.</p>
+<p>The following unix command will generate a C source file that contains the
+TensorFlow Lite model as a <code>char</code> array:</p>
+<p><code>bash
+xxd -i converted_model.tflite &gt; model_data.cc</code></p>
+<p>The output will look similar to the following:</p>
+<p><code>c
+unsigned char converted_model_tflite[] = {
+  0x18, 0x00, 0x00, 0x00, 0x54, 0x46, 0x4c, 0x33, 0x00, 0x00, 0x0e, 0x00,
+  // &lt;Lines omitted&gt;
+};
+unsigned int converted_model_tflite_len = 18200;</code></p>
+<p>Once you have generated the file, you can include it in your program. It is
+important to change the array declaration to <code>const</code> for better memory
+efficiency on embedded platforms.</p>
+<p>For an example of how to include and use a model in your program, see
+<a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/hello_world/evaluate_test.cc"><code>evaluate_test.cc</code></a>
+in the <em>Hello World</em> example.</p>
+<h2>Model architecture and training</h2>
+<p>When designing a model for use on microcontrollers, it is important to consider
+the model size, workload, and the operations that are used.</p>
+<h3>Model size</h3>
+<p>A model must be small enough to fit within your target device's memory alongside
+the rest of your program, both as a binary and at runtime.</p>
+<p>To create a smaller model, you can use fewer and smaller layers in your
+architecture. However, small models are more likely to suffer from underfitting.
+This means for many problems, it makes sense to try and use the largest model
+that will fit in memory. However, using larger models will also lead to
+increased processor workload.</p>
+<p>Note: The core runtime for TensorFlow Lite for Microcontrollers fits in 16KB on
+a Cortex M3.</p>
+<h3>Workload</h3>
+<p>The size and complexity of the model has an impact on workload. Large, complex
+models might result in a higher duty cycle, which means your device's processor
+is spending more time working and less time idle. This will increase power
+consumption and heat output, which might be an issue depending on your
+application.</p>
+<h3>Operation support</h3>
+<p>TensorFlow Lite for Microcontrollers currently supports a limited subset of
+TensorFlow operations, which impacts the model architectures that it is possible
+to run. We are working on expanding operation support, both in terms of
+reference implementations and optimizations for specific architectures.</p>
+<p>The supported operations can be seen in the file
+<a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/micro_mutable_op_resolver.h"><code>micro_mutable_ops_resolver.h</code></a></p>

@@ -1,0 +1,27 @@
+<h2>TFSA-2021-164: FPE in LSH in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37691</p>
+<h3>Impact</h3>
+<p>An attacker can craft a TFLite model that would trigger a division by zero
+error in LSH
+<a href="https://github.com/tensorflow/tensorflow/blob/149562d49faa709ea80df1d99fc41d005b81082a/tensorflow/lite/kernels/lsh_projection.cc#L118">implementation</a>.</p>
+<p><code>cc
+int RunningSignBit(const TfLiteTensor* input, const TfLiteTensor* weight,
+                   float seed) {
+  int input_item_bytes = input-&gt;bytes / SizeOfDimension(input, 0);
+  // ...
+}</code></p>
+<p>There is no check that the first dimension of the input is non zero.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/0575b640091680cfb70f4dd93e70658de43b94f9">0575b640091680cfb70f4dd93e70658de43b94f9</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

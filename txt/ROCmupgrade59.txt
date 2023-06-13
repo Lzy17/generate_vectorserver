@@ -1,0 +1,221 @@
+<h1>Upgrade ROCm with the package manager</h1>
+<p>This section explains how to upgrade the existing AMDGPU driver and ROCm
+packages to the latest version using your OS's distributed package manager.</p>
+<p><code>{note}
+Package upgrade is applicable to single-version packages only. If the preference
+is to install an updated version of the ROCm along with the currently
+installed version, refer to the [](install) page.</code></p>
+<h2>Upgrade Steps</h2>
+<h3>Update the AMDGPU repository</h3>
+<p>Execute the commands below based on your distribution to point the <code>amdgpu</code>
+repository to the new release.</p>
+<p>::::::{tab-set}
+:::::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu 20.04
+:sync: ubuntu-20.04</p>
+<p>```shell</p>
+<h1>amdgpu repository for focal</h1>
+<p>echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/amdgpu/5.5.1/ubuntu focal main' \
+    | sudo tee /etc/apt/sources.list.d/amdgpu.list
+sudo apt update
+```</p>
+<p>:::
+:::{tab-item} Ubuntu 22.04
+:sync: ubuntu-22.04</p>
+<p>```shell</p>
+<h1>amdgpu repository for jammy</h1>
+<p>echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/amdgpu/5.5.1/ubuntu jammy main' \
+    | sudo tee /etc/apt/sources.list.d/amdgpu.list
+sudo apt update
+```</p>
+<p>:::
+::::
+:::::
+:::::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p>::::{tab-set}
+:::{tab-item} RHEL 8.6
+:sync: RHEL-8.6
+:sync: RHEL-8</p>
+<p><code>shell
+sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;EOF
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/5.5.1/rhel/8.6/main/x86_64/
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo yum clean all</code></p>
+<p>:::
+:::{tab-item} RHEL 8.7
+:sync: RHEL-8.7
+:sync: RHEL-8</p>
+<p><code>shell
+sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;EOF
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/5.5.1/rhel/8.7/main/x86_64/
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo yum clean all</code></p>
+<p>:::
+:::{tab-item} RHEL 9.1
+:sync: RHEL-9.1
+:sync: RHEL-9</p>
+<p><code>shell
+sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;EOF
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/5.5.1/rhel/9.1/main/x86_64/
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo yum clean all</code></p>
+<p>:::
+::::
+:::::
+:::::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES15</p>
+<p><code>shell
+sudo tee /etc/zypp/repos.d/amdgpu.repo &lt;&lt;EOF
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/5.5.1/sle/15.4/main/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo zypper ref</code></p>
+<p>:::::
+::::::</p>
+<h3>Upgrade the kernel-mode driver &amp; reboot</h3>
+<p>Upgrade the kernel mode driver and reboot the system using the following
+commands based on your distribution:</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>shell
+sudo apt install amdgpu-dkms
+sudo reboot</code></p>
+<p>:::
+:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>shell
+sudo yum install amdgpu-dkms
+sudo reboot</code></p>
+<p>:::
+:::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES15</p>
+<p><code>shell
+sudo zypper --gpg-auto-import-keys install amdgpu-dkms
+sudo reboot</code></p>
+<p>:::
+::::</p>
+<h3>Update the ROCm repository</h3>
+<p>Execute the commands below based on your distribution to point the <code>rocm</code>
+repository to the new release.</p>
+<p>::::::{tab-set}
+:::::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu 20.04
+:sync: ubuntu-20.04</p>
+<p><code>shell
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/5.5.1 focal main" \
+    | sudo tee /etc/apt/sources.list.d/rocm.list
+echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
+    | sudo tee /etc/apt/preferences.d/rocm-pin-600
+sudo apt update</code></p>
+<p>:::
+:::{tab-item} Ubuntu 22.04
+:sync: ubuntu-22.04</p>
+<p><code>shell
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/5.5.1 jammy main" \
+    | sudo tee /etc/apt/sources.list.d/rocm.list
+echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' \
+    | sudo tee /etc/apt/preferences.d/rocm-pin-600
+sudo apt update</code></p>
+<p>:::
+::::
+:::::
+:::::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p>::::{tab-set}
+:::{tab-item} RHEL 8
+:sync: RHEL-8</p>
+<p><code>shell
+sudo tee /etc/yum.repos.d/rocm.repo &lt;&lt;EOF
+[ROCm-5.5.1]
+name=ROCm5.5.1
+baseurl=https://repo.radeon.com/rocm/rhel8/5.5.1/main
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo yum clean all</code></p>
+<p>:::
+:::{tab-item} RHEL 9
+:sync: RHEL-9</p>
+<p><code>shell
+sudo tee /etc/yum.repos.d/rocm.repo &lt;&lt;EOF
+[ROCm-5.5.1]
+name=ROCm5.5.1
+baseurl=https://repo.radeon.com/rocm/rhel9/5.5.1/main
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo yum clean all</code></p>
+<p>:::
+::::
+:::::
+:::::{tab-item} SUSE Linux Enterprise Server 15
+:sync: SLES15</p>
+<p><code>shell
+sudo tee /etc/zypp/repos.d/rocm.repo &lt;&lt;EOF
+[ROCm-5.5.1]
+name=ROCm5.5.1
+name=rocm
+baseurl=https://repo.radeon.com/rocm/zyp/5.5.1/main
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+sudo zypper ref</code></p>
+<p>:::::
+::::::</p>
+<h3>Upgrade the ROCm packages</h3>
+<p>Your packages can be upgraded now through their meta-packages, see the following
+example based on your distribution:</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>shell
+sudo apt install --only-upgrade rocm-hip-sdk</code></p>
+<p>:::
+:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>shell
+sudo yum update rocm-hip-sdk</code></p>
+<p>:::
+:::{tab-item} Suse Linux Enterprise Server 15
+:sync: SLES15</p>
+<p><code>shell
+sudo zypper --gpg-auto-import-keys update rocm-hip-sdk</code></p>
+<p>:::
+::::</p>
+<h2>Verification Process</h2>
+<p>To verify if the upgrade is successful, refer to the
+{ref}<code>post-install-actions-linux</code> given in the
+<a href="install">Installation</a> section.</p>

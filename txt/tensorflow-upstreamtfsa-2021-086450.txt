@@ -1,0 +1,26 @@
+<h2>TFSA-2021-086: Division by zero in TFLite's implementation of <code>SVDF</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29598</p>
+<h3>Impact</h3>
+<p>The implementation of the <code>SVDF</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/7f283ff806b2031f407db64c4d3edcda8fb9f9f5/tensorflow/lite/kernels/svdf.cc#L99-L102">vulnerable to a
+division by zero
+error</a>:</p>
+<p><code>cc
+const int rank = params-&gt;rank;
+...
+TF_LITE_ENSURE_EQ(context, num_filters % rank, 0);</code></p>
+<p>An attacker can craft a model such that <code>params-&gt;rank</code> would be 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/6841e522a3e7d48706a02e8819836e809f738682">6841e522a3e7d48706a02e8819836e809f738682</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

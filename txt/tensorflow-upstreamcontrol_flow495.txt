@@ -1,0 +1,348 @@
+<h1>AutoGraph reference</h1>
+<p><a href="index.md">Index</a></p>
+<h2>Control flow</h2>
+<p>AutoGraph rewrites all control flow statements with specialized AutoGraph
+function calls. These function calls are capable of executing the corresponding
+control flow statement using Python semantics for effects outside the Python
+interpreter itself (see the <a href="intro.md">Introduction</a>).</p>
+<h3>Dispatch rules</h3>
+<p>Key Point: Only statements that are conditioned on, or iterate over, a
+TensorFlow object such as <code>tf.Tensor</code>, are converted into TensorFlow ops.</p>
+<p>As described in the <a href="intro.md">Introduction</a>, AutoGraph aims to preserve the
+semantics of valid Python code. If a control flow statement runs in graph
+execution without raising an error, then AutoGraph will also execute it as
+normal Python control flow. Statements which would normally raise an error, for
+example an <code>if</code> statement using a <code>bool</code> <code>Tensor</code> as condition, are converted to
+TensorFlow control flow ops.</p>
+<h4>Analogy with compile-time constants and code optimization</h4>
+<p>From the perspective of a TensorFlow graph, non-Tensor values, for example an
+integer or a NumPy array, are <em>constants</em>: they do not change value while the
+graph executes.</p>
+<p>For example, in the graph below, the condition is always <code>True</code> (it is
+invariant):</p>
+<p><code>x = 1
+y = tf.cond(x &gt; 0, lambda: 3 * x, lambda 5 * x)</code></p>
+<p>That is equivalent to the code below:</p>
+<p><code>x = 1
+y = 3 * x</code></p>
+<p>In the example above, we've optimized away the conditional on a constant
+condition. The AutoGraph dispatch rules have the same effect: anything that is
+not a TensorFlow object is a compile-time constant for TensorFlow, and can be
+optimized away. For this reason, you can usually mix Python and TensorFlow
+computation and it will transparently have the expected result even
+when only some computations are executed in the graph.</p>
+<!-- TODO(mdan): This is actually a limitation (a very subtle one) -->
+<p>Caution: The assumption of invariant code made above is not true if the
+TensorFlow graph had callbacks into the Python code. If you modify data
+from within a <code>tf.py_function</code>, then the code outside a <code>tf.py_function</code>
+will have unpredictable behavior if it depends on the same data.</p>
+<p>For example, the <code>tf.cond</code> that runs as part of the <code>if</code> statement below will
+miss the update made by <code>f</code>:</p>
+<p><code>n = [10]
+def f():
+  n[0] = 20
+  return 0
+tf.py_function(f, (), (tf.int32,))
+if tf.equal(n[0], 10):
+  tf.print('n is 10')</code></p>
+<p><code>n is 10</code></p>
+<h3>Compound symbols</h3>
+<p>AutoGraph usually handles basic symbols:</p>
+<p><code>if a &lt; 0:
+  a = -a</code></p>
+<p><code>a = tf.cond(a &lt; 0, lambda: -a, lambda: a)</code></p>
+<p>But it can also handle complex symbols in many cases. For example, if we treat
+<code>a.b</code> as a symbol in the code below, then we can use it as if it were a basic
+symbol name:</p>
+<p><code>if a.b &lt; 0
+  a.b = -a.b</code></p>
+<p><code>a.b = tf.cond(a.b &lt; 0, lambda: -a.b, lambda: a.b)</code></p>
+<p>This is useful in methods, which can operate on properties of <code>self</code>, as well as
+working directly on more complex object structures or collections.</p>
+<p>Caution: There are certain <a href="limitations.md">limitations</a> around using Python
+collections and object mutation. When in doubt, place the values you work
+with into local variables and operate on those.</p>
+<h3>Effects of the tracing process</h3>
+<h4>All Python code paths are executed during tracing</h4>
+<p>When constructing a graph, TensorFlow <em>traces</em> the code. The tracing of control
+flow requires visiting <em>every possible code path</em> (usually once).</p>
+<p>Note: In rare cases, the runtime may decide to trace some code paths several
+times. For example, the condition of a <code>while</code> statement may be executed twice,
+first with a temporary graph, to determine whether it evaluates to a
+<code>tf.Tensor</code>, then if it is a <code>tf.Tensor</code>, it's executed a second time in the
+proper graph.</p>
+<p>In other words, tracing executes both branches of an if statement. Similarly,
+the body of loops is executed once (even if the loop would otherwise not iterate
+at all).</p>
+<p>This explains why inserting <code>print</code> statements in an <code>if</code> statement produces
+this output:</p>
+<p><code>print('before if')
+if tf.constant(True):
+  print('true branch')
+else:
+  print('false branch')
+print('after if')</code></p>
+<p><code>before if
+true branch
+false branch
+after if</code></p>
+<p>Note: Control flow that is not executed as a TensorFlow graph is not traced. Its
+body will execute as expected.</p>
+<p>Example of code that runs as regular Python code:</p>
+<p><code>print('before if')
+if True:  # Condition not a Tensor, running normally
+  print('true branch')
+else:
+  print('false branch')
+print('after if')</code></p>
+<p><code>before if
+true branch
+after if</code></p>
+<h4>Python values modified in TensorFlow control flow become Tensors</h4>
+<p>If a symbol is modified in a TensorFlow control flow statement, then it becomes
+a <code>tf.Tensor</code>, even if it started off as a Python primitive value.</p>
+<p>For example, the conditional below will run as a <code>tf.cond</code> (its condition is a
+<code>tf.Tensor</code>), which in turn will cause <code>i</code> to become a <code>tf.Tensor</code>.</p>
+<p>```
+i = 0
+if tf.greater(i, 0):
+  i = 1</p>
+<h1>i is now a Tensor</h1>
+<p>```</p>
+<h3><code>if</code> statements</h3>
+<p><code>if</code> statements whose condition is a <code>tf.Tensor</code> are executed as TensorFlow
+conditionals by converting them to <code>tf.cond</code>:</p>
+<p><code>if tf.random.uniform(()) &gt; 0.5:
+  x = 1
+else:
+  x = 2</code></p>
+<p><code>if</code> statements whose condition is not a <code>tf.Tensor</code> are executed as normal
+Python:</p>
+<p><code>if np.random.uniform() &gt; 0.5:
+  x = 1
+else:
+  x = 2</code></p>
+<p><code>if</code> statements executed as TensorFlow conditionals are subject to restrictions
+(see <a href="limitations.md">limitations</a>). All symbols affected by the statement and
+used thereafter must be:</p>
+<ul>
+<li>of a data type understood by TensorFlow</li>
+<li>defined in both branches</li>
+<li>of consistent dtypes in both branches, for TensorFlow entities</li>
+<li>of consistent structure in both branches, for static collections (such as
+   lists or tuples)</li>
+</ul>
+<h3><code>while</code> statements</h3>
+<p><code>while</code> statements whose condition is a <code>tf.Tensor</code> are executed as TensorFlow
+loops by converting them to <code>tf.while_loop</code>:</p>
+<p><code>x = 0
+while tf.random.uniform(()) &gt; 0.5:
+  x = x + 1</code></p>
+<p><code>while</code> statements whose condition is not a <code>tf.Tensor</code> are executed as normal
+Python:</p>
+<p><code>x = 0
+while np.random.uniform() &gt; 0.5:
+  x = x + 1</code></p>
+<p><code>while</code> statements executed as TensorFlow loops are subject to restrictions
+(see <a href="limitations.md">limitations</a>). All symbols affected by the statement and
+used thereafter must be:</p>
+<ul>
+<li>of a data type understood by TensorFlow</li>
+<li>defined before the loop</li>
+<li>of consistent dtype at the beginning and the end of the loop,
+   for TensorFlow entities</li>
+<li>either of consistent shape at the beginning and the end of the loop,
+   for TensorFlow entities, or declared in <code>shape_invariants</code></li>
+<li>of consistent structure  at the beginning and the end of the loop, for
+   static collections (such as lists or tuples)</li>
+</ul>
+<p>Caution: A <code>while</code> loop whose condition is a Python scalar will execute as
+normal Python. If you intended to run the loop as a TensorFlow loop, the loop
+will replicate its body in the graph (it is unrolled). To avoid that, make sure
+its condition is converted to a <code>tf.Tensor</code>, using for instance <code>tf.constant</code>.</p>
+<p>For example, the following loop is unrolled, even though the list contains
+<code>tf.Tensor</code> values, because the type of <code>l</code> is a Python <code>list</code>:</p>
+<p><code>l = [tf.constant(1), tf.constant(2), tf.constant(3)]
+for i in l:
+  tf.print(i)  # This is unrolled - three `tf.print`s are built in the graph.</code></p>
+<p>If you wish for the loop to run as a TensorFlow loop, stack the loop:</p>
+<p><code>l = [tf.constant(1), tf.constant(2), tf.constant(3)]
+for i in tf.stack(l):
+  tf.print(i)  # This runs as a TensorFlow loop.</code></p>
+<!-- TODO(mdan): List this under limitations -->
+
+<p>Caution: A loop in which the type of the condition changes across iterations, in
+a way that would influence the way the loop is executed, is not allowed in
+AutoGraph.</p>
+<p>For example, the loop below will generate an error, because after the first
+iteration, <code>i</code> becomes a tf.Tensor:</p>
+<p><code>i = 0
+while i &lt; 10:  # `i &lt; 10` is a Python bool - run as normal while loop
+  i = tf.constant(1)  # Error -- `i &lt; 10` would now be a `tf.Tensor`</code></p>
+<h3><code>for</code> statements</h3>
+<p><code>for</code> statements that iterate over a <code>tf.Tensor</code> are executed as TensorFlow
+loops by converting them to a <code>tf.while_loop</code> which iterates over the first
+dimension (equivalent to NumPy):</p>
+<p><code>for i in tf.constant(((1, 2), (3, 4))):
+  tf.print('iteration:', i)</code></p>
+<p><code>iteration: [1, 2]
+iteration: [3, 4]</code></p>
+<p>Note: If possible, AutoGraph will also set the <code>maximum_iteration</code> parameter
+of the <code>tf.while_loop</code>.</p>
+<p><code>for</code> statements that iterate over the output of a <code>tf.range</code> are executed as
+TensorFlow loops by converting them to a <code>tf.while_loop</code> which uses the
+arguments passed to the <code>tf.range</code>:</p>
+<p><code>for i in tf.range(3):
+  tf.print('iteration:', i)</code></p>
+<p><code>for</code> statements that iterate over a <code>tf.data.Dataset</code> and which do not contain
+<code>break</code> or <code>return</code> statements are executed as TensorFlow loops by converting
+them to <code>tf.data.Dataset.reduce</code> ops:</p>
+<p><code>for i in tf.data.Dataset.range(3):
+  tf.print('iteration:', i)</code></p>
+<p><code>for</code> statements that iterate over a <em>distributed dataset</em> and which do not
+contain <code>break</code> or <code>return</code> statements are executed as TensorFlow loops by
+converting them to the dataset's <code>reduce</code> ops:</p>
+<p><code>for i in tf.distribute.OneDeviceStrategy('cpu').experimental_distribute_dataset(
+    tf.data.Dataset.range(3)):
+  tf.print('iteration:', i)</code></p>
+<p><code>for</code> statements that iterate over a <code>tf.data.Dataset</code> and which contain
+<code>break</code> or <code>return</code> statements are executed as TensorFlow loops by converting
+them to a combination of <code>tf.data.Dataset.scan</code>, <code>tf.data.Dataset.take_while</code>
+and <code>tf.data.Dataset.reduce</code> ops:</p>
+<p><code>for i in tf.data.Dataset.range(3):
+  tf.print('iteration:', i)
+  break</code></p>
+<p><code>iteration: 1</code></p>
+<p><code>for</code> statements that iterate over a <code>tf.data.Dataset</code> <em>iterator</em> are executed
+as TensorFlow loops by converting them to a combination of <code>tf.while_loop</code>,
+and <code>tf.cond</code> ops:</p>
+<p><code>for i in iter(tf.data.Dataset.range(3)):
+  tf.print('iteration:', i)</code></p>
+<p><code>for</code> statements that iterate over a type different from any of the above are
+executed as normal Python:</p>
+<p><code>for i in [1, 2, 3]:
+  print('iteration:', i)</code></p>
+<p>Caution: A <code>for</code> loop over a <code>list</code> or <code>tuple</code> of <code>tf.Tensor</code> is considered to
+iterate over a Python <code>list</code> (or respectively <code>tuple</code>), therefore will be
+executed as normal Python. If you intended to run it as a TensorFlow loop,
+use <code>tf.stack</code> or <code>tf.concat</code>.</p>
+<p>Caution: A <code>for</code> loop over a Python <code>range</code> will execute as normal Python.
+If you intended to run it as a TensorFlow loop, use <code>tf.range</code>.</p>
+<p>Note: AutoGraph may output a warning when it believes that you are unrolling
+a loop inefficiently. However, the warning thresholds are very conservative.
+The warning is only printed when
+<a href="https://docs.python.org/3/library/constants.html#__debug__"><strong>debug</strong></a> is
+<code>True</code>.</p>
+<p>Note: If <code>__debug__</code> is <code>True</code>, AutoGraph limits the number of iterations in
+normal Python loops to prevent infinite loops and raise an error if the limits
+are exceeded. However, the iteration limits are very large and may take a while
+to trigger an error.</p>
+<h3><code>break</code> statements</h3>
+<p>Code blocks in which <code>break</code> statements are used are rewritten with equivalent
+code that uses extra control booleans and conditionals. The control booleans are
+used directly in <code>while</code> loops. In the case of <code>for</code> loops, the AutoGraph
+corresponding operator accepts an <code>extra_test</code> argument which is similar to
+the conditional of a while loop, and which contains the control boolean.</p>
+<p>For example, the <code>while</code> loop below is rewritten as (showing the output of the
+<code>break</code> transformation only):</p>
+<p><code>while i &lt; 10:
+  if i &gt; 3:
+    break
+  i += 1</code></p>
+<p><code>break_ = False
+while i &lt; 10 and not break_:
+  if i &gt; 3:
+    break_ = True
+    continue  # The continue statement is also rewritten in a subsequent pass
+  i += 1</code></p>
+<p>Another example shows how the control boolean is used in the overload of a <code>for</code>
+loop (showing portions of the final output):</p>
+<p><code>for i in range(10):
+  if i &gt; 3:
+    break</code></p>
+<p>```
+break_ = False
+...
+def extra_test(break_):
+  return ag__.not_(break_)</p>
+<h1>break_ becomes a loop variable.</h1>
+<p>break_, = ag__.for_stmt(range(10), extra_test, ..., (break_,))
+```</p>
+<p>Mixing Tensor-dependent <code>break</code> and Python-dependent loops is disallowed:</p>
+<p>```
+@tf.function
+def buggy_while_py_true_tf_break(x):
+  while True:   # python conditional
+    if tf.equal(x, 0): # tensor break
+      break
+    x -= 1
+  return x</p>
+<h1>Raises OperatorNotAllowedInGraphError: using a <code>tf.Tensor</code> as a Python <code>bool</code> is not allowed</h1>
+<h1>buggy_while_true_tf_break(5)</h1>
+<p>```</p>
+<h3><code>continue</code> statements</h3>
+<p>Code blocks in which <code>continue</code> statements are used are rewritten with
+equivalent code that uses extra control booleans and conditionals, similar to
+how <code>break</code> is handled.</p>
+<p>For example, the <code>for</code> loop below is rewritten as (showing the output of the
+<code>continue</code> transformation only):</p>
+<p><code>for i in range(10):
+  if i &gt; 3:
+    continue</code></p>
+<p><code>for i in range(10):
+  continue_ = False
+  if i &gt; 3:
+    continue_ = True
+  if not continue_:
+    i += 1</code></p>
+<p>Notice that unlike <code>break</code>, <code>continue</code> statements are local to the loop and do
+not influence the number of iterations.</p>
+<h3><code>return</code> statements</h3>
+<p><code>return</code> statements are also rewritten using control symbols, in a manner
+similar to how <code>break</code> is converted. In the case of <code>return</code> statements, an
+additional symbol keeps track of the return value.</p>
+<p>Depending on the structure of the code, the return value might be undefined
+in parts of the code (for example on code paths in which no return statement
+has executed). AutoGraph keeps track of this by using a special value.
+This special value is converted to <code>None</code> (the default return value) upon
+exiting the function.</p>
+<p>Caution: TensorFlow control flow does not support undefined values, and an
+undefined return value is no exception. Therefore, AutoGraph will raise an
+error for TensorFlow control flow in which the return value is not known for
+all code paths.</p>
+<p>For example, the following code raises an error because the return value would
+be undefined when the random number would be less than 0.5:</p>
+<p><code>if tf.random.uniform(()) &gt; 0.5:
+  return 1</code></p>
+<p><code>ValueError: A value must also be returned from the else branch.</code></p>
+<p>An example of rewriting a <code>while</code> (showing the output of the <code>return</code>
+transformation only):</p>
+<p><code>def f():
+  while i &lt; 10:
+    if i &gt; 3:
+      return 1
+    i += 1</code></p>
+<p><code>def f():
+  do_return = False
+  retval_ = ag__.UndefinedReturnValue()
+  while i &lt; 10 and not do_return:
+    if i &gt; 3:
+      do_return = True
+      retval_ = 1
+    if not do_return:
+      i += 1
+  return ag__.retval(retval_)  # Transforms any UndefinedReturnValue to None</code></p>
+<p>Note: AutoGraph performs an additional code normalization in which an <code>if</code>
+statement with no <code>else</code> branch contains a <code>return</code> statement it is rewritten as
+an <code>if-else</code> statement in which the code that follows the statement is moved
+under the <code>else</code> branch.</p>
+<p>Example (showing the normalization only):</p>
+<p><code>def f():
+  if i &gt; 3:
+    return 1
+  i += 1</code></p>
+<p><code>def f():
+  if i &gt; 3:
+    return 1
+  else:
+   i += 1</code></p>

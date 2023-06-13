@@ -1,0 +1,21 @@
+<h2>TFSA-2021-173: Segfault due to negative splits in <code>SplitV</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41222</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/e71b86d47f8bc1816bf54d7bddc4170e47670b97/tensorflow/core/kernels/split_v_op.cc#L49-L205">implementation</a> of <code>SplitV</code> can trigger a segfault is an attacker supplies negative arguments:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.SplitV(
+  value=tf.constant([]),
+  size_splits=[-1, -2]
+  ,axis=0,
+  num_split=2)
+```</p>
+<p>This occurs whenever <code>size_splits</code> contains more than one value and at least one value is negative.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/25d622ffc432acc736b14ca3904177579e733cc6">25d622ffc432acc736b14ca3904177579e733cc6</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

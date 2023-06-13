@@ -1,0 +1,5 @@
+<h2>Building the driver</h2>
+<p>MIOpen provides an <a href="https://github.com/ROCmSoftwarePlatform/MIOpen/tree/master/driver">application-driver</a> which can be used to execute any one particular layer in isolation and measure performance and verification of the library. </p>
+<p>The driver can be built using the <code>MIOpenDriver</code> target:</p>
+<p><code>cmake --build . --config Release --target MIOpenDriver</code> <strong>OR</strong> <code>make MIOpenDriver</code></p>
+<p>Documentation on how to run the driver is <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/driver.html">here</a>. </p>

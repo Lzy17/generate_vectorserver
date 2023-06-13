@@ -1,0 +1,176 @@
+<h1>Development tools for Android</h1>
+<p>TensorFlow Lite provides a number of tools for integrating models into Android
+apps. This page describes development tools for use in building apps with
+Kotlin, Java, and C++, as well as support for TensorFlow Lite development in
+Android Studio.</p>
+<p>Key Point: In general, you should use the <a href="#task_library">TensorFlow Lite Task
+Library</a> for integrating TensorFlow Lite into your Android app,
+unless your use case is not supported by that library. If it's not supported by
+the Task Library, use the <a href="#lite_lib">TensorFlow Lite library</a> and <a href="#support_lib">Support
+library</a>.</p>
+<p>To get started quickly writing Android code, see the
+<a href="../android/quickstart">Quickstart for Android</a></p>
+<h2>Tools for building with Kotlin and Java</h2>
+<p>The following sections describe development tools for TensorFlow Lite that use
+the Kotlin and Java languages.</p>
+<h3>TensorFlow Lite Task Library {:#task_library}</h3>
+<p>TensorFlow Lite Task Library contains a set of powerful and easy-to-use
+task-specific libraries for app developers to build with TensorFlow Lite.
+It provides optimized out-of-box model interfaces for popular machine learning
+tasks, such as image classification, question and answer, etc. The model
+interfaces are specifically designed for each task to achieve the best
+performance and usability. Task Library works cross-platform and is supported on
+Java and C++.</p>
+<p>To use the Task Library in your Android app, use the AAR from MavenCentral for
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite-task-vision">Task Vision library</a>
+,
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite-task-text">Task Text library</a>
+and
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite-task-audio">Task Audio Library</a>
+, respectively.</p>
+<p>You can specify this in your <code>build.gradle</code> dependencies as follows:</p>
+<p><code>build
+dependencies {
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:+'
+    implementation 'org.tensorflow:tensorflow-lite-task-text:+'
+    implementation 'org.tensorflow:tensorflow-lite-task-audio:+'
+}</code></p>
+<p>If you use nightly snapshots, make sure you add the
+<a href="./lite_build#use_nightly_snapshots">Sonatype snapshot repository</a> to your
+project.</p>
+<p>See the introduction in the
+<a href="../inference_with_metadata/task_library/overview.md">TensorFlow Lite Task Library overview</a>
+for more details.</p>
+<h3>TensorFlow Lite library {:#lite_lib}</h3>
+<p>Use the TensorFlow Lite library in your Android app by adding the
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite">AAR hosted at MavenCentral</a>
+to your development project.</p>
+<p>You can specify this in your <code>build.gradle</code> dependencies as follows:</p>
+<p><code>build
+dependencies {
+    implementation 'org.tensorflow:tensorflow-lite:+'
+}</code></p>
+<p>If you use nightly snapshots, make sure you add the
+<a href="./lite_build#use_nightly_snapshots">Sonatype snapshot repository</a> to your
+project.</p>
+<p>This AAR includes binaries for all of the
+<a href="https://developer.android.com/ndk/guides/abis">Android ABIs</a>. You can reduce
+the size of your application's binary by only including the ABIs you need to
+support.</p>
+<p>Unless you are targeting specific hardware, you should omit the <code>x86</code>, <code>x86_64</code>,
+and <code>arm32</code> ABIs in most cases. You can configure this with the following Gradle
+configuration. It specifically includes only <code>armeabi-v7a</code> and <code>arm64-v8a</code>, and
+should cover most modern Android devices.</p>
+<p><code>build
+android {
+    defaultConfig {
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+}</code></p>
+<p>To learn more about <code>abiFilters</code>, see
+<a href="https://developer.android.com/ndk/guides/abis">Android ABIs</a>
+in the Android NDK documentation.</p>
+<h3>TensorFlow Lite Support Library {:#support_lib}</h3>
+<p>The TensorFlow Lite Android Support Library makes it easier to integrate models
+into your application. It provides high-level APIs that help transform raw input
+data into the form required by the model, and interpret the model's output,
+reducing the amount of boilerplate code required.</p>
+<p>It supports common data formats for inputs and outputs, including images and
+arrays. It also provides pre- and post-processing units that perform tasks such
+as image resizing and cropping.</p>
+<p>Use the Support Library in your Android app by including the TensorFlow Lite
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow-lite-support">Support Library AAR hosted at MavenCentral</a>.</p>
+<p>You can specify this in your <code>build.gradle</code> dependencies as follows:</p>
+<p><code>build
+dependencies {
+    implementation 'org.tensorflow:tensorflow-lite-support:+'
+}</code></p>
+<p>If you use nightly snapshots, make sure you add the
+<a href="./lite_build#use_nightly_snapshots">Sonatype snapshot repository</a> to your
+project.</p>
+<p>For instructions on how to get started, see the
+<a href="../inference_with_metadata/lite_support.md">TensorFlow Lite Android Support Library</a>.</p>
+<h3>Minimum Android SDK versions for libraries</h3>
+<p>| Library                     | <code>minSdkVersion</code> | Device Requirements    |
+| --------------------------- | --------------- | ---------------------- |
+| tensorflow-lite             | 19              | NNAPI usage requires   |
+:                             :                 : API 27+                :
+| tensorflow-lite-gpu         | 19              | GLES 3.1 or OpenCL     |
+:                             :                 : (typically only        :
+:                             :                 : available on API 21+   :
+| tensorflow-lite-hexagon     | 19              | -                      |
+| tensorflow-lite-support     | 19              | -                      |
+| tensorflow-lite-task-vision | 21              | android.graphics.Color |
+:                             :                 : related API requires   :
+:                             :                 : API 26+                :
+| tensorflow-lite-task-text   | 21              | -                      |
+| tensorflow-lite-task-audio  | 23              | -                      |
+| tensorflow-lite-metadata    | 19              | -                      |</p>
+<h3>Using Android Studio</h3>
+<p>In addition to the development libraries described above, Android Studio
+also provides support for integrating TensorFlow Lite models, as described
+below.</p>
+<h4>Android Studio ML Model Binding</h4>
+<p>The ML Model Binding feature of Android Studio 4.1 and later allows you to
+import <code>.tflite</code> model files into your existing Android app, and generate
+interface classes to make it easier to integrate your code with a model.</p>
+<p>To import a TensorFlow Lite (TFLite) model:</p>
+<ol>
+<li>
+<p>Right-click on the module you would like to use the TFLite model or click on
+    <strong>File &gt; New &gt; Other &gt; TensorFlow Lite Model</strong>.</p>
+</li>
+<li>
+<p>Select the location of your TensorFlow Lite file. Note that the tooling
+    configures the module's dependency with ML Model binding and
+    automatically adds all required dependencies to your Android module's
+    <code>build.gradle</code> file.</p>
+<p>Note: Select the second checkbox for importing TensorFlow GPU if you
+want to use <a href="../performance/gpu">GPU acceleration</a>.</p>
+</li>
+<li>
+<p>Click <code>Finish</code> to begin the import process. When the import is finished, the
+    tool displays a screen describing the model, including its input and output
+    tensors.</p>
+</li>
+<li>
+<p>To start using the model, select Kotlin or Java, copy and paste the code
+    in the <strong>Sample Code</strong> section.</p>
+</li>
+</ol>
+<p>You can return to the model information screen by double clicking the TensorFlow
+Lite model under the <code>ml</code> directory in Android Studio. For more information on
+using the Modle Binding feature of Android Studio, see the Android Studio
+<a href="https://developer.android.com/studio/releases#4.1-tensor-flow-lite-models">release notes</a>.
+For an overview of using model binding in Android Studio, see the code example
+<a href="https://github.com/tensorflow/examples/blob/master/lite/examples/image_classification/android/README.md">instructions</a>.</p>
+<h2>Tools for building with C and C++</h2>
+<p>The C and C++ libraries for TensorFlow Lite are primarily intended for
+developers using the Android Native Development Kit (NDK) to build their apps.
+There are two ways to use TFLite through C++ if you build your app with the NDK:</p>
+<h3>TFLite C API</h3>
+<p>Using this API is the <em>recommended</em> approach for developers using the NDK.
+Download the
+<a href="https://search.maven.org/artifact/org.tensorflow/tensorflow/tensorflow-lite">TensorFlow Lite AAR hosted at MavenCentral</a>
+file, rename to <code>tensorflow-lite-*.zip</code>, and unzip it. You must include the four
+header files in the <code>headers/tensorflow/lite/</code> and <code>headers/tensorflow/lite/c/</code>
+folders and the relevant <code>libtensorflowlite_jni.so</code> dynamic library in the <code>jni/</code>
+folder in your NDK project.</p>
+<p>The <code>c_api.h</code> header file contains basic documentation about using the TFLite C
+API.</p>
+<h3>TFLite C++ API</h3>
+<p>If you want to use TFLite through C++ API, you can build the C++ shared
+libraries:</p>
+<p>32bit armeabi-v7a:</p>
+<p><code>sh
+bazel build -c opt --config=android_arm //tensorflow/lite:libtensorflowlite.so</code></p>
+<p>64bit arm64-v8a:</p>
+<p><code>sh
+bazel build -c opt --config=android_arm64 //tensorflow/lite:libtensorflowlite.so</code></p>
+<p>Currently, there is no straightforward way to extract all header files needed,
+so you must include all header files in <code>tensorflow/lite/</code> from the TensorFlow
+repository. Additionally, you will need header files from
+<a href="https://github.com/google/flatbuffers">FlatBuffers</a> and
+<a href="https://github.com/abseil/abseil-cpp">Abseil</a>.</p>

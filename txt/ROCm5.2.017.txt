@@ -1,0 +1,371 @@
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable no-duplicate-header -->
+<h3>What's New in This Release</h3>
+<h4>HIP Enhancements</h4>
+<p>The ROCm v5.2 release consists of the following HIP enhancements:</p>
+<h5>HIP Installation Guide Updates</h5>
+<p>The HIP Installation Guide is updated to include building HIP tests from source on the AMD and NVIDIA platforms.</p>
+<p>For more details, refer to the HIP Installation Guide v5.2.</p>
+<h5>Support for device-side malloc on HIP-Clang</h5>
+<p>HIP-Clang now supports device-side malloc. This implementation does not require the use of <code>hipDeviceSetLimit(hipLimitMallocHeapSize,value)</code> nor respect any setting. The heap is fully dynamic and can grow until the available free memory on the device is consumed.</p>
+<p>The test codes at the following link show how to implement applications using malloc and free functions in device kernels:</p>
+<p><a href="https://github.com/ROCm-Developer-Tools/HIP/blob/develop/tests/src/deviceLib/hipDeviceMalloc.cpp">https://github.com/ROCm-Developer-Tools/HIP/blob/develop/tests/src/deviceLib/hipDeviceMalloc.cpp</a></p>
+<h5>New HIP APIs in This Release</h5>
+<p>The following new HIP APIs are available in the ROCm v5.2 release. Note that this is a pre-official version (beta) release of the new APIs:</p>
+<h6>Device management HIP APIs</h6>
+<p>The new device management HIP APIs are as follows:</p>
+<ul>
+<li>Gets a UUID for the device. This API returns a UUID for the device.</li>
+</ul>
+<p><code>h
+  hipError_t hipDeviceGetUuid(hipUUID* uuid, hipDevice_t device);</code></p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>This new API corresponds to the following CUDA API:</p>
+<p><code>h
+CUresult cuDeviceGetUuid(CUuuid* uuid, CUdevice dev);</code></p>
+</blockquote>
+<ul>
+<li>Gets default memory pool of the specified device</li>
+</ul>
+<p><code>h
+  hipError_t hipDeviceGetDefaultMemPool(hipMemPool_t* mem_pool, int device);</code></p>
+<ul>
+<li>Sets the current memory pool of a device</li>
+</ul>
+<p><code>h
+  hipError_t hipDeviceSetMemPool(int device, hipMemPool_t mem_pool);</code></p>
+<ul>
+<li>Gets the current memory pool for the specified device</li>
+</ul>
+<p><code>h
+  hipError_t hipDeviceGetMemPool(hipMemPool_t* mem_pool, int device);</code></p>
+<h6>New HIP Runtime APIs in Memory Management</h6>
+<p>The new Stream Ordered Memory Allocator functions of HIP runtime APIs in memory management are as follows:</p>
+<ul>
+<li>Allocates memory with stream ordered semantics</li>
+</ul>
+<p><code>h
+  hipError_t hipMallocAsync(void** dev_ptr, size_t size, hipStream_t stream);</code></p>
+<ul>
+<li>Frees memory with stream ordered semantics</li>
+</ul>
+<p><code>h
+  hipError_t hipFreeAsync(void* dev_ptr, hipStream_t stream);</code></p>
+<ul>
+<li>Releases freed memory back to the OS</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolTrimTo(hipMemPool_t mem_pool, size_t min_bytes_to_hold);</code></p>
+<ul>
+<li>Sets attributes of a memory pool</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolSetAttribute(hipMemPool_t mem_pool, hipMemPoolAttr attr, void* value);</code></p>
+<ul>
+<li>Gets attributes of a memory pool</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolGetAttribute(hipMemPool_t mem_pool, hipMemPoolAttr attr, void* value);</code></p>
+<ul>
+<li>Controls visibility of the specified pool between devices</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolSetAccess(hipMemPool_t mem_pool, const hipMemAccessDesc* desc_list, size_t count);</code></p>
+<ul>
+<li>Returns the accessibility of a pool from a device</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolGetAccess(hipMemAccessFlags* flags, hipMemPool_t mem_pool, hipMemLocation* location);</code></p>
+<ul>
+<li>Creates a memory pool</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolCreate(hipMemPool_t* mem_pool, const hipMemPoolProps* pool_props);</code></p>
+<ul>
+<li>Destroys the specified memory pool</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolDestroy(hipMemPool_t mem_pool);</code></p>
+<ul>
+<li>Allocates memory from a specified pool with stream ordered semantics</li>
+</ul>
+<p><code>h
+  hipError_t hipMallocFromPoolAsync(void** dev_ptr, size_t size, hipMemPool_t mem_pool, hipStream_t stream);</code></p>
+<ul>
+<li>Exports a memory pool to the requested handle type</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolExportToShareableHandle(
+      void*                      shared_handle,
+      hipMemPool_t               mem_pool,
+      hipMemAllocationHandleType handle_type,
+      unsigned int               flags);</code></p>
+<ul>
+<li>Imports a memory pool from a shared handle</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolImportFromShareableHandle(
+      hipMemPool_t*              mem_pool,
+      void*                      shared_handle,
+      hipMemAllocationHandleType handle_type,
+      unsigned int               flags);</code></p>
+<ul>
+<li>Exports data to share a memory pool allocation between processes</li>
+</ul>
+<p><code>h
+  hipError_t hipMemPoolExportPointer(hipMemPoolPtrExportData* export_data, void* dev_ptr);
+  Import a memory pool allocation from another process.t
+  hipError_t hipMemPoolImportPointer(
+      void**                   dev_ptr,
+      hipMemPool_t             mem_pool,
+      hipMemPoolPtrExportData* export_data);</code></p>
+<h6>HIP Graph Management APIs</h6>
+<p>The new HIP Graph Management APIs are as follows:</p>
+<ul>
+<li>Enqueues a host function call in a stream</li>
+</ul>
+<p><code>h
+  hipError_t hipLaunchHostFunc(hipStream_t stream, hipHostFn_t fn, void* userData);</code></p>
+<ul>
+<li>Swaps the stream capture mode of a thread</li>
+</ul>
+<p><code>h
+  hipError_t hipThreadExchangeStreamCaptureMode(hipStreamCaptureMode* mode);</code></p>
+<ul>
+<li>Sets a node attribute</li>
+</ul>
+<p><code>h
+  hipError_t hipGraphKernelNodeSetAttribute(hipGraphNode_t hNode, hipKernelNodeAttrID attr, const hipKernelNodeAttrValue* value);</code></p>
+<ul>
+<li>Gets a node attribute</li>
+</ul>
+<p><code>h
+  hipError_t hipGraphKernelNodeGetAttribute(hipGraphNode_t hNode, hipKernelNodeAttrID attr,                                          hipKernelNodeAttrValue* value);</code></p>
+<h6>Support for Virtual Memory Management APIs</h6>
+<p>The new APIs for virtual memory management are as follows:</p>
+<ul>
+<li>Frees an address range reservation made via hipMemAddressReserve</li>
+</ul>
+<p><code>h
+  hipError_t hipMemAddressFree(void* devPtr, size_t size);</code></p>
+<ul>
+<li>Reserves an address range</li>
+</ul>
+<p><code>h
+  hipError_t hipMemAddressReserve(void** ptr, size_t size, size_t alignment, void* addr, unsigned long long flags);</code></p>
+<ul>
+<li>Creates a memory allocation described by the properties and size</li>
+</ul>
+<p><code>h
+  hipError_t hipMemCreate(hipMemGenericAllocationHandle_t* handle, size_t size, const hipMemAllocationProp* prop, unsigned long long flags);</code></p>
+<ul>
+<li>Exports an allocation to a requested shareable handle type</li>
+</ul>
+<p><code>h
+  hipError_t hipMemExportToShareableHandle(void* shareableHandle, hipMemGenericAllocationHandle_t handle, hipMemAllocationHandleType handleType, unsigned long long flags);</code></p>
+<ul>
+<li>Gets the access flags set for the given location and ptr</li>
+</ul>
+<p><code>h
+  hipError_t hipMemGetAccess(unsigned long long* flags, const hipMemLocation* location, void* ptr);</code></p>
+<ul>
+<li>Calculates either the minimal or recommended granularity</li>
+</ul>
+<p><code>h
+  hipError_t hipMemGetAllocationGranularity(size_t* granularity, const hipMemAllocationProp* prop, hipMemAllocationGranularity_flags option);</code></p>
+<ul>
+<li>Retrieves the property structure of the given handle</li>
+</ul>
+<p><code>h
+  hipError_t hipMemGetAllocationPropertiesFromHandle(hipMemAllocationProp* prop, hipMemGenericAllocationHandle_t handle);</code></p>
+<ul>
+<li>Imports an allocation from a requested shareable handle type</li>
+</ul>
+<p><code>h
+  hipError_t hipMemImportFromShareableHandle(hipMemGenericAllocationHandle_t* handle, void* osHandle, hipMemAllocationHandleType shHandleType);</code></p>
+<ul>
+<li>Maps an allocation handle to a reserved virtual address range</li>
+</ul>
+<p><code>h
+  hipError_t hipMemMap(void* ptr, size_t size, size_t offset, hipMemGenericAllocationHandle_t handle, unsigned long long flags);</code></p>
+<ul>
+<li>Maps or unmaps subregions of sparse HIP arrays and sparse HIP mipmapped arrays</li>
+</ul>
+<p><code>h
+  hipError_t hipMemMapArrayAsync(hipArrayMapInfo* mapInfoList, unsigned int  count, hipStream_t stream);</code></p>
+<ul>
+<li>Release a memory handle representing a memory allocation, that  was previously allocated through hipMemCreate</li>
+</ul>
+<p><code>h
+  hipError_t hipMemRelease(hipMemGenericAllocationHandle_t handle);</code></p>
+<ul>
+<li>Returns the allocation handle of the backing memory allocation given the address</li>
+</ul>
+<p><code>h
+  hipError_t hipMemRetainAllocationHandle(hipMemGenericAllocationHandle_t* handle, void* addr);</code></p>
+<ul>
+<li>Sets the access flags for each location specified in desc for the given virtual address range</li>
+</ul>
+<p><code>h
+  hipError_t hipMemSetAccess(void* ptr, size_t size, const hipMemAccessDesc* desc, size_t count);</code></p>
+<ul>
+<li>Unmaps memory allocation of a given address range</li>
+</ul>
+<p><code>h
+  hipError_t hipMemUnmap(void* ptr, size_t size);</code></p>
+<p>For more information, refer to the HIP API documentation at
+{doc}<code>hip:.doxygen/docBin/html/modules</code>.</p>
+<h5>Planned HIP Changes in Future Releases</h5>
+<p>Changes to <code>hipDeviceProp_t</code>, <code>HIPMEMCPY_3D</code>, and <code>hipArray</code> structures (and related HIP APIs) are planned in the next major release. These changes may impact backward compatibility.</p>
+<p>Refer to the Release Notes document in subsequent releases for more information.
+ROCm Math and Communication Libraries</p>
+<p>In this release, ROCm Math and Communication Libraries consist of the following enhancements and fixes:
+New rocWMMA for Matrix Multiplication and Accumulation Operations Acceleration</p>
+<p>This release introduces a new ROCm C++ library for accelerating mixed precision matrix multiplication and accumulation (MFMA) operations leveraging specialized GPU matrix cores. rocWMMA provides a C++ API to facilitate breaking down matrix multiply accumulate problems into fragments and using them in block-wise operations that are distributed in parallel across GPU wavefronts. The API is a header library of GPU device code, meaning matrix core acceleration may be compiled directly into your kernel device code. This can benefit from compiler optimization in the generation of kernel assembly and does not incur additional overhead costs of linking to external runtime libraries or having to launch separate kernels.</p>
+<p>rocWMMA is released as a header library and includes test and sample projects to validate and illustrate example usages of the C++ API. GEMM matrix multiplication is used as primary validation given the heavy precedent for the library. However, the usage portfolio is growing significantly and demonstrates different ways rocWMMA may be consumed.</p>
+<p>For more information, refer to
+<a href="../../../../docs/reference/gpu_libraries/communication.md">Communication Libraries</a>.</p>
+<h4>OpenMP Enhancements in This Release</h4>
+<h5>OMPT Target Support</h5>
+<p>The OpenMP runtime in ROCm implements a subset of the OMPT device APIs, as described in the OpenMP specification document. These are APIs that allow first-party tools to examine the profile and traces for kernels that execute on a device. A tool may register callbacks for data transfer and kernel dispatch entry points. A tool may use APIs to start and stop tracing for device-related activities such as data transfer and kernel dispatch timings and associated metadata. If device tracing is enabled, trace records for device activities are collected during program execution and returned to the tool using the APIs described in the specification.</p>
+<p>Following is an example demonstrating how a tool would use the OMPT target APIs supported. The README in /opt/rocm/llvm/examples/tools/ompt outlines the steps to follow, and you can run the provided example as indicated below:</p>
+<p><code>sh
+cd /opt/rocm/llvm/examples/tools/ompt/veccopy-ompt-target-tracing
+make run</code></p>
+<p>The file <code>veccopy-ompt-target-tracing.c</code> simulates how a tool would initiate device activity tracing. The file <code>callbacks.h</code> shows the callbacks that may be registered and implemented by the tool.</p>
+<h3>Deprecations and Warnings</h3>
+<h4>Linux Filesystem Hierarchy Standard for ROCm</h4>
+<p>ROCm packages have adopted the Linux foundation filesystem hierarchy standard in this release to ensure ROCm components follow open source conventions for Linux-based distributions. While moving to a new filesystem hierarchy, ROCm ensures backward compatibility with its 5.1 version or older filesystem hierarchy. See below for a detailed explanation of the new filesystem hierarchy and backward compatibility.</p>
+<h5>New Filesystem Hierarchy</h5>
+<p>The following is the new filesystem hierarchy:</p>
+<p>```text
+/opt/rocm-<ver>
+    | --bin
+      | --All externally exposed Binaries
+    | --libexec
+        | --<component>
+            | -- Component specific private non-ISA executables (architecture independent)
+    | --include
+        | -- <component>
+            | --<header files>
+    | --lib
+        | --lib<soname>.so -&gt; lib<soname>.so.major -&gt; lib<soname>.so.major.minor.patch
+            (public libraries linked with application)
+        | --<component> (component specific private library, executable data)
+        | --<cmake>
+            | --components
+                | --<component>.config.cmake
+    | --share
+        | --html/<component>/<em>.html
+        | --info/<component>/</em>.[pdf, md, txt]
+        | --man
+        | --doc
+            | --<component>
+                | --<licenses>
+        | --<component>
+            | --<misc files> (arch independent non-executable)
+            | --samples</p>
+<p>```</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will not support backward compatibility with the v5.1(old) file system hierarchy in its next major release.</p>
+</blockquote>
+<p>For more information, refer to <a href="https://refspecs.linuxfoundation.org/fhs.shtml">https://refspecs.linuxfoundation.org/fhs.shtml</a>.</p>
+<h5>Backward Compatibility with Older Filesystems</h5>
+<p>ROCm has moved header files and libraries to its new location as indicated in the above structure and included symbolic-link and wrapper header files in its old location for backward compatibility.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>ROCm will continue supporting backward compatibility until the next major release.</p>
+</blockquote>
+<h5>Wrapper header files</h5>
+<p>Wrapper header files are placed in the old location (<code>/opt/rocm-xxx/&lt;component&gt;/include</code>) with a warning message to include files from the new location (<code>/opt/rocm-xxx/include</code>) as shown in the example below:</p>
+<p>```h
+// Code snippet from hip_runtime.h</p>
+<h1>pragma message “This file is deprecated. Use file from include path /opt/rocm-ver/include/ and prefix with hip”.</h1>
+<h1>include "hip/hip_runtime.h"</h1>
+<p>```</p>
+<p>The wrapper header files’ backward compatibility deprecation is as follows:</p>
+<ul>
+<li><code>#pragma</code> message announcing deprecation -- ROCm v5.2 release</li>
+<li><code>#pragma</code> message changed to <code>#warning</code> -- Future release</li>
+<li><code>#warning</code> changed to <code>#error</code> -- Future release</li>
+<li>Backward compatibility wrappers removed -- Future release</li>
+</ul>
+<h5>Library files</h5>
+<p>Library files are available in the <code>/opt/rocm-xxx/lib</code> folder. For backward compatibility, the old library location (<code>/opt/rocm-xxx/&lt;component&gt;/lib</code>) has a soft link to the library at the new location.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/
+total 4
+drwxr-xr-x 4 root root 4096 May 12 10:45 cmake
+lrwxrwxrwx 1 root root   24 May 10 23:32 libamdhip64.so -&gt; ../../lib/libamdhip64.so</code></p>
+<h5>CMake Config files</h5>
+<p>All CMake configuration files are available in the <code>/opt/rocm-xxx/lib/cmake/&lt;component&gt;</code> folder. For backward compatibility, the old CMake locations (<code>/opt/rocm-xxx/&lt;component&gt;/lib/cmake</code>) consist of a soft link to the new CMake config.</p>
+<p>Example:</p>
+<p><code>log
+$ ls -l /opt/rocm/hip/lib/cmake/hip/
+total 0
+lrwxrwxrwx 1 root root 42 May 10 23:32 hip-config.cmake -&gt; ../../../../lib/cmake/hip/hip-config.cmake</code></p>
+<h4>Planned deprecation of hip-rocclr and hip-base packages</h4>
+<p>In the ROCm v5.2 release, hip-rocclr and hip-base packages (Debian and RPM) are planned for deprecation and will be removed in a future release. hip-runtime-amd and hip-dev(el) will replace these packages respectively. Users of hip-rocclr must install two packages, hip-runtime-amd and hip-dev, to get the same set of packages installed by hip-rocclr previously.</p>
+<p>Currently, both package names hip-rocclr (or) hip-runtime-amd and hip-base (or) hip-dev(el) are supported.
+Deprecation of Integrated HIP Directed Tests</p>
+<p>The integrated HIP directed tests, which are currently built by default, are deprecated in this release. The default building and execution support through CMake will be removed in future release.</p>
+<h3>Fixed Defects</h3>
+<p>| Fixed Defect                                                                 |  Fix     |
+|------------------------------------------------------------------------------|----------|
+| ROCmInfo does not list gpus                                                  | Code fix |
+| Hang observed while restoring cooperative group samples                      | Code fix |
+| ROCM-SMI over SRIOV: Unsupported commands do not return proper error message | Code fix |</p>
+<h3>Known Issues</h3>
+<p>This section consists of known issues in this release.</p>
+<h4>Compiler Error on gfx1030 When Compiling at -O0</h4>
+<h5>Issue</h5>
+<p>A compiler error occurs when using -O0 flag to compile code for gfx1030 that calls atomicAddNoRet, which is defined in amd_hip_atomic.h. The compiler generates an illegal instruction for gfx1030.</p>
+<h5>Workaround</h5>
+<p>The workaround is not to use the -O0 flag for this case. For higher optimization levels, the compiler does not generate an invalid instruction.</p>
+<h4>System Freeze Observed During CUDA Memtest Checkpoint</h4>
+<h5>Issue</h5>
+<p>Checkpoint/Restore in Userspace (CRIU) requires 20 MB of VRAM approximately to checkpoint and restore. The CRIU process may freeze if the maximum amount of available VRAM is allocated to checkpoint applications.</p>
+<h5>Workaround</h5>
+<p>To use CRIU to checkpoint and restore your application, limit the amount of VRAM the application uses to ensure at least 20 MB is available.</p>
+<h4>HPC test fails with the “HSA_STATUS_ERROR_MEMORY_FAULT” error</h4>
+<h5>Issue</h5>
+<p>The compiler may incorrectly compile a program that uses the <code>__shfl_sync(mask, value, srcLane)</code> function when the "value" parameter to the function is undefined along some path to the function. For most functions, uninitialized inputs cause undefined behavior, but the definition for <code>__shfl_sync</code> should allow for undefined values.</p>
+<h5>Workaround</h5>
+<p>The workaround is to initialize the parameters to <code>__shfl_sync</code>.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>When the <code>-Wall</code> compilation flag is used, the compiler generates a warning indicating the variable is initialized along some path.</p>
+</blockquote>
+<p>Example:</p>
+<p><code>cpp
+double res = 0.0; // Initialize the input to __shfl_sync.
+if (lane == 0) {
+  res = &lt;some expression&gt;
+}
+res = __shfl_sync(mask, res, 0);</code></p>
+<h4>Kernel produces incorrect result</h4>
+<h5>Issue</h5>
+<p>In recent changes to Clang, insertion of the noundef attribute to all the function arguments has been enabled by default.</p>
+<p>In the HIP kernel, variable var in shfl_sync may not be initialized, so LLVM IR treats it as undef.</p>
+<p>So, the function argument that is potentially undef (because it is not intialized) has always been assumed to be noundef by LLVM IR (since Clang has inserted noundef attribute). This leads to ambiguous kernel execution.</p>
+<h5>Workaround</h5>
+<ul>
+<li>
+<p>Skip adding <code>noundef</code> attribute to functions tagged with convergent  attribute. Refer to <a href="https://reviews.llvm.org/D124158">https://reviews.llvm.org/D124158</a> for more information.</p>
+</li>
+<li>
+<p>Introduce shuffle attribute and add it to <code>__shfl</code> like APIs at hip headers. Clang can skip adding noundef attribute, if it finds that argument is tagged with shuffle attribute. Refer to <a href="https://reviews.llvm.org/D125378">https://reviews.llvm.org/D125378</a> for more information.</p>
+</li>
+<li>
+<p>Introduce clang builtin for <code>__shfl</code> to identify it and skip adding <code>noundef</code> attribute.</p>
+</li>
+<li>
+<p>Introduce <code>__builtin_freeze</code> to use on the relevant arguments in library wrappers. The library/header need to insert freezes on the relevant inputs.</p>
+</li>
+</ul>
+<h4>Issue with Applications Triggering Oversubscription</h4>
+<p>There is a known issue with applications that trigger oversubscription. A hardware hang occurs when ROCgdb is used on AMD Instinct™ MI50 and MI100 systems.</p>
+<p>This issue is under investigation and will be fixed in a future release.</p>

@@ -1,0 +1,35 @@
+<h2>TFSA-2022-093: Segfault TFLite converter on per-channel quantized transposed convolutions</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36027</p>
+<h3>Impact</h3>
+<p>When converting transposed convolutions using per-channel weight quantization the converter segfaults and crashes the Python process.
+```python
+import tensorflow as tf</p>
+<p>class QuantConv2DTransposed(tf.keras.layers.Layer):
+    def build(self, input_shape):
+        self.kernel = self.add_weight("kernel", [3, 3, input_shape[-1], 24])</p>
+<pre><code>def call(self, inputs):
+    filters = tf.quantization.fake_quant_with_min_max_vars_per_channel(
+        self.kernel, -3.0 * tf.ones([24]), 3.0 * tf.ones([24]), narrow_range=True
+    )
+    filters = tf.transpose(filters, (0, 1, 3, 2))
+    return tf.nn.conv2d_transpose(inputs, filters, [*inputs.shape[:-1], 24], 1)
+</code></pre>
+<p>inp = tf.keras.Input(shape=(6, 8, 48), batch_size=1)
+x = tf.quantization.fake_quant_with_min_max_vars(inp, -3.0, 3.0, narrow_range=True)
+x = QuantConv2DTransposed()(x)
+x = tf.quantization.fake_quant_with_min_max_vars(x, -3.0, 3.0, narrow_range=True)</p>
+<p>model = tf.keras.Model(inp, x)</p>
+<p>model.save("/tmp/testing")
+converter = tf.lite.TFLiteConverter.from_saved_model("/tmp/testing")
+converter.optimizations = [tf.lite.Optimize.DEFAULT]</p>
+<h1>terminated by signal SIGSEGV (Address boundary error)</h1>
+<p>tflite_model = converter.convert()
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/aa0b852a4588cea4d36b74feb05d93055540b450">aa0b852a4588cea4d36b74feb05d93055540b450</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Lukas Geiger via <a href="https://github.com/tensorflow/tensorflow/issues/53767">Github issue</a>.</p>

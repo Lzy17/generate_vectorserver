@@ -1,0 +1,79 @@
+<h1>Linear Algebra Libraries</h1>
+<p>ROCm libraries for linear algebra are as follows:</p>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} {doc}<code>rocBLAS &lt;rocblas:index&gt;</code>
+<code>rocBLAS</code> is an AMD GPU optimized library for BLAS (Basic Linear Algebra Subprograms).</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocblas:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocBLAS/blob/develop/CHANGELOG.md">Changelog</a></li>
+<li><a href="https://github.com/amd/rocm-examples/tree/develop/Libraries/rocBLAS">Examples</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipBLAS &lt;hipblas:index&gt;</code>
+<code>hipBLAS</code> is a compatibility layer for GPU accelerated BLAS optimized for AMD GPUs
+via <code>rocBLAS</code> and <code>rocSOLVER</code>. <code>hipBLAS</code> allows for a common interface for other GPU
+BLAS libraries.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hipblas:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipBLAS/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipBLASLt &lt;hipblaslt:index&gt;</code>
+<code>hipBLASLt</code> is a library that provides general matrix-matrix operations with a
+flexible API and extends functionalities beyond traditional BLAS library.
+<code>hipBLASLt</code> is exposed APIs in HIP programming language with an underlying
+optimized generator as a back-end kernel provider.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hipblaslt:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipBLASLt/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>rocALUTION &lt;rocalution:index&gt;</code>
+<code>rocALUTION</code> is a sparse linear algebra library with focus on exploring
+fine-grained parallelism on top of AMD's ROCm runtime and toolchains, targeting
+modern CPU and GPU platforms.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocalution:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocALUTION/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>rocWMMA &lt;rocwmma:index&gt;</code>
+<code>rocWMMA</code> provides an API to break down mixed precision matrix multiply-accumulate
+(MMA) problems into fragments and distributes these over GPU wavefronts.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocwmma:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocWMMA/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>rocSOLVER &lt;rocsolver:index&gt;</code>
+<code>rocSOLVER</code> provides a subset of LAPACK (Linear Algebra Package) functionality on the ROCm platform.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocsolver:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocSOLVER/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipSOLVER &lt;hipsolver:index&gt;</code>
+<code>hipSOLVER</code> is a LAPACK marshalling library supporting both <code>rocSOLVER</code> and <code>cuSOLVER</code>
+as backends whilst exporting a unified interface.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hipsolver:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipSOLVER/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>rocSPARSE &lt;rocsparse:index&gt;</code>
+<code>rocSPARSE</code> is a library to provide BLAS for sparse computations.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;rocsparse:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocSOLVER/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::{grid-item-card} {doc}<code>hipSPARSE &lt;hipsparse:index&gt;</code>
+<code>hipSPARSE</code> is a marshalling library to provide sparse BLAS functionality,
+supporting both <code>rocSPARSE</code> and <code>cuSPARSE</code> as backends.</p>
+<ul>
+<li>{doc}<code>Documentation &lt;hipsparse:index&gt;</code></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/hipSOLVER/blob/develop/CHANGELOG.md">Changelog</a></li>
+</ul>
+<p>:::</p>
+<p>:::::</p>

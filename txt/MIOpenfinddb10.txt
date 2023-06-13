@@ -1,0 +1,24 @@
+<h1>Find-Db Database</h1>
+<p>Prior to MIOpen 2.0, users utilized calls such as <code>miopenFindConvolution*Algorithm()</code> to gather a set of convolution algorithms in the form of an array of <code>miopenConvSolution_t</code> structs. This process is time consuming because it requires online benchmarking of competing algorithms. In MIOpen 2.0 an <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html">immediate mode</a> is introduced. </p>
+<p>Immediate mode is based on a database which contains the results of calls to the legacy Find() stage. This database is called <code>Find-Db</code>. It consists of two parts:
+- <strong>System Find-Db</strong>, a system-wide storage which holds the pre-run values for the most applicable configurations,
+- <strong>User Find-Db</strong>, a per-user storage which is intended to hold results for arbitrary user-run configurations. It also performs double duty as a cache for the Find() stage.</p>
+<p>The User Find-Db <strong>always takes precedence</strong> over System Find-Db.</p>
+<p>By default, System Find-Db resides within MIOpen's install location, while User Find-Db resides in the user's home directory. See <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#setting-up-locations">Setting up locations</a> for more information.</p>
+<ul>
+<li>The System Find-Db is <em>not</em> modified upon installation of MIOpen.</li>
+<li>There are separate Find databases for HIP and OpenCL backends.</li>
+</ul>
+<h3>Populating the User Find-Db</h3>
+<p>MIOpen collects Find-db information during the following MIOpen API calls:
+- <code>miopenFindConvolutionForwardAlgorithm()</code>
+- <code>miopenFindConvolutionBackwardDataAlgorithm()</code>
+- <code>miopenFindConvolutionBackwardWeightsAlgorithm()</code></p>
+<p>During the call, find data entries are collected for one <em>problem configuration</em> (implicitly defined by the tensor descriptors and convolution descriptor passed to API function).</p>
+<h3>Updating MIOpen and the User Find-Db</h3>
+<p>When the user installs a new version of MIOpen, the new version of MIOpen will <em>ignore</em> old <strong>User find-db</strong><em> files. Thus, the user is <em>not required</em> to move or delete their old User find-db files. However, the user may wish to re-collect the information into their brand new </em><em>User find-db</em>*. This should be done in the same way as it was done with the previous version of the library -- <em>if</em> it was done. This would keep Immediate mode optimized.</p>
+<h3>Disabling Find-Db</h3>
+<p>By default MIOpen will use the Find-Db. Users can disable the Find-Db by setting the environmental variable <code>MIOPEN_DEBUG_DISABLE_FIND_DB</code> to 1:
+<code>export MIOPEN_DEBUG_DISABLE_FIND_DB=1</code></p>
+<p><strong>Note:</strong> The System Find-Db has the ability to be cached into memory and may increase performance dramatically. To disable this option use the cmake configuration flag:
+<code>-DMIOPEN_DEBUG_FIND_DB_CACHING=Off</code></p>

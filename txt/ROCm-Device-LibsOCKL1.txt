@@ -1,0 +1,399 @@
+<h1>OCKL User Guide</h1>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#what-is-ockl">What Is OCKL</a></li>
+<li><a href="#using-ocml">Using OCKL</a></li>
+<li><a href="#standard-usage">Standard Usage</a></li>
+<li><a href="#controls">Controls</a></li>
+<li><a href="#versioning">Versioning</a></li>
+<li><a href="#naming-convention">Naming convention</a></li>
+<li><a href="#supported-functions">Supported functions</a></li>
+</ul>
+<h2>Introduction</h2>
+<h3>What Is OCKL</h3>
+<p>OCKL is an LLVM-IR bitcode library designed to provide access to certain hardware
+and compiler capabilities needed by language runtimes.  It should rarely be necessary
+to call any of these functions directly from application code.  Consider this library
+a "detail" layer.</p>
+<h2>Using OCKL</h2>
+<h3>Standard Usage</h3>
+<p>OCKL is expected to be used in a standard LLVM compilation flow as follows:
+  * Compile source modules to LLVM-IR bitcode (clang)
+  * Link together program bitcode with library bitcode including OCKL and OCLC.
+  * Run generic optimizations (opt)
+  * Code generation (llc)</p>
+<h3>Controls</h3>
+<p>OCKL supports a number of controls that are provided by linking in specifically named inline
+functions.  These functions are inlined at optimization time and result in specific paths
+taken with no control flow overhead.  These functions all have the form (in C)</p>
+<pre><code>__attribute__((always_inline, const)) int
+__oclc_control(void)
+{ return 1; } // or 0 to disable
+</code></pre>
+<p>The currently supported control are
+  * <code>finite_only_opt</code> - floating point Inf and NaN are never expected to be consumed or produced
+  * <code>unsafe_math_opt</code> - lower accuracy results may be produced with higher performance
+  * <code>daz_opt</code> - subnormal values consumed and produced may be flushed to zero
+  * <code>correctly_rounded_sqrt32</code> - float square root must be correctly rounded
+  * <code>ISA_version</code> - an integer representation of the ISA version of the target device</p>
+<h3>Versioning</h3>
+<p>OCKL usually ships as a single LLVM-IR bitcode file named</p>
+<pre><code>ocml-{LLVM rev}-{OCKL rev}.bc
+</code></pre>
+<p>where <code>{LLVM rev}</code> is the version of LLVM used to create the file, of the
+form X.Y, e.g. 3.8, and <code>{OCKL rev}</code> is the OCKL library version of the form X.Y, currently 0.9.</p>
+<h3>Naming convention</h3>
+<p>OCKL functions follow a simple naming convention:</p>
+<pre><code>__ockl_{function}_{type suffix}
+</code></pre>
+<p>where {type suffix} generally indicates the type of the arguments and/or returned result using a type letter,
+e.g. "u" for unsigned integer, and a bit width, e.g. 32.</p>
+<h3>Supported functions</h3>
+<p>The following table lists the available functions along with a brief description of each:</p>
+<p>| <strong>function</strong> | <strong>Brief Description</strong> |
+| :--- | :--- |
+| <code>uchar __ockl_clz_u8(uchar);</code> | Count leading zeroes |
+| <code>ushort __ockl_clz_u16(ushort);</code> | |
+| <code>uint __ockl_clz_u32(uint);</code> | |
+| <code>ulong __ockl_clz_u64(ulong);</code> | |
+| - | |
+| <code>uchar __ockl_ctz_u8(uchar);</code> | Count trailing zeroes |
+| <code>ushort __ockl_ctz_u16(ushort);</code> | |
+| <code>uint __ockl_ctz_u32(uint);</code> | |
+| <code>ulong __ockl_ctz_u64(ulong);</code> | |
+| - | |
+| <code>uint __ockl_popcount_u32(uint);</code> | Count nonzero bits |
+| <code>ulong __ockl_popcount_u64(ulong);</code> | |
+| - | |
+| <code>int __ockl_add_sat_i32(int,int);</code> | Add with saturation |
+| <code>uint __ockl_add_sat_u32(uint,uint);</code> | |
+| <code>long __ockl_add_sat_i64(long,long);</code> | |
+| <code>ulong __ockl_add_sat_u64(ulong,ulong);</code> | |
+| - | |
+| <code>int __ockl_sub_sat_i32(int,int);</code> | Subtract with saturation |
+| <code>uint __ockl_sub_sat_u32(uint,uint);</code> | |
+| <code>long __ockl_sub_sat_i64(long,long);</code> | |
+| <code>ulong __ockl_sub_sat_u64(ulong,ulong);</code> | |
+| - | |
+| <code>int __ockl_mul_hi_i32(int,int);</code> | High part of multiplication |
+| <code>uint __ockl_mul_hi_u32(uint,uint);</code> | |
+| <code>long __ockl_mul_hi_i64(long,long);</code> | |
+| <code>ulong __ockl_mul_hi_u64(ulong,ulong);</code> | |
+| - | |
+| <code>int __ockl_mul24_i32(int,int);</code> | Multiply assuming operands fit in 24 bits |
+| <code>uint __ockl_mul24_u32(uint,uint);</code> | |
+| - | |
+| <code>ulong __ockl_cyclectr_u64(void);</code> | Current value of free running 64-bit clock counter |
+| <code>ulong __ockl_steadyctr_u64(void);</code> | Current value of constant speed 64-bit clock counter |
+| - | |
+| <code>uint __ockl_activelane_u32(void);</code> | Index of currently lane counting only active lanes in wavefront |
+| - | |
+| <code>half __ockl_wfred_add_f16(half x);</code> | ADD reduction across wavefront |
+| <code>float __ockl_wfred_add_f32(float x);</code> | |
+| <code>double __ockl_wfred_add_f64(double x);</code> | |
+| <code>int __ockl_wfred_add_i32(int x);</code> | |
+| <code>long __ockl_wfred_add_i64(long x);</code> | |
+| <code>uint __ockl_wfred_add_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_add_u64(ulong x);</code> | AND reduction across wavefront |
+| <code>int __ockl_wfred_and_i32(int x);</code> | |
+| <code>long __ockl_wfred_and_i64(long x);</code> | |
+| <code>uint __ockl_wfred_and_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_and_u64(ulong x);</code> | |
+| <code>half __ockl_wfred_max_f16(half x);</code> | MAX reduction across wavefront |
+| <code>float __ockl_wfred_max_f32(float x);</code> | |
+| <code>double __ockl_wfred_max_f64(double x);</code> | |
+| <code>int __ockl_wfred_max_i32(int x);</code> | |
+| <code>long __ockl_wfred_max_i64(long x);</code> | |
+| <code>uint __ockl_wfred_max_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_max_u64(ulong x);</code> | |
+| <code>half __ockl_wfred_min_f16(half x);</code> | MIN reduction across wavefront |
+| <code>float __ockl_wfred_min_f32(float x);</code> | |
+| <code>double __ockl_wfred_min_f64(double x);</code> | |
+| <code>int __ockl_wfred_min_i32(int x);</code> | |
+| <code>long __ockl_wfred_min_i64(long x);</code> | |
+| <code>uint __ockl_wfred_min_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_min_u64(ulong x);</code> | |
+| <code>int __ockl_wfred_or_i32(int x);</code> | OR reduction across wavefront |
+| <code>long __ockl_wfred_or_i64(long x);</code> | |
+| <code>uint __ockl_wfred_or_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_or_u64(ulong x);</code> | |
+| <code>int __ockl_wfred_xor_i32(int x);</code> | XOR reduction across wavefront |
+| <code>long __ockl_wfred_xor_i64(long x);</code> | |
+| <code>uint __ockl_wfred_xor_u32(uint x);</code> | |
+| <code>ulong __ockl_wfred_xor_u64(ulong x);</code> | |
+| <code>half __ockl_wfscan_add_f16(half x, bool inclusive);</code> | ADD scan across wavefront |
+| <code>float __ockl_wfscan_add_f32(float x, bool inclusive);</code> | |
+| <code>double __ockl_wfscan_add_f64(double x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_add_i32(int x, bool inclusive);</code> | |
+| <code>long __ockl_wfscan_add_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_add_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_add_u64(ulong x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_and_i32(int x, bool inclusive);</code> | AND scan across wavefront |
+| <code>long __ockl_wfscan_and_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_and_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_and_u64(ulong x, bool inclusive);</code> | |
+| <code>half __ockl_wfscan_max_f16(half x, bool inclusive);</code> | MAX scan across wavefront |
+| <code>float __ockl_wfscan_max_f32(float x, bool inclusive);</code> | |
+| <code>double __ockl_wfscan_max_f64(double x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_max_i32(int x, bool inclusive);</code> | |
+| <code>long __ockl_wfscan_max_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_max_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_max_u64(ulong x, bool inclusive);</code> | |
+| <code>half __ockl_wfscan_min_f16(half x, bool inclusive);</code> | MIN scan across wavefront |
+| <code>float __ockl_wfscan_min_f32(float x, bool inclusive);</code> | |
+| <code>double __ockl_wfscan_min_f64(double x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_min_i32(int x, bool inclusive);</code> | |
+| <code>long __ockl_wfscan_min_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_min_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_min_u64(ulong x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_or_i32(int x, bool inclusive);</code> | OR scan across wavefront |
+| <code>long __ockl_wfscan_or_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_or_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_or_u64(ulong x, bool inclusive);</code> | |
+| <code>int __ockl_wfscan_xor_i32(int x, bool inclusive);</code> | XOR scan across wavefront |
+| <code>long __ockl_wfscan_xor_i64(long x, bool inclusive);</code> | |
+| <code>uint __ockl_wfscan_xor_u32(uint x, bool inclusive);</code> | |
+| <code>ulong __ockl_wfscan_xor_u64(ulong x, bool inclusive);</code> | |
+| <code>uint __ockl_wfbcast_u32(uint x, uint i);</code> | Broadcast to wavefront |
+| <code>ulong __ockl_wfbcast_u64(ulong x, uint i);</code> | |
+| - | |
+| <code>bool __ockl_wfany_i32(int e);</code> | Detect any nonzero across wavefront |
+| <code>bool __ockl_wfall_i32(int e);</code> | Detect all nozero across wavefront |
+| <code>bool __ockl_wfsame_i32(int e);</code> | Detect same across wavefront  |
+| - | |
+| <code>uint __ockl_bfm_u32(uint,uint);</code> | Bit field mask |
+| <code>int __ockl_bfe_i32(int, uint, uint);</code> | Bit field extract |
+| <code>uint __ockl_bfe_u32(uint,uint,uint);</code> | |
+| <code>uint __ockl_bitalign_u32(uint,uint,uint);</code> | Align on bit boundary |
+| <code>uint __ockl_bytealign_u32(uint,uint,uint);</code> | Align on byte boundary |
+| <code>uint __ockl_lerp_u32(uint,uint,uint);</code> | Add each byte with prescribed carry |
+| <code>float __ockl_max3_f32(float,float,float);</code> | Max of 3 |
+| <code>half __ockl_max3_f16(half,half,half);</code> | |
+| <code>int __ockl_max3_i32(int,int,int);</code> | |
+| <code>uint __ockl_max3_u32(uint,uint,uint);</code> | |
+| <code>float __ockl_median3_f32(float,float,float);</code> | Median of 3 |
+| <code>half __ockl_median3_f16(half,half,half);</code> | |
+| <code>int __ockl_median3_i32(int,int,int);</code> | |
+| <code>uint __ockl_median3_u32(uint,uint,uint);</code> | |
+| <code>float __ockl_min3_f32(float,float,float);</code> | Min of 3 |
+| <code>half __ockl_min3_f16(half,half,half);</code> | |
+| <code>int __ockl_min3_i32(int,int,int);</code> | |
+| <code>uint __ockl_min3_u32(uint,uint,uint);</code> | |
+| <code>ulong __ockl_mqsad_u64(ulong, uint, ulong);</code> | Masked rolling SAD |
+| <code>uint __ockl_pack_u32(float4);</code> | Pack vector to bytes |
+| <code>ulong __ockl_qsad_u64(ulong, uint, ulong);</code> | Rolling SAD |
+| <code>uint __ockl_msad_u32(uint,uint,uint);</code> | Masked SAD |
+| <code>uint __ockl_sad_u32(uint,uint,uint);</code> | SAD |
+| <code>uint __ockl_sadd_u32(uint,uint,uint);</code> | 32-bit SAD |
+| <code>uint __ockl_sadhi_u32(uint,uint,uint);</code> | SAD accululating to high half |
+| <code>uint __ockl_sadw_u32(uint,uint,uint);</code> | 16-bit SAD |
+| <code>float __ockl_unpack0_f32(uint);</code> | Extract byte and convert to float |
+| <code>float __ockl_unpack1_f32(uint);</code> | |
+| <code>float __ockl_unpack2_f32(uint);</code> | |
+| <code>float __ockl_unpack3_f32(uint);</code> | |
+| - | |
+| <code>float4 __ockl_image_load_1D(TSHARP i, int c);</code> | Load from 1D image |
+| <code>float4 __ockl_image_load_1Da(TSHARP i, int2 c);</code> | Load from 1D image array |
+| <code>float4 __ockl_image_load_1Db(TSHARP i, int c);</code> | Load from 1D buffered image |
+| <code>float4 __ockl_image_load_2D(TSHARP i, int2 c);</code> | Load from 2D image |
+| <code>float4 __ockl_image_load_2Da(TSHARP i, int4 c);</code> | Load from 2D image array |
+| <code>float __ockl_image_load_2Dad(TSHARP i, int4 c);</code> | Load from 2D depth image array |
+| <code>float __ockl_image_load_2Dd(TSHARP i, int2 c);</code> | Load from 2D depth image |
+| <code>float4 __ockl_image_load_3D(TSHARP i, int4 c);</code> | Load from 3D image |
+| <code>float4 __ockl_image_load_CM(TSHARP i, int2 c, int f);</code> | Load from cubemap |
+| <code>float4 __ockl_image_load_CMa(TSHARP i, int4 c, int f);</code> | Load from cubemap array |
+| - | |
+| <code>float4 __ockl_image_load_mip_1D(TSHARP i, int c, int l);</code> | Load from mipmapped image |
+| <code>float4 __ockl_image_load_mip_1Da(TSHARP i, int2 c, int l);</code> | |
+| <code>float4 __ockl_image_load_mip_2D(TSHARP i, int2 c, int l);</code> | |
+| <code>float4 __ockl_image_load_mip_2Da(TSHARP i, int4 c, int l);</code> | |
+| <code>float __ockl_image_load_mip_2Dad(TSHARP i, int4 c, int l);</code> | |
+| <code>float __ockl_image_load_mip_2Dd(TSHARP i, int2 c, int l);</code> | |
+| <code>float4 __ockl_image_load_mip_3D(TSHARP i, int4 c, int l);</code> | |
+| <code>float4 __ockl_image_load_mip_CM(TSHARP i, int2 c, int f, int l);</code> | |
+| <code>float4 __ockl_image_load_mip_CMa(TSHARP i, int4 c, int f, int l);</code> | |
+| - | |
+| <code>half4 __ockl_image_loadh_1D(TSHARP i, int c);</code> | Load from image returning half precision |
+| <code>half4 __ockl_image_loadh_1Da(TSHARP i, int2 c);</code> | |
+| <code>half4 __ockl_image_loadh_1Db(TSHARP i, int c);</code> | |
+| <code>half4 __ockl_image_loadh_2D(TSHARP i, int2 c);</code> | |
+| <code>half4 __ockl_image_loadh_2Da(TSHARP i, int4 c);</code> | |
+| <code>half4 __ockl_image_loadh_3D(TSHARP i, int4 c);</code> | |
+| <code>half4 __ockl_image_loadh_CM(TSHARP i, int2 c, int f);</code> | |
+| <code>half4 __ockl_image_loadh_CMa(TSHARP i, int4 c, int f);</code> | |
+| <code>half4 __ockl_image_loadh_mip_1D(TSHARP i, int c, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_1Da(TSHARP i, int2 c, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_2D(TSHARP i, int2 c, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_2Da(TSHARP i, int4 c, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_3D(TSHARP i, int4 c, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_CM(TSHARP i, int2 c, int f, int l);</code> | |
+| <code>half4 __ockl_image_loadh_mip_CMa(TSHARP i, int4 c, int f, int l);</code> | |
+| - | |
+| <code>void __ockl_image_store_1D(TSHARP i, int c, float4 p);</code> | Store to image |
+| <code>void __ockl_image_store_1Da(TSHARP i, int2 c, float4 p);</code> | |
+| <code>void __ockl_image_store_1Db(TSHARP i, int c, float4 p);</code> | |
+| <code>void __ockl_image_store_2D(TSHARP i, int2 c, float4 p);</code> | |
+| <code>void __ockl_image_store_2Da(TSHARP i, int4 c, float4 p);</code> | |
+| <code>void __ockl_image_store_2Dad(TSHARP i, int4 c, float p);</code> | |
+| <code>void __ockl_image_store_2Dd(TSHARP i, int2 c, float p);</code> | |
+| <code>void __ockl_image_store_3D(TSHARP i, int4 c, float4 p);</code> | |
+| <code>void __ockl_image_store_CM(TSHARP i, int2 c, int f, float4 p);</code> | |
+| <code>void __ockl_image_store_CMa(TSHARP i, int4 c, int f, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_1D(TSHARP i, int c, int l, float4 p);</code> | Store to level of mipmapped image |
+| - | |
+| <code>void __ockl_image_store_lod_1Da(TSHARP i, int2 c, int l, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_2D(TSHARP i, int2 c, int l, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_2Da(TSHARP i, int4 c, int l, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_2Dad(TSHARP i, int4 c, int l, float p);</code> | |
+| <code>void __ockl_image_store_lod_2Dd(TSHARP i, int2 c, int l, float p);</code> | |
+| <code>void __ockl_image_store_lod_3D(TSHARP i, int4 c, int l, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_CM(TSHARP i, int2 c, int f, int l, float4 p);</code> | |
+| <code>void __ockl_image_store_lod_CMa(TSHARP i, int4 c, int f, int l, float4 p);</code> | |
+| - | |
+| <code>void __ockl_image_storeh_1D(TSHARP i, int c, half4 p);</code> | Store half precision pixel to image|
+| <code>void __ockl_image_storeh_1Da(TSHARP i, int2 c, half4 p);</code> | |
+| <code>void __ockl_image_storeh_1Db(TSHARP i, int c, half4 p);</code> | |
+| <code>void __ockl_image_storeh_2D(TSHARP i, int2 c, half4 p);</code> | |
+| <code>void __ockl_image_storeh_2Da(TSHARP i, int4 c, half4 p);</code> | |
+| <code>void __ockl_image_storeh_3D(TSHARP i, int4 c, half4 p);</code> | |
+| <code>void __ockl_image_storeh_CM(TSHARP i, int2 c, int f, half4 p);</code> | |
+| <code>void __ockl_image_storeh_CMa(TSHARP i, int4 c, int f, half4 p);</code> | |
+| - | |
+| <code>void __ockl_image_storeh_lod_1D(TSHARP i, int c, int l, half4 p);</code> | Store half precision pixel to level of mipmapped image |
+| <code>void __ockl_image_storeh_lod_1Da(TSHARP i, int2 c, int l, half4 p);</code> | |
+| <code>void __ockl_image_storeh_lod_2D(TSHARP i, int2 c, int l, half4 p);</code> | |
+| <code>void __ockl_image_storeh_lod_2Da(TSHARP i, int4 c, int l, half4 p);</code> | |
+| <code>void __ockl_image_storeh_lod_3D(TSHARP i, int4 c, int l, half4 p);</code> | |
+| <code>void __ockl_image_storeh_lod_CM(TSHARP i, int2 c, int f, int l, half4 p);</code> | |
+| <code>void __ockl_image_storeh_lod_CMa(TSHARP i, int4 c, int f, int l, half4 p);</code> | |
+| - | |
+| <code>float4 __ockl_image_sample_1D(TSHARP i, SSHARP s, float c);</code> | Sample image |
+| <code>float4 __ockl_image_sample_1Da(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>float4 __ockl_image_sample_2D(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>float4 __ockl_image_sample_2Da(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>float __ockl_image_sample_2Dad(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>float __ockl_image_sample_2Dd(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>float4 __ockl_image_sample_3D(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>float4 __ockl_image_sample_CM(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>float4 __ockl_image_sample_CMa(TSHARP i, SSHARP s, float4 c);</code> | |
+| - | |
+| <code>float4 __ockl_image_sample_grad_1D(TSHARP i, SSHARP s, float c, float dx, float dy);</code> | Sample mipmapped image using gradient |
+| <code>float4 __ockl_image_sample_grad_1Da(TSHARP i, SSHARP s, float2 c, float dx, float dy);</code> | |
+| <code>float4 __ockl_image_sample_grad_2D(TSHARP i, SSHARP s, float2 c, float2 dx, float2 dy);</code> | |
+| <code>float4 __ockl_image_sample_grad_2Da(TSHARP i, SSHARP s, float4 c, float2 dx, float2 dy);</code> | |
+| <code>float __ockl_image_sample_grad_2Dad(TSHARP i, SSHARP s, float4 c, float2 dx, float2 dy);</code> | |
+| <code>float __ockl_image_sample_grad_2Dd(TSHARP i, SSHARP s, float2 c, float2 dx, float2 dy);</code> | |
+| <code>float4 __ockl_image_sample_grad_3D(TSHARP i, SSHARP s, float4 c, float4 dx, float4 dy);</code> | |
+| - | |
+| <code>float4 __ockl_image_sample_lod_1D(TSHARP i, SSHARP s, float c, float l);</code> | Sample mipmapped image using LOD |
+| <code>float4 __ockl_image_sample_lod_1Da(TSHARP i, SSHARP s, float2 c, float l);</code> | |
+| <code>float4 __ockl_image_sample_lod_2D(TSHARP i, SSHARP s, float2 c, float l);</code> | |
+| <code>float4 __ockl_image_sample_lod_2Da(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>float __ockl_image_sample_lod_2Dad(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>float __ockl_image_sample_lod_2Dd(TSHARP i, SSHARP s, float2 c, float l);</code> | |
+| <code>float4 __ockl_image_sample_lod_3D(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>float4 __ockl_image_sample_lod_CM(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>float4 __ockl_image_sample_lod_CMa(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| - | |
+| <code>half4 __ockl_image_sampleh_1D(TSHARP i, SSHARP s, float c);</code> | Sample image returning half precision |
+| <code>half4 __ockl_image_sampleh_1Da(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>half4 __ockl_image_sampleh_2D(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>half4 __ockl_image_sampleh_2Da(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>half4 __ockl_image_sampleh_3D(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>half4 __ockl_image_sampleh_CM(TSHARP i, SSHARP s, float4 c);</code> | |
+| <code>half4 __ockl_image_sampleh_CMa(TSHARP i, SSHARP s, float4 c);</code> | |
+| - | |
+| <code>half4 __ockl_image_sampleh_grad_1D(TSHARP i, SSHARP s, float c, float dx, float dy);</code> | Sample mipmapped image using gradient returning half precision |
+| <code>half4 __ockl_image_sampleh_grad_1Da(TSHARP i, SSHARP s, float2 c, float dx, float dy);</code> | |
+| <code>half4 __ockl_image_sampleh_grad_2D(TSHARP i, SSHARP s, float2 c, float2 dx, float2 dy);</code> | |
+| <code>half4 __ockl_image_sampleh_grad_2Da(TSHARP i, SSHARP s, float4 c, float2 dx, float2 dy);</code> | |
+| <code>half4 __ockl_image_sampleh_grad_3D(TSHARP i, SSHARP s, float4 c, float4 dx, float4 dy);</code> | |
+| - | |
+| <code>half4 __ockl_image_sampleh_lod_1D(TSHARP i, SSHARP s, float c, float l);</code> | Sample mipmapped image using LOD returning half precision |
+| <code>half4 __ockl_image_sampleh_lod_1Da(TSHARP i, SSHARP s, float2 c, float l);</code> | |
+| <code>half4 __ockl_image_sampleh_lod_2D(TSHARP i, SSHARP s, float2 c, float l);</code> | |
+| <code>half4 __ockl_image_sampleh_lod_2Da(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>half4 __ockl_image_sampleh_lod_3D(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>half4 __ockl_image_sampleh_lod_CM(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| <code>half4 __ockl_image_sampleh_lod_CMa(TSHARP i, SSHARP s, float4 c, float l);</code> | |
+| - | |
+| <code>float4 __ockl_image_gather4r_2D(TSHARP i, SSHARP s, float2 c);</code> | Gather 2x2 channel from image |
+| <code>float4 __ockl_image_gather4g_2D(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>float4 __ockl_image_gather4b_2D(TSHARP i, SSHARP s, float2 c);</code> | |
+| <code>float4 __ockl_image_gather4a_2D(TSHARP i, SSHARP s, float2 c);</code> | |
+| - | |
+| <code>int __ockl_image_array_size_1Da(TSHARP i);</code> | Get image array size |
+| <code>int __ockl_image_array_size_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_array_size_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_array_size_CMa(TSHARP i);</code> | |
+| - | |
+| <code>int __ockl_image_channel_data_type_1D(TSHARP i);</code> | Get image channel data type |
+| <code>int __ockl_image_channel_data_type_1Da(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_1Db(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_2D(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_2Dd(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_3D(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_CM(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_data_type_CMa(TSHARP i);</code> | |
+| - | |
+| <code>int __ockl_image_channel_order_1D(TSHARP i);</code> | Get image channel order |
+| <code>int __ockl_image_channel_order_1Da(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_1Db(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_2D(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_2Dd(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_3D(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_CM(TSHARP i);</code> | |
+| <code>int __ockl_image_channel_order_CMa(TSHARP i);</code> | |
+| - | |
+| <code>int __ockl_image_depth_3D(TSHARP i);</code> | Get 3D image depth |
+| - | |
+| <code>int __ockl_image_height_2D(TSHARP i);</code> | Get image height |
+| <code>int __ockl_image_height_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_height_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_height_2Dd(TSHARP i);</code> | |
+| <code>int __ockl_image_height_3D(TSHARP i);</code> | |
+| <code>int __ockl_image_height_CM(TSHARP i);</code> | |
+| <code>int __ockl_image_height_CMa(TSHARP i);</code> | |
+| - | |
+| <code>int __ockl_image_num_mip_levels_1D(TSHARP i);</code> | Get number of levels in mipmapped image |
+| <code>int __ockl_image_num_mip_levels_1Da(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_2D(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_2Dd(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_3D(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_CM(TSHARP i);</code> | |
+| <code>int __ockl_image_num_mip_levels_CMa(TSHARP i);</code> | |
+| - | |
+| <code>int __ockl_image_width_1D(TSHARP i);</code> | Get image width |
+| <code>int __ockl_image_width_1Da(TSHARP i);</code> | |
+| <code>int __ockl_image_width_1Db(TSHARP i);</code> | |
+| <code>int __ockl_image_width_2D(TSHARP i);</code> | |
+| <code>int __ockl_image_width_2Da(TSHARP i);</code> | |
+| <code>int __ockl_image_width_2Dad(TSHARP i);</code> | |
+| <code>int __ockl_image_width_2Dd(TSHARP i);</code> | |
+| <code>int __ockl_image_width_3D(TSHARP i);</code> | |
+| <code>int __ockl_image_width_CM(TSHARP i);</code> | |
+| <code>int __ockl_image_width_CMa(TSHARP i);</code> | |
+| - | |
+| <code>size_t __ockl_get_global_offset(uint);</code> | Get grid global offset (OpenCL) of dimension |
+| <code>size_t __ockl_get_global_id(uint);</code> | Get workitem global ID of dimension |
+| <code>size_t __ockl_get_local_id(uint);</code> | Get workitem local ID of dimension |
+| <code>size_t __ockl_get_group_id(uint);</code> | Get ID of group workitem resides in of dimension |
+| <code>size_t __ockl_get_global_size(uint);</code> | Get global size of dimension |
+| <code>size_t __ockl_get_local_size(uint);</code> | Get local size of dimension |
+| <code>size_t __ockl_get_num_groups(uint);</code> | Get number of groups in dimension |
+| <code>uint __ockl_get_work_dim(void);</code> | Get grid number of dimensions |
+| <code>size_t __ockl_get_enqueued_local_size(uint);</code> | Get enqueued local size of dimension |
+| <code>size_t __ockl_get_global_linear_id(void);</code> | Get global linear ID of workitem|
+| <code>size_t __ockl_get_local_linear_id(void);</code> | Get local linear ID of workitem |
+| - | |
+| <code>bool __ockl_is_local_addr(const void *);</code> | Test if generic address is local |
+| <code>bool __ockl_is_private_addr(const void *);</code> | Test if generic address is private |
+| <code>__global void * __ockl_to_global(void *);</code> | Convert generic address to global address |
+| <code>__local void * __ockl_to_local(void *);</code> | Convert generic address to local address |
+| <code>__private void * __ockl_to_private(void *);</code> | Convert generic address to private address |</p>

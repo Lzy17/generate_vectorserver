@@ -1,0 +1,10 @@
+<h2>TFSA-2022-043: <code>CHECK</code>-failures during Grappler's <code>IsSimplifiableReshape</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23581</p>
+<h3>Impact</h3>
+<p>The Grappler optimizer in TensorFlow can be used to cause a denial of service by altering a <code>SavedModel</code> such that <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/optimizers/constant_folding.cc#L1687-L1742"><code>IsSimplifiableReshape</code></a> would trigger <code>CHECK</code> failures.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/ebc1a2ffe5a7573d905e99bd0ee3568ee07c12c1">ebc1a2ffe5a7573d905e99bd0ee3568ee07c12c1</a>, <a href="https://github.com/tensorflow/tensorflow/commit/1fb27733f943295d874417630edd3b38b34ce082">1fb27733f943295d874417630edd3b38b34ce082</a>, and <a href="https://github.com/tensorflow/tensorflow/commit/240655511cd3e701155f944a972db71b6c0b1bb6">240655511cd3e701155f944a972db71b6c0b1bb6</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

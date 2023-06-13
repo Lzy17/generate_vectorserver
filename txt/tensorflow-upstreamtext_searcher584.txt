@@ -1,0 +1,146 @@
+<h1>Integrate text searchers</h1>
+<p>Text search allows searching for semantically similar text in a corpus. It works
+by embedding the search query into a high-dimensional vector representing the
+semantic meaning of the query, followed by similarity search in a predefined,
+custom index using
+<a href="https://github.com/google-research/google-research/tree/master/scann">ScaNN</a>
+(Scalable Nearest Neighbors).</p>
+<p>As opposed to text classification (e.g.
+<a href="https://www.tensorflow.org/lite/inference_with_metadata/task_library/bert_nl_classifier">Bert natural language classifier</a>),
+expanding the number of items that can be recognized doesn't require re-training
+the entire model. New items can be added simply re-building the index. This also
+enables working with larger (100k+ items) corpuses.</p>
+<p>Use the Task Library <code>TextSearcher</code> API to deploy your custom text searcher into
+your mobile apps.</p>
+<h2>Key features of the TextSearcher API</h2>
+<ul>
+<li>
+<p>Takes a single string as input, performs embedding extraction and
+    nearest-neighbor search in the index.</p>
+</li>
+<li>
+<p>Input text processing, including in-graph or out-of-graph
+    <a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/text/tokenizers/bert_tokenizer.h">Wordpiece</a>
+    or
+    <a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/text/tokenizers/sentencepiece_tokenizer.h">Sentencepiece</a>
+    tokenizations on input text.</p>
+</li>
+</ul>
+<h2>Prerequisites</h2>
+<p>Before using the <code>TextSearcher</code> API, an index needs to be built based on the
+custom corpus of text to search into. This can be achieved using
+<a href="https://www.tensorflow.org/lite/api_docs/python/tflite_model_maker/searcher">Model Maker Searcher API</a>
+by following and adapting the
+<a href="https://www.tensorflow.org/lite/models/modify/model_maker/text_searcher">tutorial</a>.</p>
+<p>For this you will need:</p>
+<ul>
+<li>a TFLite text embedder model, such as the Universal Sentence Encoder. For
+    example,<ul>
+<li>the
+    <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite_support/searcher/text_to_image_blogpost/text_embedder.tflite">one</a>
+    retrained in this
+    <a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/examples/colab/on_device_text_to_image_search_tflite.ipynb">Colab</a>,
+    which is optimized for on-device inference. It takes only 6ms to query a
+    text string on Pixel 6.</li>
+<li>the
+    <a href="https://tfhub.dev/google/lite-model/universal-sentence-encoder-qa-ondevice/1">quantized</a>
+    one, which is smaller than the above but takes 38ms for each embedding.</li>
+</ul>
+</li>
+<li>your corpus of text.</li>
+</ul>
+<p>After this step, you should have a standalone TFLite searcher model (e.g.
+<code>mobilenet_v3_searcher.tflite</code>), which is the original text embedder model with
+the index attached into the
+<a href="https://www.tensorflow.org/lite/models/convert/metadata">TFLite Model Metadata</a>.</p>
+<h2>Run inference in Java</h2>
+<h3>Step 1: Import Gradle dependency and other settings</h3>
+<p>Copy the <code>.tflite</code> searcher model file to the assets directory of the Android
+module where the model will be run. Specify that the file should not be
+compressed, and add the TensorFlow Lite library to the module’s <code>build.gradle</code>
+file:</p>
+<p>```java
+android {
+    // Other settings</p>
+<pre><code>// Specify tflite index file should not be compressed for the app apk
+aaptOptions {
+    noCompress "tflite"
+}
+</code></pre>
+<p>}</p>
+<p>dependencies {
+    // Other dependencies</p>
+<pre><code>// Import the Task Vision Library dependency (NNAPI is included)
+implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.0'
+// Import the GPU delegate plugin Library for GPU inference
+implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
+</code></pre>
+<p>}
+```</p>
+<h3>Step 2: Using the model</h3>
+<p>```java
+// Initialization
+TextSearcherOptions options =
+    TextSearcherOptions.builder()
+        .setBaseOptions(BaseOptions.builder().useGpu().build())
+        .setSearcherOptions(
+            SearcherOptions.builder().setL2Normalize(true).build())
+        .build();
+TextSearcher textSearcher =
+    textSearcher.createFromFileAndOptions(context, modelFile, options);</p>
+<p>// Run inference
+List<NearestNeighbor> results = textSearcher.search(text);
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/java/src/java/org/tensorflow/lite/task/text/searcher/TextSearcher.java">source code and javadoc</a>
+for more options to configure the <code>TextSearcher</code>.</p>
+<h2>Run inference in C++</h2>
+<p>```c++
+// Initialization
+TextSearcherOptions options;
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_path);
+options.mutable_embedding_options()-&gt;set_l2_normalize(true);
+std::unique_ptr<TextSearcher> text_searcher = TextSearcher::CreateFromOptions(options).value();</p>
+<p>// Run inference with your input, <code>input_text</code>.
+const SearchResult result = text_searcher-&gt;Search(input_text).value();
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/cc/task/text/text_searcher.h">source code</a>
+for more options to configure <code>TextSearcher</code>.</p>
+<h2>Run inference in Python</h2>
+<h3>Step 1: Install TensorFlow Lite Support Pypi package.</h3>
+<p>You can install the TensorFlow Lite Support Pypi package using the following
+command:</p>
+<p><code>sh
+pip install tflite-support</code></p>
+<h3>Step 2: Using the model</h3>
+<p>```python
+from tflite_support.task import text</p>
+<h1>Initialization</h1>
+<p>text_searcher = text.TextSearcher.create_from_file(model_path)</p>
+<h1>Run inference</h1>
+<p>result = text_searcher.search(text)
+```</p>
+<p>See the
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/python/task/text/text_searcher.py">source code</a>
+for more options to configure <code>TextSearcher</code>.</p>
+<h2>Example results</h2>
+<p><code>Results:
+ Rank#0:
+  metadata: The sun was shining on that day.
+  distance: 0.04618
+ Rank#1:
+  metadata: It was a sunny day.
+  distance: 0.10856
+ Rank#2:
+  metadata: The weather was excellent.
+  distance: 0.15223
+ Rank#3:
+  metadata: The cat is chasing after the mouse.
+  distance: 0.34271
+ Rank#4:
+  metadata: He was very happy with his newly bought car.
+  distance: 0.37703</code></p>
+<p>Try out the simple
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/examples/task/text/desktop#textsearcher">CLI demo tool for TextSearcher</a>
+with your own model and test data.</p>

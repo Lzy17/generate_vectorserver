@@ -1,0 +1,532 @@
+<h1>Performance measurement</h1>
+<h2>Benchmark tools</h2>
+<p>TensorFlow Lite benchmark tools currently measure and calculate statistics for
+the following important performance metrics:</p>
+<ul>
+<li>Initialization time</li>
+<li>Inference time of warmup state</li>
+<li>Inference time of steady state</li>
+<li>Memory usage during initialization time</li>
+<li>Overall memory usage</li>
+</ul>
+<p>The benchmark tools are available as benchmark apps for Android and iOS and as
+native command-line binaries, and they all share the same core performance
+measurement logic. Note that the available options and output formats are
+slightly different due to the differences in runtime environment.</p>
+<h3>Android benchmark app</h3>
+<p>There are two options of using the benchmark tool with Android. One is a
+<a href="#native-benchmark-binary">native benchmark binary</a> and another is an Android
+benchmark app, a better gauge of how the model would perform in the app. Either
+way, the numbers from the benchmark tool will still differ slightly from when
+running inference with the model in the actual app.</p>
+<p>This Android benchmark app has no UI. Install and run it by using the <code>adb</code>
+command and retrieve results by using the <code>adb logcat</code> command.</p>
+<h4>Download or build the app</h4>
+<p>Download the nightly pre-built Android benchmark apps using the links below:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model.apk">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model.apk">android_arm</a></li>
+</ul>
+<p>As for Android benchmark apps that support <a href="https://www.tensorflow.org/lite/guide/ops_select">TF ops</a>
+via <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/flex">Flex delegate</a>,
+use the links below:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model_plus_flex.apk">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model_plus_flex.apk">android_arm</a></li>
+</ul>
+<p>You can also build the app from source by following these
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/android">instructions</a>.</p>
+<p>Note: It is required to build the app from the source if you want to run the
+Android benchmark apk on x86 CPU or Hexagon delegate or if your model contains
+<a href="../guide/ops_select">select TF operators</a> or
+<a href="../guide/ops_custom">custom operators</a>.</p>
+<h4>Prepare benchmark</h4>
+<p>Before running the benchmark app, install the app and push the model file to the
+device as follows:</p>
+<p><code>shell
+adb install -r -d -g android_aarch64_benchmark_model.apk
+adb push your_model.tflite /data/local/tmp</code></p>
+<h4>Run benchmark</h4>
+<p><code>shell
+adb shell am start -S \
+  -n org.tensorflow.lite.benchmark/.BenchmarkModelActivity \
+  --es args '"--graph=/data/local/tmp/your_model.tflite \
+              --num_threads=4"'</code></p>
+<p><code>graph</code> is a required parameter.</p>
+<ul>
+<li><code>graph</code>: <code>string</code> \
+    The path to the TFLite model file.</li>
+</ul>
+<p>You can specify more optional parameters for running the benchmark.</p>
+<ul>
+<li><code>num_threads</code>: <code>int</code> (default=1) \
+    The number of threads to use for running TFLite interpreter.</li>
+<li><code>use_gpu</code>: <code>bool</code> (default=false) \
+    Use <a href="gpu">GPU delegate</a>.</li>
+<li><code>use_nnapi</code>: <code>bool</code> (default=false) \
+    Use <a href="nnapi">NNAPI delegate</a>.</li>
+<li><code>use_xnnpack</code>: <code>bool</code> (default=<code>false</code>) \
+    Use
+    <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/xnnpack">XNNPACK delegate</a>.</li>
+<li><code>use_hexagon</code>: <code>bool</code> (default=<code>false</code>) \
+    Use <a href="hexagon_delegate">Hexagon delegate</a>.</li>
+</ul>
+<p>Depending on the device you are using, some of these options may not be
+available or have no effect. Refer to
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#parameters">parameters</a>
+for more performance parameters that you could run with the benchmark app.</p>
+<p>View the results using the <code>logcat</code> command:</p>
+<p><code>shell
+adb logcat | grep "Inference timings"</code></p>
+<p>The benchmark results are reported as:</p>
+<p><code>... tflite  : Inference timings in us: Init: 5685, First inference: 18535, Warmup (avg): 14462.3, Inference (avg): 14575.2</code></p>
+<h3>Native benchmark binary</h3>
+<p>Benchmark tool is also provided as a native binary <code>benchmark_model</code>. You can
+execute this tool from a shell command line on Linux, Mac, embedded devices and
+Android devices.</p>
+<h4>Download or build the binary</h4>
+<p>Download the nightly pre-built native command-line binaries by following the
+links below:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_benchmark_model">linux_x86-64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_benchmark_model">linux_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_benchmark_model">linux_arm</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model">android_arm</a></li>
+</ul>
+<p>As for nightly pre-built binaries that support <a href="https://www.tensorflow.org/lite/guide/ops_select">TF ops</a>
+via <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/flex">Flex delegate</a>,
+use the links below:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_benchmark_model_plus_flex">linux_x86-64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_benchmark_model_plus_flex">linux_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_benchmark_model_plus_flex">linux_arm</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model_plus_flex">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model_plus_flex">android_arm</a></li>
+</ul>
+<p>To benchmark with <a href="https://www.tensorflow.org/lite/android/delegates/hexagon">TensorFlow Lite Hexagon delegate</a>,
+we have also pre-built the required <code>libhexagon_interface.so</code> files (see <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/delegates/hexagon/README.md">here</a>
+for details about this file). After downloading the file of the corresponding
+platform from the links below, please rename the file to <code>libhexagon_interface.so</code>.</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_libhexagon_interface.so">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_libhexagon_interface.so">android_arm</a></li>
+</ul>
+<p>You can also build the native benchmark binary from
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark">source</a>
+on your computer.</p>
+<p><code>shell
+bazel build -c opt //tensorflow/lite/tools/benchmark:benchmark_model</code></p>
+<p>To build with Android NDK toolchain, you need to set up the build environment
+first by following this
+<a href="../android/lite_build#set_up_build_environment_without_docker">guide</a>, or use
+the docker image as described in this
+<a href="../android/lite_build#set_up_build_environment_using_docker">guide</a>.</p>
+<p><code>shell
+bazel build -c opt --config=android_arm64 \
+  //tensorflow/lite/tools/benchmark:benchmark_model</code></p>
+<p>Note: It is a valid approach to push and execute binaries directly on an Android
+device for benchmarking, but it can result in subtle (but observable)
+differences in performance relative to execution within an actual Android app.
+In particular, Android's scheduler tailors behavior based on thread and process
+priorities, which differ between a foreground Activity/Application and a regular
+background binary executed via <code>adb shell ...</code>. This tailored behavior is most
+evident when enabling multi-threaded CPU execution with TensorFlow Lite.
+Therefore, the Android benchmark app is preferred for performance measurement.</p>
+<h4>Run benchmark</h4>
+<p>To run benchmarks on your computer, execute the binary from the shell.</p>
+<p><code>shell
+path/to/downloaded_or_built/benchmark_model \
+  --graph=your_model.tflite \
+  --num_threads=4</code></p>
+<p>You can use the same set of
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#parameters">parameters</a>
+as mentioned above with the native command-line binary.</p>
+<h4>Profiling model ops</h4>
+<p>The benchmark model binary also allows you to profile model ops and get the
+execution times of each operator. To do this, pass the flag
+<code>--enable_op_profiling=true</code> to <code>benchmark_model</code> during invocation. Details are
+explained
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#profiling-model-operators">here</a>.</p>
+<h3>Native benchmark binary for multiple performance options in a single run</h3>
+<p>A convenient and simple C++ binary is also provided to
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#benchmark-multiple-performance-options-in-a-single-run">benchmark multiple performance options</a>
+in a single run. This binary is built based on the aforementioned benchmark tool
+that could only benchmark a single performance option at a time. They share the
+same build/install/run process, but the BUILD target name of this binary is
+<code>benchmark_model_performance_options</code> and it takes some additional parameters.
+An important parameter for this binary is:</p>
+<p><code>perf_options_list</code>: <code>string</code> (default='all') \
+A comma-separated list of TFLite performance options to benchmark.</p>
+<p>You can get nightly pre-built binaries for this tool as listed below:</p>
+<ul>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_x86-64_benchmark_model_performance_options">linux_x86-64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_aarch64_benchmark_model_performance_options">linux_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/linux_arm_benchmark_model_performance_options">linux_arm</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_aarch64_benchmark_model_performance_options">android_aarch64</a></li>
+<li><a href="https://storage.googleapis.com/tensorflow-nightly-public/prod/tensorflow/release/lite/tools/nightly/latest/android_arm_benchmark_model_performance_options">android_arm</a></li>
+</ul>
+<h3>iOS benchmark app</h3>
+<p>To run benchmarks on iOS device, you need to build the app from
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/ios">source</a>.
+Put the TensorFlow Lite model file in the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/ios/TFLiteBenchmark/TFLiteBenchmark/benchmark_data">benchmark_data</a>
+directory of the source tree and modify the <code>benchmark_params.json</code> file. Those
+files are packaged into the app and the app reads data from the directory. Visit
+the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/ios">iOS benchmark app</a>
+for detailed instructions.</p>
+<h2>Performance benchmarks for well known models</h2>
+<p>This section lists TensorFlow Lite performance benchmarks when running well
+known models on some Android and iOS devices.</p>
+<h3>Android performance benchmarks</h3>
+<p>These performance benchmark numbers were generated with the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark">native benchmark binary</a>.</p>
+<p>For Android benchmarks, the CPU affinity is set to use big cores on the device
+to reduce variance (see
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#reducing-variance-between-runs-on-android">details</a>).</p>
+<p>It assumes that models were downloaded and unzipped to the
+<code>/data/local/tmp/tflite_models</code> directory. The benchmark binary is built using
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark#on-android">these instructions</a>
+and assumed to be in the <code>/data/local/tmp</code> directory.</p>
+<p>To run the benchmark:</p>
+<p><code>sh
+adb shell /data/local/tmp/benchmark_model \
+  --num_threads=4 \
+  --graph=/data/local/tmp/tflite_models/${GRAPH} \
+  --warmup_runs=1 \
+  --num_runs=50</code></p>
+<p>To run with nnapi delegate, set <code>--use_nnapi=true</code>. To run with GPU delegate,
+set <code>--use_gpu=true</code>.</p>
+<p>The performance values below are measured on Android 10.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Model Name</th>
+      <th>Device </th>
+      <th>CPU, 4 threads</th>
+      <th>GPU</th>
+      <th>NNAPI</th>
+    </tr>
+  </thead>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224.tgz">Mobilenet_1.0_224(float)</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>23.9 ms</td>
+    <td>6.45 ms</td>
+    <td>13.8 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>14.0 ms</td>
+    <td>9.0 ms</td>
+    <td>14.8 ms</td>
+  </tr>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224_quant.tgz">Mobilenet_1.0_224 (quant)</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>13.4 ms</td>
+    <td>--- </td>
+    <td>6.0 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>5.0 ms</td>
+    <td>--- </td>
+    <td>3.2 ms</td>
+  </tr>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/nasnet_mobile_2018_04_27.tgz">NASNet mobile</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>56 ms</td>
+    <td>--- </td>
+    <td>102 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>34.5 ms</td>
+    <td>--- </td>
+    <td>99.0 ms</td>
+  </tr>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/squeezenet_2018_04_27.tgz">SqueezeNet</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>35.8 ms</td>
+    <td>9.5 ms </td>
+    <td>18.5 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>23.9 ms</td>
+    <td>11.1 ms</td>
+    <td>19.0 ms</td>
+  </tr>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/inception_resnet_v2_2018_04_27.tgz">Inception_ResNet_V2</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>422 ms</td>
+    <td>99.8 ms </td>
+    <td>201 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>272.6 ms</td>
+    <td>87.2 ms</td>
+    <td>171.1 ms</td>
+  </tr>
+  <tr>
+    <td rowspan = 2>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/inception_v4_2018_04_27.tgz">Inception_V4</a>
+    </td>
+    <td>Pixel 3 </td>
+    <td>486 ms</td>
+    <td>93 ms </td>
+    <td>292 ms</td>
+  </tr>
+   <tr>
+     <td>Pixel 4 </td>
+    <td>324.1 ms</td>
+    <td>97.6 ms</td>
+    <td>186.9 ms</td>
+  </tr>
+
+ </table>
+
+<h3>iOS performance benchmarks</h3>
+<p>These performance benchmark numbers were generated with the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/tools/benchmark/ios">iOS benchmark app</a>.</p>
+<p>To run iOS benchmarks, the benchmark app was modified to include the appropriate
+model and <code>benchmark_params.json</code> was modified to set <code>num_threads</code> to 2. To use
+the GPU delegate, <code>"use_gpu" : "1"</code> and <code>"gpu_wait_type" : "aggressive"</code> options
+were also added to <code>benchmark_params.json</code>.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Model Name</th>
+      <th>Device </th>
+      <th>CPU, 2 threads</th>
+      <th>GPU</th>
+    </tr>
+  </thead>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224.tgz">Mobilenet_1.0_224(float)</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>14.8 ms</td>
+    <td>3.4 ms</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224_quant.tgz)">Mobilenet_1.0_224 (quant)</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>11 ms</td>
+    <td>---</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/nasnet_mobile_2018_04_27.tgz">NASNet mobile</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>30.4 ms</td>
+    <td>---</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/squeezenet_2018_04_27.tgz">SqueezeNet</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>21.1 ms</td>
+    <td>15.5 ms</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/inception_resnet_v2_2018_04_27.tgz">Inception_ResNet_V2</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>261.1 ms</td>
+    <td>45.7 ms</td>
+  </tr>
+  <tr>
+    <td>
+      <a href="https://storage.googleapis.com/download.tensorflow.org/models/tflite/model_zoo/upload_20180427/inception_v4_2018_04_27.tgz">Inception_V4</a>
+    </td>
+    <td>iPhone XS </td>
+    <td>309 ms</td>
+    <td>54.4 ms</td>
+  </tr>
+ </table>
+
+<h2>Trace TensorFlow Lite internals</h2>
+<h3>Trace TensorFlow Lite internals in Android</h3>
+<p>Note: This feature is available from Tensorflow Lite v2.4.</p>
+<p>Internal events from the TensorFlow Lite interpreter of an Android app can be
+captured by
+<a href="https://developer.android.com/topic/performance/tracing">Android tracing tools</a>.
+They are the same events with Android
+<a href="https://developer.android.com/reference/android/os/Trace">Trace</a> API, so the
+captured events from Java/Kotlin code are seen together with TensorFlow Lite
+internal events.</p>
+<p>Some examples of events are:</p>
+<ul>
+<li>Operator invocation</li>
+<li>Graph modification by delegate</li>
+<li>Tensor allocation</li>
+</ul>
+<p>Among different options for capturing traces, this guide covers the Android
+Studio CPU Profiler and the System Tracing app. Refer to
+<a href="https://developer.android.com/studio/command-line/perfetto">Perfetto command-line tool</a>
+or
+<a href="https://developer.android.com/topic/performance/tracing/command-line">Systrace command-line tool</a>
+for other options.</p>
+<h4>Adding trace events in Java code</h4>
+<p>This is a code snippet from the
+<a href="https://github.com/tensorflow/examples/tree/master/lite/examples/image_classification/android">Image Classification</a>
+example app. TensorFlow Lite interpreter runs in the
+<code>recognizeImage/runInference</code> section. This step is optional but it is useful to
+help notice where the inference call is made.</p>
+<p>```java
+  Trace.beginSection("recognizeImage");
+  ...
+  // Runs the inference call.
+  Trace.beginSection("runInference");
+  tflite.run(inputImageBuffer.getBuffer(), outputProbabilityBuffer.getBuffer().rewind());
+  Trace.endSection();
+  ...
+  Trace.endSection();</p>
+<p>```</p>
+<h4>Enable TensorFlow Lite tracing</h4>
+<p>To enable TensorFlow Lite tracing, set the Android system property
+<code>debug.tflite.trace</code> to 1 before starting the Android app.</p>
+<p><code>shell
+adb shell setprop debug.tflite.trace 1</code></p>
+<p>If this property has been set when TensorFlow Lite interpreter is initialized,
+key events (e.g., operator invocation) from the interpreter will be traced.</p>
+<p>After you captured all the traces, disable tracing by setting the property value
+to 0.</p>
+<p><code>shell
+adb shell setprop debug.tflite.trace 0</code></p>
+<h4>Android Studio CPU Profiler</h4>
+<p>Capture traces with the
+<a href="https://developer.android.com/studio/profile/cpu-profiler">Android Studio CPU Profiler</a>
+by following the steps below:</p>
+<ol>
+<li>
+<p>Select <strong>Run &gt; Profile 'app'</strong> from the top menus.</p>
+</li>
+<li>
+<p>Click anywhere in CPU timeline when the Profiler window appears.</p>
+</li>
+<li>
+<p>Select 'Trace System Calls' among CPU Profiling modes.</p>
+<p><img alt="Select 'Trace System Calls'" src="images/as_select_profiling_mode.png" /></p>
+</li>
+<li>
+<p>Press 'Record' button.</p>
+</li>
+<li>
+<p>Press 'Stop' button.</p>
+</li>
+<li>
+<p>Investigate the trace result.</p>
+<p><img alt="Android Studio trace" src="images/as_traces.png" /></p>
+</li>
+</ol>
+<p>In this example, you can see the hierarchy of events in a thread and statistics
+for each operator time and also see the data flow of the whole app among
+threads.</p>
+<h4>System Tracing app</h4>
+<p>Capture traces without Android Studio by following the steps detailed in
+<a href="https://developer.android.com/topic/performance/tracing/on-device">System Tracing app</a>.</p>
+<p>In this example, the same TFLite events were captured and saved to the Perfetto
+or Systrace format depending on the version of Android device. The captured
+trace files can be opened in the <a href="https://ui.perfetto.dev/#!/">Perfetto UI</a>.</p>
+<p><img alt="Perfetto trace" src="images/perfetto_traces.png" /></p>
+<h3>Trace TensorFlow Lite internals in iOS</h3>
+<p>Note: This feature is available from Tensorflow Lite v2.5.</p>
+<p>Internal events from the TensorFlow Lite interpreter of an iOS app can be
+captured by
+<a href="https://developer.apple.com/library/archive/documentation/ToolsLanguages/Conceptual/Xcode_Overview/MeasuringPerformance.html#//apple_ref/doc/uid/TP40010215-CH60-SW1">Instruments</a>
+tool included with Xcode. They are the iOS
+<a href="https://developer.apple.com/documentation/os/logging/recording_performance_data">signpost</a>
+events, so the captured events from Swift/Objective-C code are seen together
+with TensorFlow Lite internal events.</p>
+<p>Some examples of events are:</p>
+<ul>
+<li>Operator invocation</li>
+<li>Graph modification by delegate</li>
+<li>Tensor allocation</li>
+</ul>
+<h4>Enable TensorFlow Lite tracing</h4>
+<p>Set the environment variable <code>debug.tflite.trace</code> by following the steps below:</p>
+<ol>
+<li>
+<p>Select <strong>Product &gt; Scheme &gt; Edit Scheme...</strong> from the top menus of Xcode.</p>
+</li>
+<li>
+<p>Click 'Profile' in the left pane.</p>
+</li>
+<li>
+<p>Deselect 'Use the Run action's arguments and environment variables'
+    checkbox.</p>
+</li>
+<li>
+<p>Add <code>debug.tflite.trace</code> under 'Environment Variables' section.</p>
+<p><img alt="Set environment variable" src="images/xcode_profile_environment.png" /></p>
+</li>
+</ol>
+<p>If you want to exclude TensorFlow Lite events when profiling the iOS app,
+disable tracing by removing the environment variable.</p>
+<h4>XCode Instruments</h4>
+<p>Capture traces by following the steps below:</p>
+<ol>
+<li>
+<p>Select <strong>Product &gt; Profile</strong> from the top menus of Xcode.</p>
+</li>
+<li>
+<p>Click <strong>Logging</strong> among profiling templates when Instruments tool launches.</p>
+</li>
+<li>
+<p>Press 'Start' button.</p>
+</li>
+<li>
+<p>Press 'Stop' button.</p>
+</li>
+<li>
+<p>Click 'os_signpost' to expand OS Logging subsystem items.</p>
+</li>
+<li>
+<p>Click 'org.tensorflow.lite' OS Logging subsystem.</p>
+</li>
+<li>
+<p>Investigate the trace result.</p>
+<p><img alt="Xcode Instruments trace" src="images/xcode_traces.png" /></p>
+</li>
+</ol>
+<p>In this example, you can see the hierarchy of events and statistics for each
+operator time.</p>
+<h3>Using the tracing data</h3>
+<p>The tracing data allows you to identify performance bottlenecks.</p>
+<p>Here are some examples of insights that you can get from the profiler and
+potential solutions to improve performance:</p>
+<ul>
+<li>If the number of available CPU cores is smaller than the number of inference
+    threads, then the CPU scheduling overhead can lead to subpar performance.
+    You can reschedule other CPU intensive tasks in your application to avoid
+    overlapping with your model inference or tweak the number of interpreter
+    threads.</li>
+<li>If the operators are not fully delegated, then some parts of the model graph
+    are executed on the CPU rather than the expected hardware accelerator. You
+    can substitute the unsupported operators with similar supported operators.</li>
+</ul>

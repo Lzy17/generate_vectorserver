@@ -1,0 +1,46 @@
+<h1>AutoGraph reference</h1>
+<p><a href="index.md">Index</a></p>
+<h2>Functions and function calls</h2>
+<p>Typically, AutoGraph converts one function at a time. If a function calls other
+functions, the called function will be converted recursively, as described
+below.</p>
+<h3>Function calls</h3>
+<p>AutoGraph rewrites all function calls with a special wrapper that may convert
+the called function at runtime.</p>
+<p>For example, the function call below:</p>
+<p><code>f(x, y, z=1)</code></p>
+<p>Is converted to code that schematically looks like this:</p>
+<p><code>ag__.converted_call(f, ..., (x, y), {'z': 1}, ...)</code></p>
+<p>All calls are rewritten, including calls to other types of callables, builtin
+functions, etc.</p>
+<p>If the originally called function is not converted, AutoGraph simply
+forwards the call to it, so that the wrapper is functionally equivalent with
+the original function call.</p>
+<p>If the originally called function is converted, then the conversion is performed
+first and the converted function is called instead.</p>
+<p>Note: a caching mechanism prevents the same function from being converted
+multiple times. This mechanism ensures that functions calls made with different
+<a href="https://docs.python.org/3/reference/executionmodel.html#binding-of-names">global or free variables</a>
+are handled correctly.</p>
+<h4>Function conversion rules</h4>
+<p>The following types of functions are not converted:</p>
+<ul>
+<li>functions already converted</li>
+<li>functions defined in a allowlisted module (see autograph/core/config.py)</li>
+<li>non-Python functions (such as native bindings)</li>
+<li><code>print</code>, <code>pdb.set_trace</code>, <code>ipdb.set_trace</code></li>
+<li>most built-in functions (exceptions are listed in
+    autograph/operators/py_builtins.py)</li>
+<li>constructors</li>
+<li>functions without source code attached (prints a warning)(see
+    <a href="limitations.md">limitations</a>)</li>
+<li>generator functions (prints a warning)</li>
+<li>iterator protocol methods (<code>__next__</code>, <code>__iter__</code>)</li>
+<li>context manager methods (<code>__enter__</code>, <code>__exit__</code>)</li>
+</ul>
+<p>When AutoGraph encounters a function that it cannot convert outside of this
+list, it prints a warning.</p>
+<h3>Nested functions</h3>
+<p>Functions nested inside a function converted by AutoGraph are converted
+at the same time as the function containing them. If the nested function is
+returned, a converted version of it is returned.</p>

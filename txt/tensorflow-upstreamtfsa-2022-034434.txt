@@ -1,0 +1,17 @@
+<h2>TFSA-2022-034: Null-dereference when specializing tensor type</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23570</p>
+<h3>Impact</h3>
+<p>When decoding a tensor from protobuf, TensorFlow might do a null-dereference if attributes of some mutable arguments to some operations are missing from the proto. This is <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/full_type_util.cc#L104-L106">guarded by a <code>DCHECK</code></a>:</p>
+<p><code>cc
+  const auto* attr = attrs.Find(arg-&gt;s());
+  DCHECK(attr != nullptr);
+  if (attr-&gt;value_case() == AttrValue::kList) {
+    // ...
+  }</code></p>
+<p>However, <code>DCHECK</code> is a no-op in production builds and an assertion failure in debug builds. In the first case execution proceeds to the dereferencing of the null pointer, whereas in the second case it results in a crash due to the assertion failure.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8a513cec4bec15961fbfdedcaa5376522980455c">8a513cec4bec15961fbfdedcaa5376522980455c</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, and TensorFlow 2.6.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

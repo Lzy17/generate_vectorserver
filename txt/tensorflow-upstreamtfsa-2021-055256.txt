@@ -1,0 +1,36 @@
+<h2>TFSA-2021-055: Reference binding to null in <code>ParameterizedTruncatedNormal</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29568</p>
+<h3>Impact</h3>
+<p>An attacker can trigger undefined behavior by binding to null pointer in
+<code>tf.raw_ops.ParameterizedTruncatedNormal</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>shape = tf.constant([], shape=[0], dtype=tf.int32)
+means = tf.constant((1), dtype=tf.float32)
+stdevs = tf.constant((1), dtype=tf.float32)
+minvals = tf.constant((1), dtype=tf.float32)
+maxvals = tf.constant((1), dtype=tf.float32)</p>
+<p>tf.raw_ops.ParameterizedTruncatedNormal(
+  shape=shape, means=means, stdevs=stdevs, minvals=minvals, maxvals=maxvals)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/3f6fe4dfef6f57e768260b48166c27d148f3015f/tensorflow/core/kernels/parameterized_truncated_normal_op.cc#L630">implementation</a>
+does not validate input arguments before accessing the first element of <code>shape</code>:</p>
+<p><code>cc
+int32 num_batches = shape_tensor.flat&lt;int32&gt;()(0);</code></p>
+<p>If <code>shape</code> argument is empty, then <code>shape_tensor.flat&lt;T&gt;()</code> is an empty array.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/5e52ef5a461570cfb68f3bdbbebfe972cb4e0fd8">5e52ef5a461570cfb68f3bdbbebfe972cb4e0fd8</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

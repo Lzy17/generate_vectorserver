@@ -1,0 +1,21 @@
+<h2>TFSA-2021-200: Crash in <code>tf.math.segment_*</code> operations</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41195</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.math.segment_*</code> operations results in a <code>CHECK</code>-fail related abort (and denial of service) if a segment id in <code>segment_ids</code> is large.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.math.segment_max(data=np.ones((1,10,1)), segment_ids=[1676240524292489355])
+tf.math.segment_min(data=np.ones((1,10,1)), segment_ids=[1676240524292489355])
+tf.math.segment_mean(data=np.ones((1,10,1)), segment_ids=[1676240524292489355])
+tf.math.segment_sum(data=np.ones((1,10,1)), segment_ids=[1676240524292489355])
+tf.math.segment_prod(data=np.ones((1,10,1)), segment_ids=[1676240524292489355])
+```</p>
+<p>This is similar to <a href="https://github.com/tensorflow/tensorflow/blob/3a74f0307236fe206b046689c4d76f57c9b74eee/tensorflow/security/advisory/tfsa-2021-071.md">CVE-2021-29584</a> (and similar other reported vulnerabilities in TensorFlow, localized to specific APIs): the <a href="https://github.com/tensorflow/tensorflow/blob/dae66e518c88de9c11718cd0f8f40a0b666a90a0/tensorflow/core/kernels/segment_reduction_ops_impl.h">implementation</a> (both on CPU and GPU) computes the output shape using <a href="https://github.com/tensorflow/tensorflow/blob/0b6b491d21d6a4eb5fbab1cca565bc1e94ca9543/tensorflow/core/framework/tensor_shape.cc#L395-L408"><code>AddDim</code></a>. However, if the number of elements in the tensor overflows an <code>int64_t</code> value, <code>AddDim</code> results in a <code>CHECK</code> failure which provokes a <code>std::abort</code>. Instead, code should use <a href="https://github.com/tensorflow/tensorflow/blob/0b6b491d21d6a4eb5fbab1cca565bc1e94ca9543/tensorflow/core/framework/tensor_shape.cc#L410-L440"><code>AddDimWithStatus</code></a>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/e9c81c1e1a9cd8dd31f4e83676cab61b60658429">e9c81c1e1a9cd8dd31f4e83676cab61b60658429</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/51733">#51733</a>).</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/46888">GitHub issue</a>.</p>

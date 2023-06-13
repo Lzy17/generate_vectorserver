@@ -1,0 +1,126 @@
+<h1>TensorFlow Lite</h1>
+<p>TensorFlow Lite is a set of tools that enables on-device machine learning by
+helping developers run their models on mobile, embedded, and edge devices.</p>
+<h3>Key features</h3>
+<ul>
+<li><em>Optimized for on-device machine learning</em>, by addressing 5 key constraints:
+    latency (there's no round-trip to a server), privacy (no personal data
+    leaves the device), connectivity (internet connectivity is not required),
+    size (reduced model and binary size) and power consumption (efficient
+    inference and a lack of network connections).</li>
+<li><em>Multiple platform support</em>, covering <a href="../android">Android</a> and <a href="ios">iOS</a>
+    devices, <a href="python">embedded Linux</a>, and
+    <a href="../microcontrollers">microcontrollers</a>.</li>
+<li><em>Diverse language support</em>, which includes Java, Swift, Objective-C, C++,
+    and Python.</li>
+<li><em>High performance</em>, with <a href="../performance/delegates">hardware acceleration</a>
+    and <a href="../performance/model_optimization">model optimization</a>.</li>
+<li><em>End-to-end <a href="../examples">examples</a></em>, for common machine learning tasks such
+    as image classification, object detection, pose estimation, question
+    answering, text classification, etc. on multiple platforms.</li>
+</ul>
+<p>Key Point: The TensorFlow Lite binary is ~1MB when all 125+ supported operators
+are linked (for 32-bit ARM builds), and less than 300KB when using only the
+operators needed for supporting the common image classification models
+InceptionV3 and MobileNet.</p>
+<h2>Development workflow</h2>
+<p>The following guide walks through each step of the workflow and provides links
+to further instructions:</p>
+<p>Note: Refer to the <a href="../performance/best_practices">performance best practices</a>
+guide for an ideal balance of performance, model size, and accuracy.</p>
+<h3>1. Generate a TensorFlow Lite model</h3>
+<p>A TensorFlow Lite model is represented in a special efficient portable format
+known as <a href="https://google.github.io/flatbuffers/">FlatBuffers</a>{:.external}
+(identified by the <em>.tflite</em> file extension). This provides several advantages
+over TensorFlow's protocol buffer model format such as reduced size (small code
+footprint) and faster inference (data is directly accessed without an extra
+parsing/unpacking step) that enables TensorFlow Lite to execute efficiently on
+devices with limited compute and memory resources.</p>
+<p>A TensorFlow Lite model can optionally include <em>metadata</em> that has
+human-readable model description and machine-readable data for automatic
+generation of pre- and post-processing pipelines during on-device inference.
+Refer to <a href="../models/convert/metadata">Add metadata</a> for more details.</p>
+<p>You can generate a TensorFlow Lite model in the following ways:</p>
+<ul>
+<li>
+<p><strong>Use an existing TensorFlow Lite model:</strong> Refer to
+    <a href="../examples">TensorFlow Lite Examples</a> to pick an existing model. <em>Models
+    may or may not contain metadata.</em></p>
+</li>
+<li>
+<p><strong>Create a TensorFlow Lite model:</strong> Use the
+    <a href="../models/modify/model_maker">TensorFlow Lite Model Maker</a> to create a
+    model with your own custom dataset. <em>By default, all models contain
+    metadata.</em></p>
+</li>
+<li>
+<p><strong>Convert a TensorFlow model into a TensorFlow Lite model:</strong> Use the
+    <a href="../models/convert/">TensorFlow Lite Converter</a> to convert a TensorFlow
+    model into a TensorFlow Lite model. During conversion, you can apply
+    <a href="../performance/model_optimization">optimizations</a> such as
+    <a href="../performance/post_training_quantization">quantization</a> to reduce model
+    size and latency with minimal or no loss in accuracy. <em>By default, all
+    models don't contain metadata.</em></p>
+</li>
+</ul>
+<h3>2. Run Inference</h3>
+<p><em>Inference</em> refers to the process of executing a TensorFlow Lite model on-device
+to make predictions based on input data. You can run inference in the following
+ways based on the model type:</p>
+<ul>
+<li>
+<p><strong>Models <em>without</em> metadata</strong>: Use the
+    <a href="inference">TensorFlow Lite Interpreter</a> API. <em>Supported on multiple
+    platforms and languages such as Java, Swift, C++, Objective-C and Python.</em></p>
+</li>
+<li>
+<p><strong>Models <em>with</em> metadata</strong>: You can either leverage the out-of-box APIs
+    using the
+    <a href="../inference_with_metadata/task_library/overview">TensorFlow Lite Task Library</a>
+    or build custom inference pipelines with the
+    <a href="../inference_with_metadata/lite_support">TensorFlow Lite Support Library</a>.
+    On android devices, users can automatically generate code wrappers using the
+    <a href="../inference_with_metadata/codegen#mlbinding">Android Studio ML Model Binding</a>
+    or the
+    <a href="../inference_with_metadata/codegen#codegen">TensorFlow Lite Code Generator</a>.
+    <em>Supported only on Java (Android) while Swift (iOS) and C++ is work in
+    progress.</em></p>
+</li>
+</ul>
+<p>On Android and iOS devices, you can improve performance using hardware
+acceleration. On either platforms you can use a
+<a href="../performance/gpu">GPU Delegate</a>, on android you can either use the
+<a href="../android/delegates/nnapi">NNAPI Delegate</a> (for newer devices) or the
+<a href="../android/delegates/hexagon">Hexagon Delegate</a> (on older devices) and on
+iOS you can use the <a href="../performance/coreml_delegate">Core ML Delegate</a>. To add
+support for new hardware accelerators, you can
+<a href="../performance/implementing_delegate">define your own delegate</a>.</p>
+<h2>Get started</h2>
+<p>You can refer to the following guides based on your target device:</p>
+<ul>
+<li>
+<p><strong>Android and iOS:</strong> Explore the <a href="../android/quickstart">Android quickstart</a>
+    and <a href="ios">iOS quickstart</a>.</p>
+</li>
+<li>
+<p><strong>Embedded Linux:</strong> Explore the <a href="python">Python quickstart</a> for embedded
+    devices such as <a href="https://www.raspberrypi.org/">Raspberry Pi</a>{:.external} and
+    <a href="https://coral.withgoogle.com/">Coral devices with Edge TPU</a>{:.external}, or
+    C++ build instructions for <a href="build_arm">ARM</a>.</p>
+</li>
+<li>
+<p><strong>Microcontrollers:</strong> Explore the
+    <a href="../microcontrollers">TensorFlow Lite for Microcontrollers</a> library for
+    microcontrollers and DSPs that contain only a few kilobytes of memory.</p>
+</li>
+</ul>
+<h2>Technical constraints</h2>
+<ul>
+<li>
+<p><em>All TensorFlow models</em> <strong><em>cannot</em></strong> <em>be converted into TensorFlow Lite
+    models</em>, refer to <a href="ops_compatibility">Operator compatibility</a>.</p>
+</li>
+<li>
+<p><em>Unsupported on-device training</em>, however it is on our <a href="roadmap">Roadmap</a>.</p>
+</li>
+</ul>

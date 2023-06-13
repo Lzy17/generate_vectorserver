@@ -1,0 +1,155 @@
+<h1>TensorFlow ROCm port high-level design document</h1>
+<h2>Introduction</h2>
+<p>This document serves as the overall document to explain what was changed to allow TensorFlow 1.14.0 running on ROCm platform.</p>
+<p>In this port efforts were made to try ensure logic for existing CUDA / NVPTX path stay as-is. Places where platform neutrality were broken are marked as <strong>XXX</strong>.</p>
+<hr />
+<h2>Make system</h2>
+<ul>
+<li><strong>configure</strong>:</li>
+<li>set default value of <code>TF_ENABLE_XLA</code> to <em>1</em></li>
+<li>added <code>TF_NEED_ROCM</code>, default value set to <em>1</em></li>
+<li>added <code>ROCM_TOOLKIT_PATH</code>, default value set to <em>/opt/rocm</em></li>
+<li><strong>third_party/gpus</strong>:</li>
+<li>added <strong>rocm_configure.bzl</strong> for ROCm platform</li>
+<li>added <strong>rocm/</strong> directory for custom bazel functions for ROCm platform</li>
+<li>added <strong>crosstool/CROSSTOOL_hipcc.tpl</strong> to add a new crosstool toolchain be used by <strong>rocm_configure.bzl</strong></li>
+<li>added <strong>crosstool/clang/bin/crosstool_wrapper_driver_rocm.tpl</strong> as the wrapper for compiler and linker</li>
+<li><strong>tensorflow/workspace.bzl</strong>:</li>
+<li>adopted <code>rocm_configrue()</code> to be ROCm-aware</li>
+<li>changed how Eigen is fetched to cope with HIP on ROCm platform</li>
+<li>removed some dead links</li>
+<li><strong>tensorflow/tensorflow.bzl</strong>:</li>
+<li>renamed <code>tf_cuda_library()</code> to <code>tf_gpu_library</code></li>
+<li>renamed <code>cuda_py_tests()</code> to <code>gpu_py_tests()</code></li>
+<li>renamed <code>tf_cuda_test_tags()</code> to <code>tf_gpu_tests_tags()</code></li>
+<li><strong>BUILD</strong> files within TensorFlow directories</li>
+<li>adopted naming changes introduced in <strong>tensorflow/tensorflow.bzl</strong></li>
+<li>added logic to load ROCm-specific functions such as <code>if_rocm()</code> or <code>if_rocm_is_configured()</code></li>
+</ul>
+<hr />
+<h2>StreamExecutor</h2>
+<p>An ROCm backend is added to implement StreamExecutor interface. Existing CUDA backend is completely retained.</p>
+<ul>
+<li>added <strong>tensorflow/stream_executor/rocm</strong> to contain ROCm implementation for StreamExecutor interface</li>
+<li>integrated with HIP runtime APIs for stream, memory management, and copy</li>
+<li>integrated with MIOpen</li>
+<li>integrated with rocBLAS for certain GEMM operations</li>
+<li>integrated with rocRAND for RNG operations. Thoughly practically speaking it doesn't seem to be used by any TensorFlow operators.</li>
+<li>intergated with rocFFT for FFT operations.</li>
+</ul>
+<hr />
+<h2>Common Runtime</h2>
+<p><strong>XXX</strong> Changes under <strong>tensorflow/core/commmon_runtime/gpu</strong> directory are largely ROCm-specific and drops CUDA platform due to its current design.</p>
+<ul>
+<li><strong>XXX</strong> <strong>gpu_device.cc</strong></li>
+<li>force use ROCm platform</li>
+<li>rename <code>EigenCudaStreamDevice</code> to <code>EigenROCmStreamDevice</code></li>
+<li>removed CUDA compute capabilities and use AMDGPU ISA version</li>
+<li><strong>XXX</strong> <strong>gpu_init.cc</strong>, <strong>pool_allocator.h</strong>, <strong>process_state.cc</strong>, <strong>process_state.h</strong></li>
+<li>force use ROCM instead of CUDA</li>
+<li><strong>XXX</strong> removed dependency to CUPTI</li>
+<li><strong>gpu_util.h</strong>, <strong>gpu_util.cc</strong></li>
+<li>added <code>DnnScratchAllocator</code> as a replacement for <code>CudnnScratchAllocator</code></li>
+</ul>
+<hr />
+<h2>GPU kernel implementation</h2>
+<ul>
+<li>renamed the following files under <strong>tensorflow/core/kernels</strong> as they can be shared between CUDA and ROCm platform</li>
+<li><strong>cuda_device_array.h</strong> to <strong>gpu_device_array.h</strong></li>
+<li><strong>cuda_device_array_gpu.h</strong> to <strong>gpu_device_array_gpu.h</strong></li>
+<li><strong>cudnn_pooling_gpu.cc</strong> to <strong>dnn_pooling_gpu.cc</strong></li>
+<li><strong>util/cuda_kernel_helper.h</strong> to <strong>util/gpu_kernel_helper.h</strong></li>
+<li>introduced <code>TENSORFLOW_USE_ROCM</code> macro and use it in conjunction with <code>GOOGLE_CUDA</code></li>
+<li>on CUDA platform: <code>GOOGLE_CUDA</code> would be enabled</li>
+<li>on ROCm platform: <code>TENSORFLOW_USE_ROCM</code> would be enabled</li>
+<li>in certain kernels these macros are used to distinguish different logic be used on CUDA or ROCm platform</li>
+<li>introduced <code>EIGEN_USE_HIP</code> in kernels where Eigen is used</li>
+<li>guarded with <code>TENSORFLOW_USE_ROCM</code> macro so they won't be enabled on CUDA platform</li>
+<li>replaced CUDA <code>&lt;&lt;&lt; &gt;&gt;&gt;</code> kernel launch syntax with <code>GpuLaunchKernel</code> macro</li>
+<li>added <code>GpuLaunchKernel</code> in <strong>util/gpu_kernel_helper.h</strong></li>
+<li>renamed <code>CudaLaunchConfig</code> to <code>GpuLaunchConfig</code></li>
+<li>renamed macros with perfix CUDA/Cuda to GPU/Gpu shall they are usable on ROCm platform</li>
+<li>Eigen is downloaded and <a href="https://github.com/ROCmSoftwarePlatform/tensorflow/blob/rocm-v1/third_party/eigen3/eigen.patch">patched</a> to support HIP and ROCm platform</li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/tensorflow/blob/rocm-v1/rocm_docs/core_kernels.md">List of supported operators</a></li>
+</ul>
+<hr />
+<h2>XLA</h2>
+<p>XLA support for LLVM AMDGPU backend is still highly experimental at this point. MIOpen and rocBLAS kernels would be invoked as libcalls via StreamExecutor interface.</p>
+<ul>
+<li><strong>tensorflow/compiler/jit/xla_gpu_device.cc</strong></li>
+<li><strong>XXX</strong>: disable registering XLA devices for CUDA</li>
+<li><strong>tensorflow/compiler/xla/service/computation_placer.cc</strong></li>
+<li>register for ROCm platform</li>
+<li><strong>tensorflow/compiler/xla/service/generic_transfer_manager.cc</strong></li>
+<li>register for ROCm platform</li>
+<li>added the following files for AMDGPU backend</li>
+<li><strong>tensorflow/compiler/xla/service/gpu/amdgpu_compiler.cc</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/amdgpu_compiler.h</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/amdgpu_backend_lib.cc</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/amdgpu_backend_lib.h</strong></li>
+<li>renamed the following files for NVPTX backend</li>
+<li><strong>tensorflow/compiler/xla/service/gpu/gpu_compiler.cc</strong> to <strong>tensorflow/compiler/xla/service/gpu/nvptx_compiler.cc</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/gpu_compiler.h</strong> to <strong>tensorflow/compiler/xla/service/gpu/nvptx_compiler.h</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/gpu_backend_lib.h</strong> to <strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/nvptx_backend_lib.h</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/gpu_backend_lib.cc</strong> to <strong>tensorflow/compiler/xla/service/gpu/llvm_gpu_backend/nvptx_backend_lib.hcc</strong></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/BUILD</strong></li>
+<li>modified rule <code>gpu_compiler()</code> to cope with file name changes and added depedency to <em>ROCm Device Libs</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/convolution_thunk.cc</strong></li>
+<li><strong>XXX</strong>: removed autotuning logic for <em>CuDNN</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/elemenmtal_ir_emitter.cc</strong></li>
+<li><strong>XXX</strong>: replaced logic dependent to <em>Libdevice</em> to <em>ROCm Device Libs</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/gpu_executable.cc</strong>, <strong>tensorflow/compiler/xla/service/gpu/gpu_executable.h</strong>, <strong>tensorflow/compiler/xla/service/gpu/kernel_thunk.cc</strong></li>
+<li>renamed <em>ptx</em> to <em>text</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/hlo_to_ir_bindings.cc</strong></li>
+<li><strong>XXX</strong>: changed logic to use <code>llvm::ConstantExpr::getAddrSpaceCast()</code> due to address space differences in AMDGPU</li>
+<li><strong>tensorflow/compiler/xla/service/gpu/ir_emission_utils.cc</strong>, <strong>tensorflow/compiler/xla/service/gpu/ir_emission_utils.h</strong></li>
+<li><strong>XXX</strong>: replaced logic dependent to <em>Libdevice</em> to <em>ROCm Device Libs</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/ir_emitter.cc</strong></li>
+<li><strong>XXX</strong>: modified logic to cope with AMDGPU memory address spaces</li>
+<li><strong>tensorflow/compiler/xla/service/gpu/ir_emitter_unnested.cc</strong></li>
+<li><strong>XXX</strong>: disabled NVPTX-specific logic</li>
+<li><strong>XXX</strong>: replaced logic dependent to <em>Libdevice</em> to <em>ROCm Device Libs</em></li>
+<li><strong>tensorflow/compiler/xla/service/gpu/parallel_loop_emitter.cc</strong></li>
+<li><strong>XXX</strong>: replaced logic dependent to <em>Libdevice</em> to <em>ROCm Device Libs</em></li>
+<li><strong>tensorflow/compiler/xla/service/platform_util.cc</strong></li>
+<li>added logic to check ROCm platform ISA version</li>
+</ul>
+<hr />
+<h2>Fusion Support</h2>
+<p>This release introduces support for automatically "fusing" certain sequences of ops/nodes in the Tensorflow graph, into a single op/node. This is only done for ops/nodes that have been placed on the GPU partition by Tensorflow. This idea here is to improve performance because the optimized GPU kernel implementation for the single fused node will perform better than the plural GPU kernel implementations (one for each node/op) of the individual node/op sequence.</p>
+<p>The ROCm Fusion feature is disabled by default, and can be enabled by the setting the env var <code>TF_ROCM_FUSION_ENABLE</code> to <code>1</code>.  The current release supports the fusion of following op/node sequences</p>
+<ol>
+<li>Convolution --&gt; Bias --&gt; Activation (forward and inference)</li>
+<li>BatchNorm --&gt; Activation (forward, backward, and inference)</li>
+<li>Add + Relu</li>
+<li>AddN + ReluGrad</li>
+</ol>
+<p>By default you will only see a single message durung runtime that indicates that ROCm Fusion is turned ON</p>
+<p><code>2018-11-14 23:03:09.721057: I tensorflow/core/graph/gpu_fusion_pass.cc:434] ROCm Fusion is enabled.</code></p>
+<p>Setting the env var <code>TF_CPP_MIN_VLOG_LEVEL</code> to <code>2</code> will enable the display of verbose ROCm fusion details.</p>
+<p>For the Convolution+Bias+Activation and BatchNorm+Activation fusion nodes, it is possible that the runtime is unable to create a custom kernel implementation for the fused node, and errors out. Should this happen, you will need to disable the fusion</p>
+<p>When ROCm Fusion is enabled, the following env-vars can be used to disable individual fusions</p>
+<ul>
+<li>set <code>TF_ROCM_FUSION_DISABLE_CBA</code> to <code>1</code> to disable to Convolution+Bias+Activation fusion (forward and inference)</li>
+<li>set <code>TF_ROCM_FUSION_DISABLE_BNA</code> to <code>1</code> to disable to BatchNorm+Activation fusions (forward, backward and inference)</li>
+<li>set <code>TF_ROCM_FUSION_DISABLE_ADDRELU</code> to <code>1</code> to disable to Add+Relu fusion</li>
+<li>set <code>TF_ROCM_FUSION_DISABLE_ADDNRELUGRAD</code> to <code>1</code> to disable to AddN+ReluGrad fusion</li>
+</ul>
+<hr />
+<h2>Verbs Support</h2>
+<p>This release enables the <a href="../tensorflow/contrib/verbs/README.md">community-contributed Verbs module</a> for ROCm platforms.  The Verbs module provides a new distributed TensorFlow server protocol for RDMA transfers of Tensors over high-speed infiniband interconnects.  When building TensorFlow from source, you enable the Verbs module by</p>
+<ul>
+<li>adding <code>--config=verbs</code> to your bazel build command, and</li>
+<li>you must have the OFED headers and libraries installed, e.g., verbs.h, libibverbs.so.</li>
+</ul>
+<p>To use the Verbs module, you specify the new server protocol when constructing your <code>tf.train.Server</code> instances.  For example</p>
+<p>```python</p>
+<h1>In task 0:</h1>
+<p>cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+server = tf.train.Server(cluster, job_name="local", task_index=0, protocol='grpc+verbs')
+```</p>
+<p>Additional details for running distributed TensorFlow applications can be found online:</p>
+<ul>
+<li><a href="https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md">https://github.com/tensorflow/examples/blob/master/community/en/docs/deploy/distributed.md</a></li>
+<li><a href="https://www.tensorflow.org/guide/distribute_strategy">https://www.tensorflow.org/guide/distribute_strategy</a></li>
+</ul>

@@ -1,0 +1,39 @@
+<h2>TFSA-2020-023: Memory corruption in <code>dlpack.to_dlpack</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15193</p>
+<h3>Impact</h3>
+<p>The implementation of <code>dlpack.to_dlpack</code> can be made to use uninitialized
+memory resulting in further memory corruption. This is because the pybind11
+glue code <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/python/tfe_wrapper.cc#L1361">assumes that the argument is a
+tensor</a>:
+<code>cc
+    TFE_TensorHandle* thandle = EagerTensor_Handle(eager_tensor_pyobject_ptr);</code></p>
+<p>However, there is nothing stopping users from passing in a Python object instead of a tensor.
+<code>python
+In [2]: tf.experimental.dlpack.to_dlpack([2])
+==1720623==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x55b0ba5c410a in tensorflow::(anonymous namespace)::GetTensorFromHandle(TFE_TensorHandle*, TF_Status*) third_party/tensorflow/c/eager/dlpack.cc:46:7
+    #1 0x55b0ba5c38f4 in tensorflow::TFE_HandleToDLPack(TFE_TensorHandle*, TF_Status*) third_party/tensorflow/c/eager/dlpack.cc:252:26
+...</code></p>
+<p>The uninitialized memory address is due to a
+<a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/python/eager/pywrap_tensor.cc#L848-L850"><code>reinterpret_cast</code></a>:
+<code>cc
+TFE_TensorHandle* EagerTensor_Handle(const PyObject* o) {
+  return reinterpret_cast&lt;const EagerTensor*&gt;(o)-&gt;handle;
+}</code></p>
+<p>Since the <code>PyObject</code> is a Python object, not a TensorFlow Tensor, the cast to <code>EagerTensor</code> fails.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/22e07fb204386768e5bcbea563641ea11f96ceb8">22e07fb204386768e5bcbea563641ea11f96ceb8</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 2.2.1 or 2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

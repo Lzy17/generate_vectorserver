@@ -1,0 +1,21 @@
+<h2>TFSA-2022-055: Heap OOB access in <code>RunForwardTypeInference</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23592</p>
+<h3>Impact</h3>
+<p>TensorFlow's <a href="https://github.com/tensorflow/tensorflow/blob/274df9b02330b790aa8de1cee164b70f72b9b244/tensorflow/core/graph/graph.cc#L223-L229">type inference</a> can cause a heap OOB read as the bounds checking is done in a <code>DCHECK</code> (which is a no-op during production):</p>
+<p><code>cc
+if (node_t.type_id() != TFT_UNSET) {
+  int ix = input_idx[i];
+  DCHECK(ix &lt; node_t.args_size())
+      &lt;&lt; "input " &lt;&lt; i &lt;&lt; " should have an output " &lt;&lt; ix
+      &lt;&lt; " but instead only has " &lt;&lt; node_t.args_size()
+      &lt;&lt; " outputs: " &lt;&lt; node_t.DebugString();
+  input_types.emplace_back(node_t.args(ix));
+  // ...
+}</code></p>
+<p>An attacker can control <code>input_idx</code> such that <code>ix</code> would be larger than the number of values in <code>node_t.args</code>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c99d98cd189839dcf51aee94e7437b54b31f8abd">c99d98cd189839dcf51aee94e7437b54b31f8abd</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. This is the only affected version.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

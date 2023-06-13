@@ -1,0 +1,19 @@
+<h2>TFSA-2021-103: Stack overflow in <code>ParseAttrValue</code> with nested tensors</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29615</p>
+<h3>Impact</h3>
+<p>The implementation of
+<a href="https://github.com/tensorflow/tensorflow/blob/c22d88d6ff33031aa113e48aa3fc9aa74ed79595/tensorflow/core/framework/attr_value_util.cc#L397-L453"><code>ParseAttrValue</code></a>
+can be tricked into stack overflow due to recursion by giving in a specially
+crafted input.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/e07e1c3d26492c06f078c7e5bf2d138043e199c1">e07e1c3d26492c06f078c7e5bf2d138043e199c1</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>

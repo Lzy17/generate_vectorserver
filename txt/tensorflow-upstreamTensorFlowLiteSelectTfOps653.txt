@@ -1,0 +1,11 @@
+<h1>TensorFlow Lite with Select TensorFlow ops</h1>
+<p>For enabling the Select TensorFlow ops for your TensorFlow Lite app, please add
+the <code>TensorFlowLiteSelectTfOps</code> pod to your Podfile, in addition to
+<code>TensorFlowLiteSwift</code> or <code>TensorFlowLiteObjC</code> pod, depending on your primary
+language.</p>
+<p>After that, you should also force load the framework from your project. Add the
+following line to the <code>Other Linker Flags</code> under your project's Build Settings
+page.</p>
+<p><code>-force_load "$(PROJECT_DIR)/Pods/TensorFlowLiteSelectTfOps/Frameworks/TensorFlowLiteSelectTfOps.framework/TensorFlowLiteSelectTfOps"</code></p>
+<p>Please refer to the <a href="https://www.tensorflow.org/lite/guide/ops_select#ios">Select operators from TensorFlow</a> guide for
+more details.</p>

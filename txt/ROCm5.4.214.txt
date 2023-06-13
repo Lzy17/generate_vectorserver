@@ -1,0 +1,35 @@
+<!-- markdownlint-disable first-line-h1 -->
+<h3>Deprecations and Warnings</h3>
+<h4>HIP Perl Scripts Deprecation</h4>
+<p>The <code>hipcc</code> and <code>hipconfig</code> Perl scripts are deprecated. In a future release, compiled binaries will be available as <code>hipcc.bin</code> and <code>hipconfig.bin</code> as replacements for the Perl scripts.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>There will be a transition period where the Perl scripts and compiled binaries are available  before the scripts are removed. There will be no functional difference between the Perl scripts and their compiled binary counterpart. No user action is required. Once these are available, users can optionally switch to <code>hipcc.bin</code> and <code>hipconfig.bin</code>. The <code>hipcc</code>/<code>hipconfig</code> soft link will be assimilated to point from <code>hipcc</code>/<code>hipconfig</code> to the respective compiled binaries as the default option.</p>
+</blockquote>
+<h4><code>hipcc</code> Options Deprecation</h4>
+<p>The following hipcc options are being deprecated and will be removed in a future release:</p>
+<ul>
+<li>The <code>--amdgpu-target</code> option is being deprecated, and user must use the <code>–offload-arch</code> option to specify the GPU architecture.</li>
+<li>The <code>--amdhsa-code-object-version</code> option is being deprecated.  Users can use the Clang/LLVM option <code>-mllvm -mcode-object-version</code> to debug issues related to code object versions.</li>
+<li>The <code>--hipcc-func-supp</code>/<code>--hipcc-no-func-supp</code> options are being deprecated, as the function calls are already supported in production on AMD GPUs.</li>
+</ul>
+<h3>Known Issues</h3>
+<p>Under certain circumstances typified by high register pressure, users may encounter a compiler abort with one of the following error messages:</p>
+<ul>
+<li>
+<blockquote>
+<p><code>error: unhandled SGPR spill to memory</code></p>
+</blockquote>
+</li>
+<li>
+<blockquote>
+<p><code>cannot scavenge register without an emergency spill slot!</code></p>
+</blockquote>
+</li>
+<li>
+<blockquote>
+<p><code>error: ran out of registers during register allocation</code></p>
+</blockquote>
+</li>
+</ul>
+<p>This is a known issue and will be fixed in a future release.</p>

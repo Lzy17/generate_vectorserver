@@ -1,0 +1,40 @@
+<h2>TFSA-2021-033: Heap buffer overflow in <code>SparseTensorToCSRSparseMatrix</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29545</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a denial of service via a <code>CHECK</code>-fail in
+converting sparse tensors to CSR Sparse matrices:</p>
+<p>```python
+import tensorflow as tf
+import numpy as np
+from tensorflow.python.ops.linalg.sparse import sparse_csr_matrix_ops</p>
+<p>indices_array = np.array([[0, 0]])
+value_array = np.array([0.0], dtype=np.float32)
+dense_shape = [0, 0]</p>
+<p>st = tf.SparseTensor(indices_array, value_array, dense_shape)</p>
+<p>values_tensor = sparse_csr_matrix_ops.sparse_tensor_to_csr_sparse_matrix(
+       st.indices, st.values, st.dense_shape)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/800346f2c03a27e182dd4fba48295f65e7790739/tensorflow/core/kernels/sparse/kernels.cc#L66">implementation</a>
+does a double redirection to access an element of an array allocated on the
+heap:</p>
+<p><code>cc
+csr_row_ptr(indices(i, 0) + 1) += 1;</code></p>
+<p>If the value at <code>indices(i, 0)</code> is such that <code>indices(i, 0) + 1</code> is outside the
+bounds of <code>csr_row_ptr</code>, this results in writing outside of bounds of heap
+allocated data.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/1e922ccdf6bf46a3a52641f99fd47d54c1decd13">1e922ccdf6bf46a3a52641f99fd47d54c1decd13</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

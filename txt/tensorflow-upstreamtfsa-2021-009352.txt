@@ -1,0 +1,43 @@
+<h2>TFSA-2021-009: Segfault in <code>SparseCountSparseOutput</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29521</p>
+<h3>Impact</h3>
+<p>Specifying a negative dense shape in <code>tf.raw_ops.SparseCountSparseOutput</code>
+results in a segmentation fault being thrown out from the standard library as
+<code>std::vector</code> invariants are broken.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>indices = tf.constant([], shape=[0, 0], dtype=tf.int64)
+values = tf.constant([], shape=[0, 0], dtype=tf.int64)
+dense_shape = tf.constant([-100, -100, -100], shape=[3], dtype=tf.int64)
+weights = tf.constant([], shape=[0, 0], dtype=tf.int64)</p>
+<p>tf.raw_ops.SparseCountSparseOutput(indices=indices, values=values, dense_shape=dense_shape, weights=weights, minlength=79, maxlength=96, binary_output=False)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/8f7b60ee8c0206a2c99802e3a4d1bb55d2bc0624/tensorflow/core/kernels/count_ops.cc#L199-L213">implementation</a>
+assumes the first element of the dense shape is always positive and uses it to
+initialize a <code>BatchedMap&lt;T&gt;</code> (i.e.,
+<a href="https://github.com/tensorflow/tensorflow/blob/8f7b60ee8c0206a2c99802e3a4d1bb55d2bc0624/tensorflow/core/kernels/count_ops.cc#L27"><code>std::vector&lt;absl::flat_hash_map&lt;int64,T&gt;&gt;</code></a>)
+data structure.</p>
+<p><code>cc
+  bool is_1d = shape.NumElements() == 1;
+  int num_batches = is_1d ? 1 : shape.flat&lt;int64&gt;()(0);
+  ...
+  auto per_batch_counts = BatchedMap&lt;W&gt;(num_batches);</code></p>
+<p>If the <code>shape</code> tensor has more than one element, <code>num_batches</code> is the first
+value in <code>shape</code>.</p>
+<p>Ensuring that the <code>dense_shape</code> argument is a valid tensor shape (that is, all
+elements are non-negative) solves this issue.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c57c0b9f3a4f8684f3489dd9a9ec627ad8b599f5">c57c0b9f3a4f8684f3489dd9a9ec627ad8b599f5</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2 and TensorFlow 2.3.3.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

@@ -1,0 +1,32 @@
+<h2>TFSA-2021-150: Division by 0 in most convolution operators</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37675</p>
+<h3>Impact</h3>
+<p>Most implementations of convolution operators in TensorFlow are affected by a
+division by 0 vulnerability where an attacker can trigger a denial of service
+via a crash:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.compat.v1.disable_v2_behavior()
+tf.raw_ops.Conv2D(
+  input = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.float32),
+  filter = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.float32),
+  strides = [1, 1, 1, 1],
+  padding = "SAME")
+```</p>
+<p>The shape inference
+<a href="https://github.com/tensorflow/tensorflow/blob/460e000de3a83278fb00b61a16d161b1964f15f4/tensorflow/core/framework/common_shape_fns.cc#L577">implementation</a>
+is missing several validations before doing divisions and modulo operations.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/8a793b5d7f59e37ac7f3cd0954a750a2fe76bad4">8a793b5d7f59e37ac7f3cd0954a750a2fe76bad4</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang of Baidu Security.</p>

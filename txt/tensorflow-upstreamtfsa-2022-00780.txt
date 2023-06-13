@@ -1,0 +1,46 @@
+<h2>TFSA-2022-007: Type confusion in shape inference for <code>ConcatV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-21731</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/framework/common_shape_fns.cc#L1961-L2059">implementation of shape inference for <code>ConcatV2</code></a> can be used to trigger a denial of service attack via a segfault caused by a type confusion:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def test():
+  y = tf.raw_ops.ConcatV2(
+    values=[[1,2,3],[4,5,6]],
+    axis = 0xb500005b)
+  return y</p>
+<p>test()
+```</p>
+<p>The <code>axis</code> argument is translated into <code>concat_dim</code> in the <code>ConcatShapeHelper</code> helper function. Then, a value for <code>min_rank</code> is computed based on <code>concat_dim</code>. This is then used to validate that the <code>values</code> tensor has at least the required rank:</p>
+<p>```cc
+  int64_t concat_dim;
+  if (concat_dim_t-&gt;dtype() == DT_INT32) {
+    concat_dim = static_cast<int64_t>(concat_dim_t-&gt;flat<int32>()(0));
+  } else {
+    concat_dim = concat_dim_t-&gt;flat<int64_t>()(0);
+  }</p>
+<p>// Minimum required number of dimensions.
+  const int min_rank = concat_dim &lt; 0 ? -concat_dim : concat_dim + 1;</p>
+<p>// ...
+  ShapeHandle input = c-&gt;input(end_value_index - 1);
+  TF_RETURN_IF_ERROR(c-&gt;WithRankAtLeast(input, min_rank, &amp;input));
+```</p>
+<p>However, <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/framework/shape_inference.cc#L345-L358"><code>WithRankAtLeast</code></a> receives the lower bound as a 64-bits value and then compares it against the maximum 32-bits integer value that could be represented:</p>
+<p><code>cc
+Status InferenceContext::WithRankAtLeast(ShapeHandle shape, int64_t rank,
+                                         ShapeHandle* out) {
+  if (rank &gt; kint32max) {
+    return errors::InvalidArgument("Rank cannot exceed kint32max");
+  }
+  // ...
+}</code></p>
+<p>Due to the fact that <code>min_rank</code> is a 32-bits value and the value of <code>axis</code>, the <code>rank</code> argument is a <a href="https://godbolt.org/z/Gcr5haMob">negative value</a>, so the error check is bypassed.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/08d7b00c0a5a20926363849f611729f53f3ec022">08d7b00c0a5a20926363849f611729f53f3ec022</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team.</p>

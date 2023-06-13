@@ -1,0 +1,41 @@
+<h2>TFSA-2021-138: Incomplete validation in <code>QuantizeV2</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37663</p>
+<h3>Impact</h3>
+<p>Due to incomplete validation in <code>tf.raw_ops.QuantizeV2</code>, an attacker can trigger
+undefined behavior via binding a reference to a null pointer or can access data
+outside the bounds of heap allocated arrays:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.QuantizeV2(
+  input=[1,2,3],
+  min_range=[1,2],
+  max_range=[],
+  T=tf.qint32,
+  mode='SCALED',
+  round_mode='HALF_AWAY_FROM_ZERO',
+  narrow_range=False,
+  axis=1,
+  ensure_minimum_range=3)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/84d053187cb80d975ef2b9684d4b61981bca0c41/tensorflow/core/kernels/quantize_op.cc#L59">implementation</a>
+has some validation but does not check that <code>min_range</code> and <code>max_range</code> both
+have the same non-zero number of elements. If <code>axis</code> is provided (i.e., not
+<code>-1</code>), then validation should check that it is a value in range for the rank of
+<code>input</code> tensor and then the lengths of <code>min_range</code> and <code>max_range</code> inputs match
+the <code>axis</code> dimension of the <code>input</code> tensor.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/6da6620efad397c85493b8f8667b821403516708">6da6620efad397c85493b8f8667b821403516708</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

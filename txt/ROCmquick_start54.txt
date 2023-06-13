@@ -1,0 +1,215 @@
+<h1>Quick Start (Linux)</h1>
+<h2>Add Repositories</h2>
+<p>::::::{tab-set}
+:::::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p>::::{rubric} 1. Download and convert the package signing key
+::::</p>
+<p>```shell</p>
+<h1>Make the directory if it doesn't exist yet.</h1>
+<h1>This location is recommended by the distribution maintainers.</h1>
+<p>sudo mkdir --parents --mode=0755 /etc/apt/keyrings</p>
+<h1>Download the key, convert the signing-key to a full</h1>
+<h1>keyring required by apt and store in the keyring directory</h1>
+<p>wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | \
+    gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg &gt; /dev/null
+```</p>
+<p>::::{rubric} 2. Add the repositories
+::::</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu 20.04
+:sync: ubuntu-20.04</p>
+<p>```shell</p>
+<h1>Kernel driver repository for focal</h1>
+<p>sudo tee /etc/apt/sources.list.d/amdgpu.list &lt;&lt;'EOF'
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/amdgpu/latest/ubuntu focal main
+EOF</p>
+<h1>ROCm repository for focal</h1>
+<p>sudo tee /etc/apt/sources.list.d/rocm.list &lt;&lt;'EOF'
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/debian focal main
+EOF
+```</p>
+<p>:::
+:::{tab-item} Ubuntu 22.04
+:sync: ubuntu-22.04</p>
+<p>```shell</p>
+<h1>Kernel driver repository for jammy</h1>
+<p>sudo tee /etc/apt/sources.list.d/amdgpu.list &lt;&lt;'EOF'
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/amdgpu/latest/ubuntu jammy main
+EOF</p>
+<h1>ROCm repository for jammy</h1>
+<p>sudo tee /etc/apt/sources.list.d/rocm.list &lt;&lt;'EOF'
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/debian jammy main
+EOF</p>
+<h1>Prefer packages from the rocm repository over system packages</h1>
+<p>echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
+```</p>
+<p>:::
+::::</p>
+<p>::::{rubric} 3. Update the list of packages
+::::</p>
+<p><code>shell
+sudo apt update</code></p>
+<p>:::::</p>
+<p>:::::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p>::::{rubric} 1. Add the repositories
+::::</p>
+<p>::::{tab-set}
+:::{tab-item} RHEL 8.6
+:sync: RHEL-8.6</p>
+<p>```shell</p>
+<h1>Add the amdgpu module repository for RHEL 8.6</h1>
+<p>sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;'EOF'
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/latest/rhel/8.6/main/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF</p>
+<h1>Add the rocm repository for RHEL 8</h1>
+<p>sudo tee /etc/yum.repos.d/rocm.repo &lt;&lt;'EOF'
+[rocm]
+name=rocm
+baseurl=https://repo.radeon.com/rocm/rhel8/latest/main
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+```</p>
+<p>:::</p>
+<p>:::{tab-item} RHEL 8.7
+:sync: RHEL-8.7</p>
+<p>```shell</p>
+<h1>Add the amdgpu module repository for RHEL 8.7</h1>
+<p>sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;'EOF'
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/latest/rhel/8.7/main/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF</p>
+<h1>Add the rocm repository for RHEL 8</h1>
+<p>sudo tee /etc/yum.repos.d/rocm.repo &lt;&lt;'EOF'
+[rocm]
+name=rocm
+baseurl=https://repo.radeon.com/rocm/rhel8/latest/main
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+```</p>
+<p>:::</p>
+<p>:::{tab-item} RHEL 9.1
+:sync: RHEL-9.1</p>
+<p>```shell</p>
+<h1>Add the amdgpu module repository for RHEL 9.1</h1>
+<p>sudo tee /etc/yum.repos.d/amdgpu.repo &lt;&lt;'EOF'
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/latest/rhel/9.1/main/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF</p>
+<h1>Add the rocm repository for RHEL 9</h1>
+<p>sudo tee /etc/yum.repos.d/rocm.repo &lt;&lt;'EOF'
+[rocm]
+name=rocm
+baseurl=https://repo.radeon.com/rocm/rhel9/latest/main
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+```</p>
+<p>:::
+::::</p>
+<p>::::{rubric} 2. Clean cached files from enabled repositories
+::::</p>
+<p><code>shell
+sudo yum clean all</code></p>
+<p>:::::</p>
+<p>:::::{tab-item} SUSE Linux Enterprise Server
+:sync: SLES</p>
+<p>::::{rubric} 1. Add the repositories
+::::</p>
+<p>::::{tab-set}
+:::{tab-item} SLES 15 SP4
+:sync: SLES15-SP4</p>
+<p>```shell</p>
+<h1>Add the amdgpu module repository for SLES 15.4</h1>
+<p>sudo tee /etc/zypp/repos.d/amdgpu.repo &lt;&lt;'EOF'
+[amdgpu]
+name=amdgpu
+baseurl=https://repo.radeon.com/amdgpu/latest/sle/15.4/main/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF</p>
+<h1>Add the rocm repository for SLES</h1>
+<p>sudo tee /etc/zypp/repos.d/rocm.repo &lt;&lt;'EOF'
+[rocm]
+name=rocm
+baseurl=https://repo.radeon.com/rocm/zyp/zypper
+enabled=1
+priority=50
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+EOF
+```</p>
+<p>:::
+::::</p>
+<p>::::{rubric} 2. Update the new repository
+::::</p>
+<p><code>shell
+sudo zypper ref</code></p>
+<p>:::::
+::::::</p>
+<h2>Install Drivers</h2>
+<p>Install the <code>amdgpu-dkms</code> kernel module, aka driver, on your system.</p>
+<p>::::{tab-set}</p>
+<p>:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>shell
+sudo apt install amdgpu-dkms</code></p>
+<p>:::</p>
+<p>:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>shell
+sudo yum install amdgpu-dkms</code></p>
+<p>:::</p>
+<p>:::{tab-item} SUSE Linux Enterprise Server
+:sync: SLES</p>
+<p><code>shell
+sudo zypper install amdgpu-dkms</code></p>
+<p>:::</p>
+<p>::::</p>
+<h2>Install ROCm Runtimes</h2>
+<p>Install the <code>rocm-hip-libraries</code> meta-package. This contains dependencies for most
+common ROCm applications.</p>
+<p>::::{tab-set}
+:::{tab-item} Ubuntu
+:sync: ubuntu</p>
+<p><code>console shell
+sudo apt install rocm-hip-libraries</code></p>
+<p>:::</p>
+<p>:::{tab-item} Red Hat Enterprise Linux
+:sync: RHEL</p>
+<p><code>console shell
+sudo yum install rocm-hip-libraries</code></p>
+<p>:::</p>
+<p>:::{tab-item} SUSE Linux Enterprise Server
+:sync: SLES</p>
+<p><code>console shell
+sudo zypper install rocm-hip-libraries</code></p>
+<p>:::
+::::</p>
+<h2>Reboot the system</h2>
+<p>Loading the new driver requires a reboot of the system.</p>
+<p><code>shell
+sudo reboot</code></p>

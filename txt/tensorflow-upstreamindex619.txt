@@ -1,0 +1,108 @@
+<h1>TensorFlow Lite for Microcontrollers</h1>
+<p>TensorFlow Lite for Microcontrollers is designed to run machine learning models
+on microcontrollers and other devices with only a few kilobytes of memory. The
+core runtime just fits in 16 KB on an Arm Cortex M3 and can run many basic
+models. It doesn't require operating system support, any standard C or C++
+libraries, or dynamic memory allocation.</p>
+<p>Note: The
+<a href="https://experiments.withgoogle.com/collection/tfliteformicrocontrollers">TensorFlow Lite for Microcontrollers Experiments</a>
+features work by developers combining Arduino and TensorFlow to create awesome
+experiences and tools. Check out the site for inspiration to create your own
+TinyML projects.</p>
+<h2>Why microcontrollers are important</h2>
+<p>Microcontrollers are typically small, low-powered computing devices that are
+embedded within hardware that requires basic computation. By bringing machine
+learning to tiny microcontrollers, we can boost the intelligence of billions of
+devices that we use in our lives, including household appliances and Internet of
+Things devices, without relying on expensive hardware or reliable internet
+connections, which is often subject to bandwidth and power constraints and
+results in high latency. This can also help preserve privacy, since no data
+leaves the device. Imagine smart appliances that can adapt to your daily
+routine, intelligent industrial sensors that understand the difference between
+problems and normal operation, and magical toys that can help kids learn in fun
+and delightful ways.</p>
+<h2>Supported platforms</h2>
+<p>TensorFlow Lite for Microcontrollers is written in C++ 17 and requires a 32-bit
+platform. It has been tested extensively with many processors based on the
+<a href="https://developer.arm.com/ip-products/processors/cortex-m">Arm Cortex-M Series</a>
+architecture, and has been ported to other architectures including
+<a href="https://www.espressif.com/en/products/hardware/esp32/overview">ESP32</a>. The
+framework is available as an Arduino library. It can also generate projects for
+development environments such as Mbed. It is open source and can be included in
+any C++ 17 project.</p>
+<p>The following development boards are supported:</p>
+<ul>
+<li><a href="https://store-usa.arduino.cc/products/arduino-nano-33-ble-sense-with-headers">Arduino Nano 33 BLE Sense</a></li>
+<li><a href="https://www.sparkfun.com/products/15170">SparkFun Edge</a></li>
+<li><a href="https://www.st.com/en/evaluation-tools/32f746gdiscovery.html">STM32F746 Discovery kit</a></li>
+<li><a href="https://www.adafruit.com/product/4400">Adafruit EdgeBadge</a></li>
+<li><a href="https://www.adafruit.com/product/4317">Adafruit TensorFlow Lite for Microcontrollers Kit</a></li>
+<li><a href="https://learn.adafruit.com/tensorflow-lite-for-circuit-playground-bluefruit-quickstart?view=all">Adafruit Circuit Playground Bluefruit</a></li>
+<li><a href="https://www.espressif.com/en/products/hardware/esp32-devkitc/overview">Espressif ESP32-DevKitC</a></li>
+<li><a href="https://www.espressif.com/en/products/hardware/esp-eye/overview">Espressif ESP-EYE</a></li>
+<li><a href="https://www.seeedstudio.com/Wio-Terminal-p-4509.html">Wio Terminal: ATSAMD51</a></li>
+<li><a href="https://www.sparkfun.com/products/17256">Himax WE-I Plus EVB Endpoint AI Development Board</a></li>
+<li><a href="https://www.synopsys.com/dw/ipdir.php?ds=arc-em-software-development-platform">Synopsys DesignWare ARC EM Software Development Platform</a></li>
+<li><a href="https://developer.sony.com/develop/spresense/">Sony Spresense</a></li>
+</ul>
+<h2>Explore the examples</h2>
+<p>Each example application is on
+<a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples">Github</a>
+and has a <code>README.md</code> file that explains how it can be deployed to its supported
+platforms. Some examples also have end-to-end tutorials using a specific
+platform, as given below:</p>
+<ul>
+<li><a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/hello_world">Hello World</a> -
+    Demonstrates the absolute basics of using TensorFlow Lite for
+    Microcontrollers<ul>
+<li><a href="get_started_low_level.md">Tutorial using any supported device</a></li>
+</ul>
+</li>
+<li><a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/micro_speech">Micro speech</a> -
+    Captures audio with a microphone to detect the words "yes" and "no"<ul>
+<li><a href="https://codelabs.developers.google.com/codelabs/sparkfun-tensorflow/#0">Tutorial using SparkFun Edge</a></li>
+</ul>
+</li>
+<li><a href="https://github.com/tensorflow/tflite-micro/blob/main/tensorflow/lite/micro/examples/person_detection">Person detection</a> -
+    Captures camera data with an image sensor to detect the presence or absence
+    of a person</li>
+</ul>
+<h2>Workflow</h2>
+<p>The following steps are required to deploy and run a TensorFlow model on a
+microcontroller:</p>
+<ol>
+<li><strong>Train a model</strong>:<ul>
+<li><em>Generate a small TensorFlow model</em> that can fit your target device and
+    contains <a href="build_convert.md#operation-support">supported operations</a>.</li>
+<li><em>Convert to a TensorFlow Lite model</em> using the
+    <a href="build_convert.md#model-conversion">TensorFlow Lite converter</a>.</li>
+<li><em>Convert to a C byte array</em> using
+    <a href="build_convert.md#convert-to-a-c-array">standard tools</a> to store it in a
+    read-only program memory on device.</li>
+</ul>
+</li>
+<li><strong>Run inference</strong> on device using the <a href="library.md">C++ library</a> and process
+    the results.</li>
+</ol>
+<h2>Limitations</h2>
+<p>TensorFlow Lite for Microcontrollers is designed for the specific constraints of
+microcontroller development. If you are working on more powerful devices (for
+example, an embedded Linux device like the Raspberry Pi), the standard
+TensorFlow Lite framework might be easier to integrate.</p>
+<p>The following limitations should be considered:</p>
+<ul>
+<li>Support for a <a href="build_convert.md#operation-support">limited subset</a> of
+    TensorFlow operations</li>
+<li>Support for a limited set of devices</li>
+<li>Low-level C++ API requiring manual memory management</li>
+<li>On device training is not supported</li>
+</ul>
+<h2>Next steps</h2>
+<ul>
+<li><a href="get_started_low_level.md">Get started with microcontrollers</a> to try the
+    example application and learn how to use the API.</li>
+<li><a href="library.md">Understand the C++ library</a> to learn how to use the library in
+    your own project.</li>
+<li><a href="build_convert.md">Build and convert models</a> to learn more about training
+    and converting models for deployment on microcontrollers.</li>
+</ul>

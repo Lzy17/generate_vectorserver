@@ -1,0 +1,139 @@
+<h1>Linux Folder Structure Reorganization</h1>
+<h2>Introduction</h2>
+<p>ROCm™ packages have adopted the Linux foundation file system hierarchy standard
+to ensure ROCm components follow open source conventions for Linux-based
+distributions. Following is the ROCm proposed file structure.</p>
+<p><code>none
+/opt/rocm-&lt;ver&gt;
+    | -- bin
+         | -- all public binaries
+    | -- lib
+         | -- lib&lt;soname&gt;.so-&gt;lib&lt;soname&gt;.so.major-&gt;lib&lt;soname&gt;.so.major.minor.patch
+              (public libaries to link with applications)
+         | -- &lt;component&gt;
+              | -- architecture dependent libraries and binaries used internally by components
+         | -- cmake
+              | -- &lt;component&gt;
+                   | --&lt;component&gt;-config.cmake
+    | -- libexec
+         | -- &lt;component&gt;
+              | -- non ISA/architecture independent executables used internally by components
+    | -- include
+         | -- &lt;component&gt;
+              | -- public header files
+    | -- share
+         | -- html
+              | -- &lt;component&gt;
+                   | -- html documentation
+         | -- info
+              | -- &lt;component&gt;
+                   | -- info files
+         | -- man
+              | -- &lt;component&gt;
+                   | -- man pages
+         | -- doc
+              | -- &lt;component&gt;
+                   | -- license files
+         | -- &lt;component&gt;
+              | -- samples
+              | -- architecture independent misc files</code></p>
+<h2>Changes from earlier ROCm versions</h2>
+<p>ROCm with the file reorganization is going to have a lean structure. Following
+table gives the comparison with new and old folder structure.</p>
+<p>```none</p>
+<hr />
+<p>|  New File Structure         |  Old File Structure    |
+|<strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong>_|<strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>|
+| /opt/rocm-<ver>             | /opt/rocm-<ver>        |
+|     | -- bin                |     | -- bin           |
+|     | -- lib                |     | -- lib           |
+|          | -- cmake         |     | -- include       |
+|     | -- libexec            |     | -- <component_1> |
+|     | -- include            |          | -- bin      |
+|          | -- <component_1> |          | -- cmake    |
+|     | -- share              |          | -- doc      |
+|          | -- html          |          | -- lib      |
+|          | -- info          |          | -- include  |
+|          | -- man           |          | -- samples  |
+|          | -- doc           |     | -- <component_n> |
+|          | -- <component_1> |          | -- bin      |
+|               | -- samples  |          | -- cmake    |
+|               | -- ..       |          | -- doc      |
+|          | -- <component_n> |          | -- lib      |
+|               | -- samples  |          | -- include  |
+|               | -- ..       |          | -- samples  |
+|</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong>__|
+```</p>
+<h2>ROCm File reorganization transition plan</h2>
+<p>New file organization for ROCm was first introduced ROCm v5.2 release. Backward
+compatibility was in place to make sure users had a chance to change their
+applications using ROCm. ROCm has moved header files and libraries to its new
+location as indicated in the above structure and included symbolic-link and
+wrapper header files in its old location for backward compatibility.</p>
+<h3>Wrapper header files</h3>
+<p>Wrapper header files are placed in the old location (
+<code>/opt/rocm-xxx/&lt;component&gt;/include</code>) with a warning message to include files
+from the new location (<code>/opt/rocm-xxx/include</code>) as shown in the example below.</p>
+<p>```cpp</p>
+<h1>pragma message "This file is deprecated. Use file from include path /opt/rocm-ver/include/ and prefix with hip."</h1>
+<h1>include "hip/hip_runtime.h"</h1>
+<p>```</p>
+<p>The deprecation plan for backward compatibility wrapper header files is as
+follows</p>
+<ul>
+<li><code>#pragma</code> message announcing deprecation – ROCm v5.2 release.</li>
+<li><code>#pragma</code> message changed to <code>#warning</code> – Future release, tentatively ROCm
+  v5.5.</li>
+<li><code>#warning</code> changed to <code>#error</code> – Future release, tentatively ROCm v5.6.</li>
+<li>Backward compatibility wrappers removed – Future release, tentatively ROCm
+  v6.0.</li>
+</ul>
+<h3>Executable files</h3>
+<p>Executable files are available in the <code>/opt/rocm-xxx/bin</code> folder. For backward
+compatibility, the old library location (<code>/opt/rocm-xxx/&lt;component&gt;/bin</code>) has a
+soft link to the library at the new location. Soft links will be removed in a
+future release, tentatively ROCm v6.0.</p>
+<p><code>bash
+$ ls -l /opt/rocm/hip/bin/
+lrwxrwxrwx 1 root root   24 Jan 1 23:32 hipcc -&gt; ../../bin/hipcc</code></p>
+<h3>Library files</h3>
+<p>Library files are available in the <code>/opt/rocm-xxx/lib</code> folder. For backward
+compatibility, the old library location (<code>/opt/rocm-xxx/&lt;component&gt;/lib</code>) has a
+soft link to the library at the new location. Soft links will be removed in a
+future release, tentatively ROCm v6.0.</p>
+<p><code>shell
+$ ls -l /opt/rocm/hip/lib/
+drwxr-xr-x 4 root root 4096 Jan 1 10:45 cmake
+lrwxrwxrwx 1 root root   24 Jan 1 23:32 libamdhip64.so -&gt; ../../lib/libamdhip64.so</code></p>
+<h3>CMake Config files</h3>
+<p>All CMake configuration files are available in the
+<code>/opt/rocm-xxx/lib/cmake/&lt;component&gt;</code> folder. For backward compatibility, the
+old CMake locations (<code>/opt/rocm-xxx/&lt;component&gt;/lib/cmake</code>) consist of a soft
+link to the new CMake config. Soft links will be removed in a future release,
+tentatively ROCm v6.0.</p>
+<p><code>shell
+$ ls -l /opt/rocm/hip/lib/cmake/hip/
+lrwxrwxrwx 1 root root 42 Jan 1 23:32 hip-config.cmake -&gt; ../../../../lib/cmake/hip/hip-config.cmake</code></p>
+<h2>Changes required in applications using ROCm</h2>
+<p>Applications using ROCm are advised to use the new file paths. As the old files
+will be deprecated in a future release. Application have to make sure to include
+correct header file and use correct search paths.</p>
+<ol>
+<li><code>#include&lt;header_file.h&gt;</code> needs to be changed to
+   <code>#include &lt;component/header_file.h&gt;</code></li>
+</ol>
+<p>For example: <code>#include &lt;hip.h&gt;</code> needs to change
+   to <code>#include &lt;hip/hip.h&gt;</code></p>
+<ol>
+<li>Any variable in CMake or Makefiles pointing to component folder needs to
+   changed.</li>
+</ol>
+<p>For example: <code>VAR1=/opt/rocm/hip</code> needs to be changed to <code>VAR1=/opt/rocm</code>
+   <code>VAR2=/opt/rocm/hsa</code> needs to be changed to <code>VAR2=/opt/rocm</code></p>
+<ol>
+<li>Any reference to <code>/opt/rocm/&lt;component&gt;/bin</code> or <code>/opt/rocm/&lt;component&gt;/lib</code>
+   needs to be changed to <code>/opt/rocm/bin</code> and <code>/opt/rocm/lib/</code> respectively.</li>
+</ol>
+<h2>References</h2>
+<p>{ref}<code>ROCm deprecation warning &lt;5_4_0_filesystem_reorg_deprecation_notice&gt;</code></p>
+<p><a href="https://refspecs.linuxfoundation.org/fhs.shtml">Linux File System Standard</a></p>

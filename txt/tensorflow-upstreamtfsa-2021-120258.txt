@@ -1,0 +1,40 @@
+<h2>TFSA-2021-120: Bad alloc in <code>StringNGrams</code> caused by integer conversion</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-37646</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.StringNGrams</code> is vulnerable to
+an integer overflow issue caused by converting a signed integer value to an
+unsigned one and then allocating memory based on this value.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.StringNGrams(
+  data=['',''],
+  data_splits=[0,2],
+  separator=' '*100,
+  ngram_widths=[-80,0,0,-60],
+  left_pad=' ',
+  right_pad=' ',
+  pad_width=100,
+  preserve_short_sequences=False)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/8d72537c6abf5a44103b57b9c2e22c14f5f49698/tensorflow/core/kernels/string_ngrams_op.cc#L184">implementation</a>
+calls <code>reserve</code> on a <code>tstring</code> with a value that sometimes can be negative if
+user supplies negative <code>ngram_widths</code>. The <code>reserve</code> method calls
+<code>TF_TString_Reserve</code> which has an <code>unsigned long</code> argument for the size of the
+buffer. Hence, the implicit conversion transforms the negative value to a large
+integer.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/c283e542a3f422420cfdb332414543b62fc4e4a5">c283e542a3f422420cfdb332414543b62fc4e4a5</a>.</p>
+<p>The fix will be included in TensorFlow 2.6.0. We will also cherrypick this
+commit on TensorFlow 2.5.1, TensorFlow 2.4.3, and TensorFlow 2.3.4, as these are
+also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

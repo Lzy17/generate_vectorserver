@@ -1,0 +1,19 @@
+<h2>TFSA-2022-162: <code>CHECK</code> fail via inputs in <code>PyFunc</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-41908</p>
+<h3>Impact</h3>
+<p>An input <code>token</code> that is not a UTF-8 bytestring will trigger a <code>CHECK</code> fail in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/lib/core/py_func.cc"><code>tf.raw_ops.PyFunc</code></a>.</p>
+<p>```python
+import tensorflow as tf</p>
+<p>value = tf.constant(value=[1,2])
+token = b'\xb0'
+dataType = [tf.int32]</p>
+<p>tf.raw_ops.PyFunc(input=value,token=token,Tout=dataType)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/9f03a9d3bafe902c1e6beb105b2f24172f238645">9f03a9d3bafe902c1e6beb105b2f24172f238645</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by pattarakritr@smu.edu.sg</p>

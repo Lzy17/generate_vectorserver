@@ -1,0 +1,26 @@
+<h2>TFSA-2021-085: Division by zero in TFLite's implementation of <code>SpaceToBatchNd</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29597</p>
+<h3>Impact</h3>
+<p>The implementation of the <code>SpaceToBatchNd</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/412c7d9bb8f8a762c5b266c9e73bfa165f29aac8/tensorflow/lite/kernels/space_to_batch_nd.cc#L82-L83">vulnerable to a
+division by zero
+error</a>:</p>
+<p><code>cc
+TF_LITE_ENSURE_EQ(context, final_dim_size % block_shape[dim], 0);
+output_size-&gt;data[dim + 1] = final_dim_size / block_shape[dim];</code></p>
+<p>An attacker can craft a model such that one dimension of the <code>block</code> input is 0.
+Hence, the corresponding value in <code>block_shape</code> is 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/6d36ba65577006affb272335b7c1abd829010708">6d36ba65577006affb272335b7c1abd829010708</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

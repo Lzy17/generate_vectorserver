@@ -1,0 +1,57 @@
+<h2>Prerequisites</h2>
+<ul>
+<li>More information about ROCm stack via <a href="https://docs.amd.com/">ROCm Information Portal</a>.</li>
+<li>A ROCm enabled platform, more info <a href="https://rocm.github.io/install.html">here</a>.</li>
+<li>Base software stack, which includes:</li>
+<li>HIP - <ul>
+<li>HIP and HCC libraries and header files.</li>
+</ul>
+</li>
+<li>OpenCL - OpenCL libraries and header files.</li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/MIOpenGEMM">MIOpenGEMM</a> - enable various functionalities including transposed and dilated convolutions. </li>
+<li>This is optional on the HIP backend, and required on the OpenCL backend.</li>
+<li>Users can enable this library using the cmake configuration flag <code>-DMIOPEN_USE_MIOPENGEMM=On</code>, which is enabled by default when OpenCL backend is chosen.</li>
+<li><a href="https://github.com/RadeonOpenCompute/rocm-cmake">ROCm cmake</a> - provide cmake modules for common build tasks needed for the ROCM software stack.</li>
+<li><a href="http://half.sourceforge.net/">Half</a> - IEEE 754-based half-precision floating point library</li>
+<li><a href="http://www.boost.org/">Boost</a> </li>
+<li>MIOpen uses <code>boost-system</code> and <code>boost-filesystem</code> packages to enable persistent <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">kernel cache</a></li>
+<li>Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34</li>
+<li><a href="https://sqlite.org/index.html">SQLite3</a> - reading and writing performance database</li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/MIOpenTensile">MIOpenTENSILE</a> - users can enable this library using the cmake configuration flag<code>-DMIOPEN_USE_MIOPENTENSILE=On</code>. (deprecated after ROCm 5.1.1)</li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBLAS</a> - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.</li>
+<li>Minimum version branch for pre-ROCm 3.5 <a href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10">master-rocm-2.10</a></li>
+<li>Minimum version branch for post-ROCm 3.5 <a href="https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0">master-rocm-3.5</a></li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/llvm-project-mlir">MLIR</a> - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.</li>
+<li><a href="https://github.com/ROCmSoftwarePlatform/composable_kernel">Composable Kernel</a> - C++ templated device library for GEMM-like and reduction-like operators.</li>
+</ul>
+<h2>Installing MIOpen with pre-built packages</h2>
+<p>MIOpen can be installed on Ubuntu using <code>apt-get</code>.</p>
+<p>For OpenCL backend: <code>apt-get install miopen-opencl</code></p>
+<p>For HIP backend: <code>apt-get install miopen-hip</code></p>
+<p>Currently both the backends cannot be installed on the same system simultaneously. If a different backend other than what currently exists on the system is desired, please uninstall the existing backend completely and then install the new backend.</p>
+<h2>Installing MIOpen kernels package</h2>
+<p>MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.</p>
+<p>Note that all compiled kernels are locally cached in the folder <code>$HOME/.cache/miopen/</code>, so precompiled kernels reduce the startup latency only for the first execution of a neural network. Precompiled kernels do not reduce startup time on subsequent runs.</p>
+<p>To install the kernels package for your GPU architecture, use the following command:</p>
+<p><code>apt-get install miopenkernels-&lt;arch&gt;-&lt;num cu&gt;</code></p>
+<p>Where <code>&lt;arch&gt;</code> is the GPU architecture ( for example, <code>gfx900</code>, <code>gfx906</code>, <code>gfx1030</code> ) and <code>&lt;num cu&gt;</code> is the number of CUs available in the GPU (for example 56 or 64 etc). </p>
+<p>Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.</p>
+<p>The script <code>utils/install_precompiled_kernels.sh</code> provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as: </p>
+<p><code>./utils/install_precompiled_kernels.sh</code></p>
+<p>The above script depends on the <strong>rocminfo</strong> package to query the GPU architecture.</p>
+<p>More info can be found <a href="https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels">here</a>.</p>
+<h2>Installing the dependencies</h2>
+<p>The dependencies can be installed with the <code>install_deps.cmake</code>, script: <code>cmake -P install_deps.cmake</code></p>
+<p>This will install by default to <code>/usr/local</code> but it can be installed in another location with <code>--prefix</code> argument:
+<code>cmake -P install_deps.cmake --prefix &lt;miopen-dependency-path&gt;</code>
+An example cmake step can be:
+<code>cmake -P install_deps.cmake --minimum --prefix /root/MIOpen/install_dir</code>
+This prefix can used to specify the dependency path during the configuration phase using the <code>CMAKE_PREFIX_PATH</code>.</p>
+<ul>
+<li>
+<p>MIOpen's HIP backend uses <a href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBLAS</a> by default. Users can install rocBLAS minimum release by using <code>apt-get install rocblas</code>. To disable using rocBLAS set the configuration flag <code>-DMIOPEN_USE_ROCBLAS=Off</code>. rocBLAS is <em>not</em> available for the OpenCL backend.</p>
+</li>
+<li>
+<p>MIOpen's OpenCL backend uses <a href="https://github.com/ROCmSoftwarePlatform/MIOpenGEMM">MIOpenGEMM</a> by default. Users can install MIOpenGEMM minimum release by using <code>apt-get install miopengemm</code>.</p>
+</li>
+</ul>

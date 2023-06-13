@@ -1,0 +1,14 @@
+<h1>Machine Learning, Deep Learning, and Artificial Intelligence</h1>
+<p>:::::{grid} 1 1 2 2
+:gutter: 1</p>
+<p>:::{grid-item-card} Inception V3 with PyTorch
+:link: pytorch_inception
+:link-type: doc
+A collection of detailed and guided examples for working with Inception V3 with PyTorch on ROCm.</p>
+<p>:::</p>
+<p>:::{grid-item-card} Optimizing Inference with MIGraphX
+:link: migraphx_optimization
+:link-type: doc
+Walkthroughs of optimizing inference using MIGraphX.</p>
+<p>:::</p>
+<p>:::::</p>

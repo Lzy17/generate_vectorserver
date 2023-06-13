@@ -1,0 +1,45 @@
+<h2>TFSA-2022-138: Assertion fail on MLIR empty edge names</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36012</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ir/importexport/functiondef_import.cc"><code>mlir::tfg::ConvertGenericFunctionToFunctionDef</code></a> is given empty function attributes, it crashes.
+<code>cpp
+// We pre-allocate the array of operands and populate it using the
+// `output_name_to_position` and `control_output_to_position` populated
+// previously.
+SmallVector&lt;Value&gt; ret_vals(func.ret_size() + func.control_ret_size(),
+                            Value());
+for (const auto&amp; ret_val : func.ret()) {
+  auto position = output_name_to_position.find(ret_val.first);
+  if (position == output_name_to_position.end())
+    return InvalidArgument(
+        "Can't import function, returned value references unknown output "
+        "argument ",
+        ret_val.first);
+  ret_vals[position-&gt;second] =
+      value_manager.GetValueOrCreatePlaceholder(ret_val.second);
+}
+for (const auto&amp; ret_val : func.control_ret()) {
+  auto position = control_output_to_position.find(ret_val.first);
+  if (position == control_output_to_position.end())
+    return InvalidArgument(
+        "Can't import function, returned value references unknown output "
+        "argument ",
+        ret_val.first);
+  Value result = value_manager.GetValueOrCreatePlaceholder(
+      (Twine("^") + ret_val.second).str());</code>
+<code>ret_val.second</code> cannot be empty. Neither can <code>input</code>.
+<code>cpp
+// Process every node and create a matching MLIR operation
+for (const NodeDef&amp; node : nodes) {
+  if (node.op().empty()) return InvalidArgument("empty op type");
+  OperationState state(unknown_loc, absl::StrCat("tfg.", node.op()));
+  // Fetch the inputs, creating placeholder if an input hasn't been visited.
+  for (const std::string&amp; input : node.input())
+    state.operands.push_back(
+        value_manager.GetValueOrCreatePlaceholder(input));</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ad069af92392efee1418c48ff561fd3070a03d7b">ad069af92392efee1418c48ff561fd3070a03d7b</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

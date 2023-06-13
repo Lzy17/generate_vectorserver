@@ -1,0 +1,135 @@
+<h1>XLA GPU Backend</h1>
+<!--* freshness: { owner: "cheshire" reviewed: "2022-08-04" } *-->
+
+<h2>Compile time</h2>
+<p>At compile time,
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/gpu/gpu_compiler.h"><code>GpuCompiler</code></a>
+generates
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/gpu/gpu_executable.h"><code>GpuExecutable</code></a>,
+whose <code>ExecuteOnStream</code> interface will be called by the XLA service at runtime.
+The figure below shows the work flow of <code>GpuCompiler</code>.</p>
+<p>```dot
+strict digraph {
+  compound=true;
+  rankdir=LR
+  graph [autosize=false, size="7!,7!", resolution=72];</p>
+<p>{
+    rank = same
+    unopt_hlo [id=googlegreen shape=oval label="Unoptimized\nHLO"]
+    hlo_passes [id=googleblue shape=box label="HLO passes"]
+    opt_hlo [id=googlegreen shape=oval label="Optimized and\nCanonicalized HLO"]
+  }</p>
+<p>{
+    rank=same
+    buffer_assigner [id=googleblue shape=box label=BufferAssigner]
+    buffer_assignment [id=googlegreen shape=oval label=BufferAssignment]
+    lmhlo [id=googlegreen shape=oval label=LMHLO]
+  }
+  ir_emitter [id=googleblue shape=box label=IREmitter]
+  gpu_ir [id=googlegreen shape=oval label="LLVM IR\n(GPU)"]
+  llvm_gpu [id=googleblue shape=box label="LLVM JIT\n(GPU)"]</p>
+<p>subgraph cluster_gpu_executable {
+    label="GpuExecutable"
+    ptx [id=googlegreen shape=oval label=PTX]</p>
+<pre><code>subgraph cluster_thunk_sequence {
+  label="ThunkSequence"
+  thunk0 [id=googlegreen shape=oval label=Thunk]
+  thunk1 [id=googlegreen shape=oval label=Thunk]
+}
+</code></pre>
+<p>}</p>
+<p>unopt_hlo -&gt; hlo_passes -&gt; opt_hlo -&gt; { lmhlo buffer_assigner }
+  buffer_assigner -&gt; buffer_assignment -&gt; lmhlo -&gt; ir_emitter
+  ir_emitter -&gt; gpu_ir -&gt; llvm_gpu -&gt; ptx
+  ir_emitter -&gt; { thunk0 thunk1 }
+}
+```</p>
+<p><center><img style="width:25%" src="./images/gpu_backend_chart.svg"></img></center></p>
+<h3>Optimization</h3>
+<p><code>GpuCompiler</code> runs a pipeline of target-independent and target-dependent
+optimizations on the input HLO graph. For example, it folds
+<a href="https://www.tensorflow.org/xla/operation_semantics#transpose"><code>Transpose</code></a> into
+<a href="https://www.tensorflow.org/xla/operation_semantics#dot"><code>Dot</code></a> in certain
+situations so that the <code>Transpose</code> instruction can be elided in a cuBLAS gemm
+call.</p>
+<h3>Canonicalization</h3>
+<p>After HLO optimizations, <code>GpuCompiler</code> runs canonicalization transformations to
+ensure <code>IrEmitter</code> can emit valid IR. Canonicalization makes later IR emission
+easier, because <code>IrEmitter</code> currently works on one HLO instruction at a time
+without a global view of the entire graph.</p>
+<h3>Buffer Analysis</h3>
+<p>The buffer assignment pass assigns a buffer if necessary to store the result of
+each HLO instruction. Actual buffer allocation happens at runtime. Therefore, at
+compile time, the buffer analysis assigns <code>BufferAllocation</code>s, which contains
+metadata (such as the index and shape of the buffer) for <code>GpuExecutable</code> to
+allocate and deallocate buffers.</p>
+<h3>LMHLO Conversion</h3>
+<p><code>GpuCompiler</code> takes the optimized HLO and <code>BufferAssignment</code>, and convert them
+to the MLIR dialect
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/mlir_hlo/lhlo/IR/lhlo_ops.td"><code>LMHLO</code></a>.</p>
+<p>The <code>LMHLO</code> dialect is a graph consists of <code>LMHLO</code> ops. <code>LMHLO</code> ops are
+buffer-based and sequentially ordered. The sequential order reflects the
+execution order.</p>
+<p>In <code>LMHLO</code>, direct operand-user information is stripped away, as each op is only
+connected with its buffers, not ops which generate those buffers.</p>
+<p>Notice that some <code>LMHLO</code> ops, e.g. <code>lmhlo.fusion</code> or <code>lmhlo.reduce</code>, contain
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/mlir_hlo/mhlo/IR/hlo_ops.td"><code>MHLO</code></a>-based
+regions. They are tensor-based <code>MHLO</code> regions because ops in them don't have
+buffers associated.</p>
+<p>The code that converts XLA HLO to <code>LMHLO</code> is
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/translate/mhlo_to_lhlo_with_xla/mhlo_to_lhlo_with_xla.h">here</a>.</p>
+<p>Currently, lowering of those <code>MHLO</code> regions takes a twist:</p>
+<ul>
+<li>First, <code>MHLO</code> regions get converted back to XLA HLO graphs.</li>
+<li>Then the converted XLA HLO graphs are handled by
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/llvm_ir/fused_ir_emitter.h"><code>FusedIrEmitter</code></a>
+    and
+    <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/elemental_ir_emitter.h"><code>ElementalIrEmitter</code></a>.</li>
+</ul>
+<h3>IR Emission</h3>
+<p><code>IrEmitter</code> emits CUDA kernels in LLVM IR to implement most <code>LMHLO</code> operations
+in the input graph. <code>GpuCompiler</code> then compiles emitted LLVM IR to PTX using
+LLVM as a JIT compiler. <code>IrEmitter</code> does not need to emit IR for some
+instructions. For example, <code>GpuCompiler</code> implements certain Dot instructions as
+cuBLAS gemms, which do not require any customized kernels.</p>
+<p><code>IrEmitter</code> has two subclasses:</p>
+<ul>
+<li><code>IrEmitterUnnested</code>, which emits code for all <code>LMHLO</code> instructions, and</li>
+<li><code>IrEmitterNested</code>, which handles instructions in nested computations (e.g.
+    those scalar computations in <code>Map</code> and <code>Reduce</code>).</li>
+</ul>
+<p><code>IrEmitterUnnested</code> emits zero or more global functions for each <code>LMHLO</code>
+instruction. In contrast, <code>IrEmitterNested</code> emits a device function for each HLO
+instruction. These device functions, if small, are likely to be inlined to
+kernels.</p>
+<h3>Thunk Building</h3>
+<p>Besides emitting LLVM IR, <code>IrEmitter</code> also generates a sequence of
+<a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/gpu/thunk.h">thunks</a>.
+Each thunk contains metadata for <code>GpuExecutable</code> to invoke an HLO instruction at
+runtime. For HLO instructions implemented as cuBLAS gemms, <code>IrEmitter</code> generates
+<code>GemmThunk</code>s whose <code>ExecuteOnStream</code> interface calls a cuBLAS gemm via
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla/stream_executor">StreamExecutor</a>
+APIs. For instructions implemented as customized kernels, <code>IrEmitter</code> generates
+<code>KernelThunk</code>s which contain necessary arguments for launching kernels.</p>
+<p><center><img style="width:25%" src="./images/kernel_thunk.svg"></img></center></p>
+<p>For instance, the figure above shows an HLO graph that performs an elementwise
+add on two input arrays of shape <code>f32[256]</code>. Suppose the buffer analysis assigns
+buffer 0, 1, and 2 to <code>Param0</code>, <code>Param1</code>, and <code>Add</code>, respectively. Also suppose
+<code>IrEmitter</code> emits a kernel named "add" for the <code>Add</code> instruction. In this case,
+<code>IrEmitter</code> generates</p>
+<p><code>KernelThunk { input buffers = [0, 1], output buffer = [2], kernel name = "add" }</code></p>
+<p>At runtime, <code>GpuExecutable</code> launches the kernel named "add" with the base
+addresses of buffer 0, 1, and 2.</p>
+<h3>Constructing GpuExecutable</h3>
+<p>Finally, <code>GpuCompiler</code> constructs a <code>GpuExecutable</code> object that wraps the PTX
+assembly and the thunk sequence generated by the <code>IrEmitter</code>.</p>
+<h2>Runtime</h2>
+<p>At runtime, <code>GpuExecutable</code> does the following:</p>
+<ol>
+<li>Allocates all buffers assigned by the buffer analysis.</li>
+<li>Invokes all the thunks in its thunk sequence by calling their
+    <code>ExecuteOnStream</code> interface. The base address of the allocated buffers are
+    passed as an array of <code>void*</code> to the kernels and device functions emitted by
+    the <code>IrEmitter</code>.</li>
+<li>Deallocates all buffers that do not live out.</li>
+</ol>

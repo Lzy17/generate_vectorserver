@@ -1,0 +1,19 @@
+<h2>TFSA-2022-036: Heap OOB read/write in <code>SpecializeType</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23574</p>
+<h3>Impact</h3>
+<p>There is a typo in TensorFlow's <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/full_type_util.cc#L81-L102"><code>SpecializeType</code></a> which results in heap OOB read/write:</p>
+<p><code>cc
+for (int i = 0; i &lt; op_def.output_arg_size(); i++) {
+  // ...
+  for (int j = 0; j &lt; t-&gt;args_size(); j++) {
+    auto* arg = t-&gt;mutable_args(i);
+    // ...
+  }
+}</code></p>
+<p>Due to a typo, <code>arg</code> is initialized to the <code>i</code>th mutable argument in a loop where the loop index is <code>j</code>. Hence it is possible to assign to <code>arg</code> from outside the vector of arguments. Since this is a mutable proto value, it allows both read and write to outside of bounds data.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/0657c83d08845cc434175934c642299de2c0f042">0657c83d08845cc434175934c642299de2c0f042</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, and TensorFlow 2.6.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

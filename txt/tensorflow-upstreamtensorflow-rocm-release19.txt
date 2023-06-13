@@ -1,0 +1,112 @@
+<h1>Introduction</h1>
+<p>This document is to list the ROCm compatibility for the tensorflow-rocm release packages published on PyPI.</p>
+<p><a href="https://pypi.org/project/tensorflow-rocm/">https://pypi.org/project/tensorflow-rocm/</a></p>
+<h2>TF v2.11</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.4.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.11.0.540">https://pypi.org/project/tensorflow-rocm/2.11.0.540</a> |
+| ROCm5.3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.11.0.530">https://pypi.org/project/tensorflow-rocm/2.11.0.530</a> |</p>
+<h2>TF v2.10</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.4.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.10.1.540">https://pypi.org/project/tensorflow-rocm/2.10.1.540</a> |
+| ROCm5.3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.10.0.530">https://pypi.org/project/tensorflow-rocm/2.10.0.530</a> |
+| ROCm5.2.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.10.0.520">https://pypi.org/project/tensorflow-rocm/2.10.0.520</a> |</p>
+<h2>TF v2.9</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.4.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.9.4">https://pypi.org/project/tensorflow-rocm/2.9.4</a> |
+| ROCm5.3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.9.3">https://pypi.org/project/tensorflow-rocm/2.9.3</a> |
+| ROCm5.2.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.9.2">https://pypi.org/project/tensorflow-rocm/2.9.2</a> |
+| ROCm5.1.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.9.1">https://pypi.org/project/tensorflow-rocm/2.9.1</a> |</p>
+<h2>TF v2.8</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.8.4">https://pypi.org/project/tensorflow-rocm/2.8.4</a> |
+| ROCm5.2.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.8.3">https://pypi.org/project/tensorflow-rocm/2.8.3</a> |
+| ROCm5.1.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.8.2">https://pypi.org/project/tensorflow-rocm/2.8.2</a> |
+| ROCm5.1.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.8.1">https://pypi.org/project/tensorflow-rocm/2.8.1</a> |
+| ROCm5.0.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.8.0">https://pypi.org/project/tensorflow-rocm/2.8.0</a> |</p>
+<h2>TF v2.7</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.2.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.7.4">https://pypi.org/project/tensorflow-rocm/2.7.4</a> |
+| ROCm5.1.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.7.3">https://pypi.org/project/tensorflow-rocm/2.7.3</a> |
+| ROCm5.1.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.7.2">https://pypi.org/project/tensorflow-rocm/2.7.2</a> |
+| ROCm5.0.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.7.1">https://pypi.org/project/tensorflow-rocm/2.7.1</a> |
+| ROCm4.5.2  | <a href="https://pypi.org/project/tensorflow-rocm/2.7.0">https://pypi.org/project/tensorflow-rocm/2.7.0</a> |</p>
+<h2>TF v2.6</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm5.1.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.6.4">https://pypi.org/project/tensorflow-rocm/2.6.4</a> |
+| ROCm5.0.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.6.3">https://pypi.org/project/tensorflow-rocm/2.6.3</a> |
+| ROCm4.3.1  | <a href="https://pypi.org/project/tensorflow-rocm/2.6.2">https://pypi.org/project/tensorflow-rocm/2.6.2</a> |</p>
+<h2>TF v2.5</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm4.2 | <a href="https://pypi.org/project/tensorflow-rocm/2.5.0/">https://pypi.org/project/tensorflow-rocm/2.5.0/</a> |</p>
+<h2>TF v2.4</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm4.1.1  | <a href="https://pypi.org/project/tensorflow-rocm/2.4.2">https://pypi.org/project/tensorflow-rocm/2.4.2</a> |
+| ROCm4.1    | <a href="https://pypi.org/project/tensorflow-rocm/2.4.1">https://pypi.org/project/tensorflow-rocm/2.4.1</a> |
+| ROCm4.0    | <a href="https://pypi.org/project/tensorflow-rocm/2.4.0">https://pypi.org/project/tensorflow-rocm/2.4.0</a> |
+| ROCm3.10   | <a href="https://pypi.org/project/tensorflow-rocm/2.4.0rc3">https://pypi.org/project/tensorflow-rocm/2.4.0rc3</a> |</p>
+<h2>TF v2.3</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm4.1.1  | <a href="https://pypi.org/project/tensorflow-rocm/2.3.6">https://pypi.org/project/tensorflow-rocm/2.3.6</a> |
+| ROCm4.1    | <a href="https://pypi.org/project/tensorflow-rocm/2.3.5">https://pypi.org/project/tensorflow-rocm/2.3.5</a> |
+| ROCm4.0    | <a href="https://pypi.org/project/tensorflow-rocm/2.3.4">https://pypi.org/project/tensorflow-rocm/2.3.4</a> |
+| ROCm3.10   | <a href="https://pypi.org/project/tensorflow-rocm/2.3.3">https://pypi.org/project/tensorflow-rocm/2.3.3</a> |
+| ROCm3.9    | <a href="https://pypi.org/project/tensorflow-rocm/2.3.2">https://pypi.org/project/tensorflow-rocm/2.3.2</a> |
+| ROCm3.8    | <a href="https://pypi.org/project/tensorflow-rocm/2.3.1">https://pypi.org/project/tensorflow-rocm/2.3.1</a> |
+| ROCm3.7    | <a href="https://pypi.org/project/tensorflow-rocm/2.3.0">https://pypi.org/project/tensorflow-rocm/2.3.0</a> |</p>
+<h2>TF v2.2</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm3.5  | <a href="https://pypi.org/project/tensorflow-rocm/2.2.0">https://pypi.org/project/tensorflow-rocm/2.2.0</a> |
+| ROCm3.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.2.0rc5">https://pypi.org/project/tensorflow-rocm/2.2.0rc5</a> |
+| ROCm3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.2.0rc4">https://pypi.org/project/tensorflow-rocm/2.2.0rc4</a> |
+| ROCm3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.2.0rc3">https://pypi.org/project/tensorflow-rocm/2.2.0rc3</a> |
+| ROCm3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.2.0rc2">https://pypi.org/project/tensorflow-rocm/2.2.0rc2</a> |</p>
+<h2>TF v2.1</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm3.10  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.6">https://pypi.org/project/tensorflow-rocm/2.1.6</a> |
+| ROCm3.9  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.5">https://pypi.org/project/tensorflow-rocm/2.1.5</a> |
+| ROCm3.8  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.4">https://pypi.org/project/tensorflow-rocm/2.1.4</a> |
+| ROCm3.7  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.3">https://pypi.org/project/tensorflow-rocm/2.1.3</a> |
+| ROCm3.5  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.2">https://pypi.org/project/tensorflow-rocm/2.1.2</a> |
+| ROCm3.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.1">https://pypi.org/project/tensorflow-rocm/2.1.1</a> |
+| ROCm3.1  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.0">https://pypi.org/project/tensorflow-rocm/2.1.0</a> |
+| ROCm3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.0rc1">https://pypi.org/project/tensorflow-rocm/2.1.0rc1</a> |
+| ROCm2.10  | <a href="https://pypi.org/project/tensorflow-rocm/2.1.0rc0">https://pypi.org/project/tensorflow-rocm/2.1.0rc0</a> |</p>
+<h2>TF v2.0</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+| ROCm3.3  | <a href="https://pypi.org/project/tensorflow-rocm/2.0.4">https://pypi.org/project/tensorflow-rocm/2.0.4</a> |
+| ROCm3.1  | <a href="https://pypi.org/project/tensorflow-rocm/2.0.3">https://pypi.org/project/tensorflow-rocm/2.0.3</a> |
+| ROCm3.0  | <a href="https://pypi.org/project/tensorflow-rocm/2.0.2">https://pypi.org/project/tensorflow-rocm/2.0.2</a> |
+| ROCm2.10  | <a href="https://pypi.org/project/tensorflow-rocm/2.0.1">https://pypi.org/project/tensorflow-rocm/2.0.1</a> |
+| ROCm2.9  | <a href="https://pypi.org/project/tensorflow-rocm/2.0.0">https://pypi.org/project/tensorflow-rocm/2.0.0</a> |
+| ROCm2.7     | <a href="https://pypi.org/project/tensorflow-rocm/2.0.0b3">https://pypi.org/project/tensorflow-rocm/2.0.0b3</a> |
+| ROCm2.6     | <a href="https://pypi.org/project/tensorflow-rocm/2.0.0b2">https://pypi.org/project/tensorflow-rocm/2.0.0b2</a> |
+| ROCm2.6    | <a href="https://pypi.org/project/tensorflow-rocm/2.0.0b1">https://pypi.org/project/tensorflow-rocm/2.0.0b1</a> |</p>
+<h2>TF v1.15</h2>
+<p>| ROCm version | tensorflow-rocm whl on pypi |
+| --- | --- |
+|  ROCm4.1.1    | <a href="https://pypi.org/project/tensorflow-rocm/1.15.11">https://pypi.org/project/tensorflow-rocm/1.15.11</a> |
+|  ROCm4.1      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.10">https://pypi.org/project/tensorflow-rocm/1.15.10</a> |
+|  ROCm4.0      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.9">https://pypi.org/project/tensorflow-rocm/1.15.9</a> |
+|  ROCm3.10     | <a href="https://pypi.org/project/tensorflow-rocm/1.15.8">https://pypi.org/project/tensorflow-rocm/1.15.8</a> |
+|  ROCm3.9      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.7">https://pypi.org/project/tensorflow-rocm/1.15.7</a> |
+|  ROCm3.8      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.6">https://pypi.org/project/tensorflow-rocm/1.15.6</a> |
+|  ROCm3.7      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.5">https://pypi.org/project/tensorflow-rocm/1.15.5</a> |
+|  ROCm3.5      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.4">https://pypi.org/project/tensorflow-rocm/1.15.4</a> |
+|  ROCm3.3      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.3">https://pypi.org/project/tensorflow-rocm/1.15.3</a> |
+|  ROCm3.1      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.2">https://pypi.org/project/tensorflow-rocm/1.15.2</a> |
+|  ROCm3.0      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.1">https://pypi.org/project/tensorflow-rocm/1.15.1</a> |
+|  ROCm2.10     | <a href="https://pypi.org/project/tensorflow-rocm/1.15.0">https://pypi.org/project/tensorflow-rocm/1.15.0</a> |
+|  ROCm2.9      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.0rc2">https://pypi.org/project/tensorflow-rocm/1.15.0rc2</a> |
+|  ROCm2.8      | <a href="https://pypi.org/project/tensorflow-rocm/1.15.0rc1">https://pypi.org/project/tensorflow-rocm/1.15.0rc1</a> |</p>

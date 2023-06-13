@@ -1,0 +1,27 @@
+<h2>TFSA-2022-054: Stack overflow due to self-recursive function in <code>GraphDef</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23591</p>
+<h3>Impact</h3>
+<p>The <code>GraphDef</code> format in TensorFlow does not allow self recursive functions. The runtime assumes that this invariant is satisfied. However, a <code>GraphDef</code> containing a fragment such as the following can be consumed when loading a <code>SavedModel</code>:</p>
+<p><code>library {
+    function {
+      signature {
+        name: "SomeOp"
+        description: "Self recursive op"
+      }
+      node_def {
+        name: "1"
+        op: "SomeOp"
+      }
+      node_def {
+        name: "2"
+        op: "SomeOp"
+      }
+    }
+  }</code></p>
+<p>This would result in a stack overflow during execution as resolving each <code>NodeDef</code> means resolving the function itself and its nodes.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/448a16182065bd08a202d9057dd8ca541e67996c">448a16182065bd08a202d9057dd8ca541e67996c</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

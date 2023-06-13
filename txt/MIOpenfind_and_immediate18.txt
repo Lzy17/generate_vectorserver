@@ -1,0 +1,133 @@
+<h1>Find and Immediate Mode</h1>
+<h2>Find API</h2>
+<p>MIOpen contains several convolution algorithms for each stage of training or inference. Pre-MIOpen version 2.0 users needed to call Find methods in order generate a set of applicable algorithms.</p>
+<p>A typical workflow for the find stage:</p>
+<p>```
+miopenConvolutionForwardGetWorkSpaceSize(handle, 
+                                         weightTensorDesc, 
+                                         inputTensorDesc, 
+                                         convDesc, 
+                                         outputTensorDesc, 
+                                         &amp;maxWorkSpaceSize);</p>
+<p>// &lt; allocate workspace &gt;</p>
+<p>// NOTE:
+// miopenFindConvolution<em>() call is expensive in terms of execution time and required workspace.
+// Therefore it is highly recommended to save off the selected algorithm and workspace required so that
+// can be reused later within the lifetime of the same MIOpen handle object.
+// In this way, there should be is no need to invoke miopenFind</em>() more than once per application lifetime.</p>
+<p>miopenFindConvolutionForwardAlgorithm(handle, 
+                                      inputTensorDesc, 
+                                      input_device_mem, 
+                                      weightTensorDesc, 
+                                      weight_device_mem,
+                                      convDesc,
+                                      outputTensorDesc, 
+                                      output_device_mem,,
+                                      request_algo_count,
+                                      &amp;ret_algo_count,
+                                      perf_results,
+                                      workspace_device_mem,
+                                      maxWorkSpaceSize,
+                                      1);</p>
+<p>// &lt; select fastest algorithm &gt;</p>
+<p>// &lt; free previously allocated workspace and allocate workspace required for the selected algorithm&gt;</p>
+<p>miopenConvolutionForward(handle, &amp;alpha,
+                         inputTensorDesc, 
+                         input_device_mem, 
+                         weightTensorDesc, 
+                         weight_device_mem,
+                         convDesc,
+                         perf_results[0].fwd_algo, // use the fastest algo
+                         &amp;beta,
+                         outputTensorDesc, 
+                         output_device_mem,
+                         workspace_device_mem,
+                         perf_results[0].memory); //workspace size                                         <br />
+```</p>
+<p>The results of Find() are returned in an array of <code>miopenConvAlgoPerf_t</code> structs in order of performance, with the fastest at index 0.</p>
+<p>This call sequence is executed once per session as it is inherently expensive. Of those, <code>miopenFindConvolution*()</code> is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of <code>miopenFindConvolution*()</code> in the application, as recommended above. </p>
+<p>Internally MIOpen's Find calls will compile and benchmark a set of <code>solvers</code> contained in <code>miopenConvAlgoPerf_t</code> this is done in parallel per <code>miopenConvAlgorithm_t</code>. The level of parallelism can be controlled using an environment variable. See the debugging section <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation">controlling parallel compilation</a> for more details.</p>
+<h2>Immediate Mode API</h2>
+<p>MIOpen v2.0 introduces the immediate which removes the requirement for the <code>miopenFindConvolution*()</code> calls and their associated runtime costs. In this mode, the user can query the MIOpen runtime for all the supported <em>solutions</em> for a given convolution configuration. These solutions may either be using the same algorithm or different ones. The sequence of operations for in immediate mode is similar to launching regular convolutions in MIOpen i.e. through the use of the <code>miopenFindConvolution*()</code> API. However, in this case the different APIs have much lower runtime cost. A typical convolution call would be similar to the following sequence of calls:</p>
+<ul>
+<li>The user constructs the MIOpen handle and relevant descriptors such as the convolution descriptor as usual. </li>
+<li>With the above data structures, the user calls <code>miopenConvolution*GetSolutionCount</code> to get the <strong>maximum</strong> number of supported solutions for the convolution descriptor in question.</li>
+<li>The count obtained above is used to allocate memory for the <code>miopenConvSolution_t</code> structure introduced in MIOpen v2.0</li>
+<li>The user calls <code>miopenConvolution*GetSolution</code> to populate the <code>miopenConvSolution_t</code> structures allocated above. The returned list is ordered in the order of best performance, thus the first element would be the fastest. </li>
+<li>While the above structure returns the amount of workspace required for an algorithm, the user may inquire the amount of a workspace required for a known solution id by using the <code>miopenConvolution*GetSolutionWorkspaceSize</code> API call. However, this is not a requirement, since the strucure returned by <code>miopenConvolution*GetSolution</code> would already have this information. </li>
+<li>Now the user may initiate the convolution operation in <em>immediate</em> mode by calling <code>miopenConvolution*Immediate</code>. Which would populate the output tensor descriptor with the respective convolution result. However, the first call to <code>miopenConvolution*Immediate</code> may consume more time since the kernel may not be present in the kernel cache and may need to be compiled.</li>
+<li>Optionally, the user may compile the solution of choice by calling <code>miopenConvolution*CompileSolution</code> which would ensure that the kernel represented by the chosen solution is populated in the kernel cache a priori, removing the necessity for compiling the kernel in question. </li>
+</ul>
+<p>```
+miopenConvolutionForwardGetSolutionCount(handle, 
+                                         weightTensorDesc,
+                                         inputTensorDesc,
+                                         convDesc,
+                                         outputTensorDesc,
+                                         &amp;solutionCount);</p>
+<p>// &lt; allocate an array of miopenConvSolution_t of size solutionCount &gt;</p>
+<p>miopenConvolutionForwardGetSolution(handle,
+                                    weightTensorDesc,
+                                    inputTensorDesc,
+                                    convDesc,
+                                    outputTensorDesc,
+                                    solutionCount,
+                                    &amp;actualCount,
+                                    solutions);</p>
+<p>// &lt; select a solution from solutions array &gt;</p>
+<p>miopenConvolutionForwardGetSolutionWorkspaceSize(handle,
+                                                 weightTensorDesc,
+                                                 inputTensorDesc,
+                                                 convDesc,
+                                                 outputTensorDesc,
+                                                 selected-&gt;solution_id,
+                                                 &amp;ws_size);</p>
+<p>// &lt; allocate solution workspace of size ws_size &gt;</p>
+<p>// This stage is optional
+miopenConvolutionForwardCompileSolution(handle,<br />
+                                        weightTensorDesc,
+                                        inputTensorDesc,
+                                        convDesc,
+                                        outputTensorDesc,
+                                        selected-&gt;solution_id);</p>
+<p>miopenConvolutionForwardImmediate(handle,
+                                   weightTensor,
+                                   weight_device_mem,
+                                   inputTensorDesc,
+                                   input_device_mem,
+                                   convDesc,
+                                   outputTensorDesc,
+                                   output_device_mem,
+                                   workspace_device_mem,
+                                   ws_size,
+                                   selected-&gt;solution_id);                                                 <br />
+```</p>
+<h2>Immediate Mode Fallback</h2>
+<p>The immediate mode is underpinned by the <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a>, however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.</p>
+<h3>1. AI-based Heuristic Fallback (Default)</h3>
+<p>If MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON, which it is by default, Immediate Mode's behavior on a database miss is to use an AI-based heurisitic to pick the optimal solution. First, the applicability of the AI-based heuristic for the given configuration is checked. If the heuristic is applicable, it feeds various parameters of the given configuration into a neural network which has been tuned to predict the optimal solution with 90% accuracy.</p>
+<h3>2. Weighted Throughput Index Based Fallback</h3>
+<p>When MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to OFF, or the AI Heuristic is not applicable for the given convolution configuration, Immediate mode's behavior on encountering a database miss is to use a Weighted Thoughput Index (WTI) based mechanism to estimate which solution would be optimal based upon parameters of the convolution configuration.</p>
+<h2>Limitations of Immediate Mode</h2>
+<h3>Architectual Limitations</h3>
+<p>The system Find-Db has only been populated for the following architectures:
+ * gfx906 with 64 CUs
+ * gfx906 with 60 CUs
+ * gfx900 with 64 CUs
+ * gfx900 with 56 CUs</p>
+<p>If the user's architecture is not listed above they will need to run the Find API once on their system per application in order to take advantage of immediate mode's more efficient behavior.</p>
+<h3>Backend Limitations</h3>
+<p>OpenCL support for immediate mode via the fallback is limited to fp32 datatypes. This is because this current release's fallback path goes through GEMM which on the OpenCL is serviced through MIOpenGEMM -- which itself only contains support for fp32. The HIP backend uses rocBLAS as its fallback path which contains a richer set of datatypes.</p>
+<h3>Find Modes</h3>
+<p>MIOpen provides a set of Find modes which are used to accelerate the Find calls. The different modes are set by using the environment variable <code>MIOPEN_FIND_MODE</code>, and setting it to one of the values:</p>
+<ul>
+<li><code>NORMAL</code>, or <code>1</code>: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.</li>
+<li><code>FAST</code>, or <code>2</code>: Fast Find: Checks the <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.</li>
+<li><code>HYBRID</code>, or <code>3</code>, or unset <code>MIOPEN_FIND_MODE</code>: Hybrid Find: Checks the <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.</li>
+<li><code>4</code>: This value is reserved and should not be used.</li>
+<li><code>DYNAMIC_HYBRID</code>, or <code>5</code>: Dynamic Hybrid Find: Checks the <a href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html">Find-Db</a> for an entry. If there is a Find-Db hit, uses that entry. If there is a miss, uses the existing Find machinery with skipping non-dynamic kernels. Faster start-up times than Hybrid Find, but GPU performance may be a bit worse.</li>
+</ul>
+<p>Currently, the default Find mode is <code>DYNAMIC_HYBRID</code>. To run the full <code>NORMAL</code> Find mode, set the environment as:
+ <code>export MIOPEN_FIND_MODE=NORMAL</code>
+ Or,
+ <code>export MIOPEN_FIND_MODE=1</code></p>

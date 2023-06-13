@@ -1,0 +1,21 @@
+<h2>TFSA-2023-019: FPE in AvgPoolGrad with XLA</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25669</p>
+<h3>Impact</h3>
+<p>If the stride and window size are not positive for <code>tf.raw_ops.AvgPoolGrad</code>, it can give an FPE.</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>@tf.function(jit_compile=True)
+def test():
+   y = tf.raw_ops.AvgPoolGrad(orig_input_shape=[1,0,0,0], grad=[[[[0.39117979]]]], ksize=[1,0,0,0], strides=[1,0,0,0], padding="SAME", data_format="NCHW")
+   return y</p>
+<p>print(test())
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/1295ae4dbb52fe06b19733b0257e2340d7b63b8d">1295ae4dbb52fe06b19733b0257e2340d7b63b8d</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by r3pwnx of 360 AIVul Team</p>

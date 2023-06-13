@@ -1,0 +1,21 @@
+<h2>TFSA-2022-021: FPE in <code>BiasAndClamp</code> in TFLite</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23557</p>
+<h3>Impact</h3>
+<p>An attacker can craft a TFLite model that would trigger a division by zero in <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/lite/kernels/internal/common.h#L75"><code>BiasAndClamp</code> implementation</a>:</p>
+<p><code>cc
+inline void BiasAndClamp(float clamp_min, float clamp_max, int bias_size,
+                         const float* bias_data, int array_size,
+                         float* array_data) {
+  // ...
+  TFLITE_DCHECK_EQ((array_size % bias_size), 0);
+  // ...
+}</code></p>
+<p>There is no check that the <code>bias_size</code> is non zero.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/8c6f391a2282684a25cbfec7687bd5d35261a209">8c6f391a2282684a25cbfec7687bd5d35261a209</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Wang Xuan of Qihoo 360 AIVul Team.</p>

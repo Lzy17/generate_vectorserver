@@ -1,0 +1,16 @@
+<h2>TFSA-2022-053: <code>CHECK</code> failure in constant folding</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41197</p>
+<h3>Impact</h3>
+<p>The Grappler component of TensorFlow is vulnerable to a denial of service via <code>CHECK</code>-failure (assertion failure) in <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/grappler/optimizers/constant_folding.cc#L963-L1035">constant folding</a>:</p>
+<p><code>cc
+  for (const auto&amp; output_prop : output_props) {
+    const PartialTensorShape output_shape(output_prop.shape());
+    // ...
+  }</code></p>
+<p>The <code>output_prop</code> tensor has a shape that is controlled by user input and this can result in triggering one of the <code>CHECK</code>s in the <code>PartialTensorShape</code> constructor. This is an instance of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-198.md">TFSA-2021-198</a> (CVE-2021-41197).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/be7b286d40bc68cb0b56f702186cc4837d508058">be7b286d40bc68cb0b56f702186cc4837d508058</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

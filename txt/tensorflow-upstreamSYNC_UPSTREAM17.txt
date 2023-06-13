@@ -1,0 +1,151 @@
+<h1>How to synchonize TensorFlow ROCm port with upstream TensorFlow</h1>
+<p>This article shows the step to synchronize TensorFlow with upstream. The
+process is currently carried out manually but it could and should be automated.</p>
+<h2>Useful github remote repositories (For reference)</h2>
+<p>git locations of repositories used in the merge process are:</p>
+<ul>
+<li>TensorFlow ROCm port:</li>
+<li>URL: <a href="https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git">https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git</a></li>
+<li>branch: develop-upstream</li>
+<li>TensorFlow upstream:</li>
+<li>URL: <a href="https://github.com/tensorflow/tensorflow.git">https://github.com/tensorflow/tensorflow.git</a></li>
+<li>branch: master</li>
+</ul>
+<h1>Step-by-step Merge Process</h1>
+<hr />
+<h2>Get TensorFlow ROCm port</h2>
+<p><code>git clone git@github.com:ROCmSoftwarePlatform/tensorflow-upstream.git
+git checkout develop-upstream
+git pull</code></p>
+<h2>Add remotes</h2>
+<p><code>git remote add upstream https://github.com/tensorflow/tensorflow.git
+git fetch upstream</code></p>
+<h2>Create a working branch to track merge process</h2>
+<p><code>git checkout -b develop-upstream-sync-YYMMDD
+git merge upstream/master --no-edit</code></p>
+<ul>
+<li>Make first commit to record the merge state before resolving conflicts</li>
+<li>Record all files with merge conflict locally</li>
+<li>Mark all conflict files as resolved by staging them</li>
+<li>Commit all files as-is. Note that at this stage the build should be broken
+    because of the "&lt;&lt;&lt;&lt;&lt;&lt;======&gt;&gt;&gt;&gt;&gt;&gt;" symbols in source files</li>
+<li>Resolve any merge conflicts encountered here</li>
+<li>Make the second commit to record the merge state after resolving conflicts</li>
+<li>When all merge conflict resolved, do a <code>grep -rn "&lt;&lt;&lt;&lt;&lt;&lt;"</code> to make sure
+    no diff symbols exist in the source</li>
+</ul>
+<h2>Notice on common merge conflicts</h2>
+<ul>
+<li>bazel / terminology</li>
+<li>
+<p>Rename cuda_ to gpu_ . Python unit tests usually run into this issue.</p>
+</li>
+<li>
+<p>Eigen</p>
+</li>
+<li>
+<p>In case Eigen commit hash has been changed, contact:
+    Deven.Desai@amd.com to get ROCm version of Eigen patched. The next version
+    of this process would cover steps to get Eigen properly synchronized with
+    Eigen upstream.</p>
+</li>
+<li>
+<p>XLA</p>
+</li>
+<li>
+<p>Logic in XLA (tensorflow/compiler) changes relatively frequently. Expect
+    API signature changes either within XLA itself or from LLVM.</p>
+</li>
+<li>
+<p>StreamExecutor / GPU common runtime</p>
+</li>
+<li>
+<p>Apart from terminology (CUDA v GPU) changes, pay attention to interface
+    changes especially in StreamExecutor. Study CUDA version to figure out what
+    the latest interface looks like and adjust ROCm version accordingly.</p>
+</li>
+<li>
+<p>operator implementation</p>
+</li>
+<li>
+<p>Check for new operators in <code>tensorflow/core/kernels</code> directly. Study the
+    source code and try enable it adding <code>|| TENSORFLOW_WITH_ROCM</code> after
+    <code>#if GOOGLE_CUDA</code>. Apply necessary changes to kernel call sites follow
+    conventions set in other operators.</p>
+</li>
+<li>
+<p>upstream failures</p>
+</li>
+<li>When a ROCm reason cannot be determined for a newly failing test, attempt
+    to roll back any source files related to the failing test to known working
+    commits, e.g., the previous weekly merge.  Look for any differences.  By
+    the end of the week, look at the most recent commits in case the bug was
+    found and fixed upstream.  Cherry-pick and verify the fix.  In the meantime,
+    whitelist the failure and indicate it is an upstream failure so that it can
+    be restored as soon as possible.</li>
+</ul>
+<h1>Build merged TensorFlow</h1>
+<ul>
+<li>Build with either <code>build</code> or <code>build_python3</code> script. Make sure everything
+  builds fine and Python PIP whl package can be built.</li>
+</ul>
+<h2>Push and Create Pull Request for TensorFlow ROCm port</h2>
+<ul>
+<li>git push --set-upstream origin develop-upstream-sync-YYMMDD</li>
+<li>Create a pull request to merge <code>develop-upstream-sync-YYMMDD</code> into
+  <a href="https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git">https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git</a> on branch
+  <code>develop-upstream</code>.</li>
+<li>Wait until the pull request has finished validation on Jenkins CI.</li>
+</ul>
+<h2>Update unit test whitelist if necessary</h2>
+<ul>
+<li>The first Jenkins CI job might result in failure due to additional failed
+  unit tests introduced from new commits upstream. Examine the reason behind
+  those failed cases.</li>
+<li>In case those cases can't be easily fixed, modify the bazel target for that
+  test to add one more of the<code>no_rocm</code>, <code>no_rocm_v2</code>, <code>no_cuda</code> tags to it.</li>
+</ul>
+<p>For example:\
+  for the test <code>//tensorflow/python/kernel_tests:conv_ops_test</code>\
+  the definition for the test-target <code>conv_ops_test</code> will be in the file
+  <code>tensorflow/python/kernel_tests/BUILD</code>.
+  - Adding <code>tags = ["no_rocm",]</code> to that target, will result in removing this
+    test from rocm<em> CI runs.
+  - Adding <code>tags = ["no_rocm_v2",]</code> to that target, will result in removing this
+    test from rocm-v2 CI run.
+  - Adding <code>tags = ["no_cuda",]</code> to that target, will result in removing this
+    test from cuda</em> CI runs.
+  - Adding <code>tags = ["no_rocm","no_cuda",]</code> to that target, will result in
+    removing this test from both the rocm<em> and cuda</em> CI runs.</p>
+<p>grep for "tags" in the tensorflow/.../BUILD files for a concrete example of
+  how to add tags to a target</p>
+<p>Note that
+  - <code>no_rocm_v2</code> tag is for tests that pass when run with TF 1.X, but fail when run with TF 2.X
+  - <code>no_cuda</code> tag is for "our" consumption only, it should not be upstreamed.
+  - <code>no_gpu</code> tag is used to indicate which tests are excluded from GPU CI in the
+    upstream repo. We should not add this tag to any tests.</p>
+<ul>
+<li>
+<p>Document the list of excluded tests amending the commit.
+  Also update <a href="https://amdcloud-my.sharepoint.com/:x:/r/personal/deven_amd_com/Documents/TF%20CI%20Unit%20Test%20Status.xlsx?d=w42bd3e2e76534209bd0438aa92857fa6&amp;csf=1&amp;e=5zpGPh">this  Excel spreadsheet</a></p>
+</li>
+<li>
+<p>Push to the working branch once again to let the pull request be tested
+  again. Repeat the process until we see a green check mark on the PR.</p>
+</li>
+</ul>
+<h1>Apply tags and merge</h1>
+<p><code>git checkout develop-upstream
+git tag merge-YYMMDD-prev
+git push --tags</code></p>
+<ul>
+<li>Go to the pull request on github. Hit merge.</li>
+</ul>
+<p><code>git pull
+git tag merge-YYMMDD
+git push --tags</code></p>
+<h2>Sync the upstream branch</h2>
+<p><code>git checkout upstream
+git merge upstream/master
+git push origin upstream</code></p>
+<p>Upon reaching here, the process is now complete.</p>

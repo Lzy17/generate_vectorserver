@@ -1,0 +1,20 @@
+<h1>CUDA IPC Refcounting implementation explained</h1>
+<p>Since shared CUDA memory belongs to the producer process, we need to take special precautions to make sure that it is stays allocated for entire shared tensor life-span.</p>
+<p>It could be done manually by syncing on an event:</p>
+<p>```python</p>
+<h1>Producer</h1>
+<p>queue.put(tensor)
+event.wait()</p>
+<h1>Consumer</h1>
+<p>tensor = queue.get()
+safe_to_use_tensor = tensor.clone()
+event.set()
+```</p>
+<p>However, this requires blocking producer process (and gets overcomplicated in case of multiple consumers and handling various race-conditions).</p>
+<p>Instead, we implement cross-process reference counting for shared CUDA (and HIP) tensors, which will take care of keeping producers memory allocated for entire tensor's life-span.</p>
+<p>Details of implementation follow.</p>
+<p>At the moment of sending tensor, we are wrapping DataPtr of the tensor with additional structure CudaIPCSentData. It still points to the same memory, but have other behavior on destruction.</p>
+<p>Instead of simply removing the allocated block, it checks if there are any active references to this block (references are stored in shared memory files described by CudaIPCRefCountersFile structure). If such exists, instead of deleting blocks DataPtr it is moved to the global state CudaIPCSentDataLimbo.</p>
+<p>Each individual CudaIPCRefCountersFile contains multiple reference counters for multiple tensors. Current implementation sequentially provides next available reference counter by increasing offset.</p>
+<p>CudaIPCSentDataLimbo is keeping references to data blocks which are not in use by producer process (i.e., tensor when out of scope), but still in use (or will be in use) by a consumer. It also tries to reduce the number of stored blocks by scanning the limbo list for blocks whose ref count has gone to zero on various events such as CudaCaching allocator haven't found any suitable block for the next allocation, the attempt of any shared block deletion, explicit call of cuda_ipc_collect.</p>
+<p>Consumer's side wraps received data into the different structure CudaIPCReceivedData. On destruction, it takes care of decreasing reference count to the received tensor.</p>

@@ -1,0 +1,31 @@
+<h2>TFSA-2021-040: Heap OOB in <code>QuantizeAndDequantizeV3</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29553</p>
+<h3>Impact</h3>
+<p>An attacker can read data outside of bounds of heap allocated buffer in
+<code>tf.raw_ops.QuantizeAndDequantizeV3</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tf.raw_ops.QuantizeAndDequantizeV3(
+  input=[2.5,2.5], input_min=[0,0], input_max=[1,1], num_bits=[30],
+  signed_input=False, range_given=False, narrow_range=False, axis=3)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/11ff7f80667e6490d7b5174aa6bf5e01886e770f/tensorflow/core/kernels/quantize_and_dequantize_op.cc#L237">implementation</a>
+does not validate the value of user supplied <code>axis</code> attribute before using it to
+index in the array backing the <code>input</code> argument:</p>
+<p><code>cc
+const int depth = (axis_ == -1) ? 1 : input.dim_size(axis_);</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/99085e8ff02c3763a0ec2263e44daec416f6a387">99085e8ff02c3763a0ec2263e44daec416f6a387</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Aivul Team from Qihoo 360.</p>

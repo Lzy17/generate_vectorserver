@@ -1,0 +1,12 @@
+<h1>TFSA-2022-166: Invalid char to bool conversion when printing a tensor</h1>
+<h3>CVE Number</h3>
+<p>CVE-2022-41911</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/807cae8a807960fd7ac2313cde73a11fc15e7942/tensorflow/core/framework/tensor.cc#L1200-L1227">printing a tensor</a>, we get it's data as a <code>const char*</code> array (since that's the underlying storage) and then we typecast it to the element type. However, conversions from <code>char</code> to <code>bool</code> are undefined if the <code>char</code> is not <code>0</code> or <code>1</code>, so sanitizers/fuzzers will crash.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/1be743703279782a357adbf9b77dcb994fe8b508">1be743703279782a357adbf9b77dcb994fe8b508</a>.</p>
+<p>The fix will be included in TensorFlow 2.11.0. We will also cherrypick this commit on TensorFlow 2.10.1, TensorFlow 2.9.3, and TensorFlow 2.8.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability was discovered via internal fuzzing.</p>

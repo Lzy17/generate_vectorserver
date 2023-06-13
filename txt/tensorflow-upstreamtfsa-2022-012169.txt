@@ -1,0 +1,24 @@
+<h2>TFSA-2022-012: Integer overflows in <code>AddManySparseToTensorsMap</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23568</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/sparse_tensors_map_ops.cc">implementation of <code>AddManySparseToTensorsMap</code></a> is vulnerable to an integer overflow which results in a <code>CHECK</code>-fail when building new <code>TensorShape</code> objects (so, an assert failure based denial of service):</p>
+<p>```python
+import tensorflow as tf
+import numpy as np</p>
+<p>tf.raw_ops.AddManySparseToTensorsMap(
+    sparse_indices=[(0,0),(0,1),(0,2),(4,3),(5,0),(5,1)],
+    sparse_values=[1,1,1,1,1,1],
+    sparse_shape=[2<strong>32,2</strong>32],
+    container='',
+    shared_name='',
+    name=None)
+```</p>
+<p>We are missing some validation on the shapes of the input tensors as well as directly constructing a large <code>TensorShape</code> with user-provided dimensions. The latter is an instance of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-198.md">TFSA-2021-198</a> (CVE-2021-41197) and is easily fixed by replacing a call to <code>TensorShape</code> constructor with a call to <code>BuildTensorShape</code> static helper factory.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/b51b82fe65ebace4475e3c54eb089c18a4403f1c">b51b82fe65ebace4475e3c54eb089c18a4403f1c</a> and <a href="https://github.com/tensorflow/tensorflow/commit/a68f68061e263a88321c104a6c911fe5598050a8">a68f68061e263a88321c104a6c911fe5598050a8</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Faysal Hossain Shezan from University of Virginia.</p>

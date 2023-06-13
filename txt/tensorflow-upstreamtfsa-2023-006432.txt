@@ -1,0 +1,22 @@
+<h2>TFSA-2023-006: NPE in SparseSparseMaximum</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25665</p>
+<h3>Impact</h3>
+<p>When <code>SparseSparseMaximum</code> is given invalid sparse tensors as inputs, it can give an NPE. </p>
+<p><code>python
+import tensorflow as tf
+tf.raw_ops.SparseSparseMaximum(
+ a_indices=[[1]],
+ a_values =[ 0.1 ],
+ a_shape = [2],
+ b_indices=[[]],
+ b_values =[2 ],
+ b_shape = [2],
+)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/5e0ecfb42f5f65629fd7a4edd6c4afe7ff0feb04">5e0ecfb42f5f65629fd7a4edd6c4afe7ff0feb04</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yu Tian of Qihoo 360 AIVul Team</p>

@@ -1,0 +1,12 @@
+<h2>TFSA-2022-083: Type confusion leading to <code>CHECK</code>-failure based denial of service</h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29209</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/f3b9bf4c3c0597563b289c0512e98d4ce81f886e/tensorflow/core/platform/default/logging.h">macros that TensorFlow uses for writing assertions (e.g., <code>CHECK_LT</code>, <code>CHECK_GT</code>, etc.)</a> have an incorrect logic when comparing <code>size_t</code> and <code>int</code> values. Due to type conversion rules, several of the macros would trigger incorrectly.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/b917181c29b50cb83399ba41f4d938dc369109a1">b917181c29b50cb83399ba41f4d938dc369109a1</a> (merging GitHub PR <a href="https://github.com/tensorflow/tensorflow/pull/55730">#55730</a>).</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/55530">GitHub issue</a>.</p>

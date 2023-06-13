@@ -1,0 +1,253 @@
+<h1>TensorFlow Lite Task Library</h1>
+<p>TensorFlow Lite Task Library contains a set of powerful and easy-to-use
+task-specific libraries for app developers to create ML experiences with TFLite.
+It provides optimized out-of-box model interfaces for popular machine learning
+tasks, such as image classification, question and answer, etc. The model
+interfaces are specifically designed for each task to achieve the best
+performance and usability. Task Library works cross-platform and is supported on
+Java, C++, and Swift.</p>
+<h2>What to expect from the Task Library</h2>
+<ul>
+<li>
+<p><strong>Clean and well-defined APIs usable by non-ML-experts</strong> \
+    Inference can be done within just 5 lines of code. Use the powerful and
+    easy-to-use APIs in the Task library as building blocks to help you easily
+    develop ML with TFLite on mobile devices.</p>
+</li>
+<li>
+<p><strong>Complex but common data processing</strong> \
+    Supports common vision and natural language processing logic to convert
+    between your data and the data format required by the model. Provides the
+    same, shareable processing logic for training and inference.</p>
+</li>
+<li>
+<p><strong>High performance gain</strong> \
+    Data processing would take no more than a few milliseconds, ensuring the
+    fast inference experience using TensorFlow Lite.</p>
+</li>
+<li>
+<p><strong>Extensibility and customization</strong> \
+    You can leverage all benefits the Task Library infrastructure provides and
+    easily build your own Android/iOS inference APIs.</p>
+</li>
+</ul>
+<h2>Supported tasks</h2>
+<p>Below is the list of the supported task types. The list is expected to grow as
+we continue enabling more and more use cases.</p>
+<ul>
+<li>
+<p><strong>Vision APIs</strong></p>
+<ul>
+<li><a href="image_classifier.md">ImageClassifier</a></li>
+<li><a href="object_detector.md">ObjectDetector</a></li>
+<li><a href="image_segmenter.md">ImageSegmenter</a></li>
+<li><a href="image_searcher.md">ImageSearcher</a></li>
+<li><a href="image_embedder.md">ImageEmbedder</a></li>
+</ul>
+</li>
+<li>
+<p><strong>Natural Language (NL) APIs</strong></p>
+<ul>
+<li><a href="nl_classifier.md">NLClassifier</a></li>
+<li><a href="bert_nl_classifier.md">BertNLClassifier</a></li>
+<li><a href="bert_question_answerer.md">BertQuestionAnswerer</a></li>
+<li><a href="text_searcher.md">TextSearcher</a></li>
+<li><a href="text_embedder.md">TextEmbedder</a></li>
+</ul>
+</li>
+<li>
+<p><strong>Audio APIs</strong></p>
+<ul>
+<li><a href="audio_classifier.md">AudioClassifier</a></li>
+</ul>
+</li>
+<li>
+<p><strong>Custom APIs</strong></p>
+<ul>
+<li>Extend Task API infrastructure and build
+    <a href="customized_task_api.md">customized API</a>.</li>
+</ul>
+</li>
+</ul>
+<h2>Run Task Library with Delegates</h2>
+<p><a href="https://www.tensorflow.org/lite/performance/delegates">Delegates</a> enable
+hardware acceleration of TensorFlow Lite models by leveraging on-device
+accelerators such as the <a href="https://www.tensorflow.org/lite/performance/gpu">GPU</a>
+and <a href="https://coral.ai/">Coral Edge TPU</a>. Utilizing them for neural network
+operations provides huge benefits in terms of latency and power efficiency. For
+example, GPUs can provide up to a
+<a href="https://blog.tensorflow.org/2020/08/faster-mobile-gpu-inference-with-opencl.html">5x speedup</a>
+in latency on mobile devices, and Coral Edge TPUs inference
+<a href="https://coral.ai/docs/edgetpu/benchmarks/">10x faster</a> than desktop CPUs.</p>
+<p>Task Library provides easy configuration and fall back options for you to set up
+and use delegates. The following accelerators are now supported in the Task API:</p>
+<ul>
+<li>Android<ul>
+<li><a href="https://www.tensorflow.org/lite/performance/gpu">GPU</a>: Java / C++</li>
+<li><a href="https://www.tensorflow.org/lite/android/delegates/nnapi">NNAPI</a>:
+    Java / C++</li>
+<li><a href="https://www.tensorflow.org/lite/android/delegates/hexagon">Hexagon</a>:
+    C++</li>
+</ul>
+</li>
+<li>Linux / Mac<ul>
+<li><a href="https://coral.ai/">Coral Edge TPU</a>: C++</li>
+</ul>
+</li>
+<li>iOS<ul>
+<li><a href="https://www.tensorflow.org/lite/performance/coreml_delegate">Core ML delegate</a>:
+    C++</li>
+</ul>
+</li>
+</ul>
+<p>Acceleration support in Task Swift / Web API are coming soon.</p>
+<h3>Example usage of GPU on Android in Java</h3>
+<p>Step 1. Add the GPU delegate plugin library to your module's <code>build.gradle</code>
+file:</p>
+<p>```java
+dependencies {
+    // Import Task Library dependency for vision, text, or audio.</p>
+<pre><code>// Import the GPU delegate plugin Library for GPU inference
+implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin'
+</code></pre>
+<p>}
+```</p>
+<p>Note: NNAPI comes with the Task Library targets for vision, text, and audio by
+default.</p>
+<p>Step 2. Configure GPU delegate in the task options through
+<a href="https://www.tensorflow.org/lite/api_docs/java/org/tensorflow/lite/task/core/BaseOptions.Builder">BaseOptions</a>.
+For example, you can set up GPU in <code>ObjectDetector</code> as follows:</p>
+<p>```java
+// Turn on GPU delegation.
+BaseOptions baseOptions = BaseOptions.builder().useGpu().build();
+// Configure other options in ObjectDetector
+ObjectDetectorOptions options =
+    ObjectDetectorOptions.builder()
+        .setBaseOptions(baseOptions)
+        .setMaxResults(1)
+        .build();</p>
+<p>// Create ObjectDetector from options.
+ObjectDetector objectDetector =
+    ObjectDetector.createFromFileAndOptions(context, modelFile, options);</p>
+<p>// Run inference
+List<Detection> results = objectDetector.detect(image);
+```</p>
+<h3>Example usage of GPU on Android in C++</h3>
+<p>Step 1. Depend on the GPU delegate plugin in your bazel build target, such as:</p>
+<p><code>deps = [
+  "//tensorflow_lite_support/acceleration/configuration:gpu_plugin", # for GPU
+]</code></p>
+<p>Note: the <code>gpu_plugin</code> target is a separate one from the
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/delegates/gpu">GPU delegate target</a>.
+<code>gpu_plugin</code> wraps the GPU delegate target, and can provide safety guard, i.e.
+fallback to TFLite CPU path on delegation errors.</p>
+<p>Other delegate options include:</p>
+<p><code>"//tensorflow_lite_support/acceleration/configuration:nnapi_plugin", # for NNAPI
+"//tensorflow_lite_support/acceleration/configuration:hexagon_plugin", # for Hexagon</code></p>
+<p>Step 2. Configure GPU delegate in the task options. For example, you can set up
+GPU in <code>BertQuestionAnswerer</code> as follows:</p>
+<p>```c++
+// Initialization
+BertQuestionAnswererOptions options;
+// Load the TFLite model.
+auto base_options = options.mutable_base_options();
+base_options-&gt;mutable_model_file()-&gt;set_file_name(model_file);
+// Turn on GPU delegation.
+auto tflite_settings = base_options-&gt;mutable_compute_settings()-&gt;mutable_tflite_settings();
+tflite_settings-&gt;set_delegate(Delegate::GPU);
+// (optional) Turn on automatical fallback to TFLite CPU path on delegation errors.
+tflite_settings-&gt;mutable_fallback_settings()-&gt;set_allow_automatic_fallback_on_execution_error(true);</p>
+<p>// Create QuestionAnswerer from options.
+std::unique_ptr<QuestionAnswerer> answerer = BertQuestionAnswerer::CreateFromOptions(options).value();</p>
+<p>// Run inference on GPU.
+std::vector<QaAnswer> results = answerer-&gt;Answer(context_of_question, question_to_ask);
+```</p>
+<p>Explore more advanced accelerator settings
+<a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/acceleration/configuration/configuration.proto">here</a>.</p>
+<h3>Example usage of Coral Edge TPU in Python</h3>
+<p>Configure Coral Edge TPU in the base options of the task. For example, you can
+set up Coral Edge TPU in <code>ImageClassifier</code> as follows:</p>
+<p>```python</p>
+<h1>Imports</h1>
+<p>from tflite_support.task import vision
+from tflite_support.task import core</p>
+<h1>Initialize options and turn on Coral Edge TPU delegation.</h1>
+<p>base_options = core.BaseOptions(file_name=model_path, use_coral=True)
+options = vision.ImageClassifierOptions(base_options=base_options)</p>
+<h1>Create ImageClassifier from options.</h1>
+<p>classifier = vision.ImageClassifier.create_from_options(options)</p>
+<h1>Run inference on Coral Edge TPU.</h1>
+<p>image = vision.TensorImage.create_from_file(image_path)
+classification_result = classifier.classify(image)
+```</p>
+<h3>Example usage of Coral Edge TPU in C++</h3>
+<p>Step 1. Depend on the Coral Edge TPU delegate plugin in your bazel build target,
+such as:</p>
+<p><code>deps = [
+  "//tensorflow_lite_support/acceleration/configuration:edgetpu_coral_plugin", # for Coral Edge TPU
+]</code></p>
+<p>Step 2. Configure Coral Edge TPU in the task options. For example, you can set
+up Coral Edge TPU in <code>ImageClassifier</code> as follows:</p>
+<p>```c++
+// Initialization
+ImageClassifierOptions options;
+// Load the TFLite model.
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_file);
+// Turn on Coral Edge TPU delegation.
+options.mutable_base_options()-&gt;mutable_compute_settings()-&gt;mutable_tflite_settings()-&gt;set_delegate(Delegate::EDGETPU_CORAL);
+// Create ImageClassifier from options.
+std::unique_ptr<ImageClassifier> image_classifier = ImageClassifier::CreateFromOptions(options).value();</p>
+<p>// Run inference on Coral Edge TPU.
+const ClassificationResult result = image_classifier-&gt;Classify(*frame_buffer).value();
+```</p>
+<p>Step 3. Install the <code>libusb-1.0-0-dev</code> package as below. If it is already
+installed, skip to the next step.</p>
+<p>```bash</p>
+<h1>On the Linux</h1>
+<p>sudo apt-get install libusb-1.0-0-dev</p>
+<h1>On the macOS</h1>
+<p>port install libusb</p>
+<h1>or</h1>
+<p>brew install libusb
+```</p>
+<p>Step 4. Compile with the following configurations in your bazel command:</p>
+<p>```bash</p>
+<h1>On the Linux</h1>
+<p>--define darwinn_portable=1 --linkopt=-lusb-1.0</p>
+<h1>On the macOS, add '--linkopt=-lusb-1.0 --linkopt=-L/opt/local/lib/' if you are</h1>
+<h1>using MacPorts or '--linkopt=-lusb-1.0 --linkopt=-L/opt/homebrew/lib' if you</h1>
+<h1>are using Homebrew.</h1>
+<p>--define darwinn_portable=1 --linkopt=-L/opt/local/lib/ --linkopt=-lusb-1.0</p>
+<h1>Windows is not supported yet.</h1>
+<p>```</p>
+<p>Try out the
+<a href="https://github.com/tensorflow/tflite-support/tree/master/tensorflow_lite_support/examples/task/vision/desktop">Task Library CLI demo tool</a>
+with your Coral Edge TPU devices. Explore more on the
+<a href="https://coral.ai/models/">pretrained Edge TPU models</a> and
+<a href="https://github.com/tensorflow/tensorflow/blob/4d999fda8d68adfdfacd4d0098124f1b2ea57927/tensorflow/lite/acceleration/configuration/configuration.proto#L594">advanced Edge TPU settings</a>.</p>
+<h3>Example usage of Core ML Delegate in C++</h3>
+<p>A complete example can be found at
+<a href="https://github.com/tensorflow/tflite-support/blob/master/tensorflow_lite_support/ios/test/task/vision/image_classifier/TFLImageClassifierCoreMLDelegateTest.mm">Image Classifier Core ML Delegate Test</a>.</p>
+<p>Step 1. Depend on the Core ML delegate plugin in your bazel build target, such
+as:</p>
+<p><code>deps = [
+  "//tensorflow_lite_support/acceleration/configuration:coreml_plugin", # for Core ML Delegate
+]</code></p>
+<p>Step 2. Configure Core ML Delegate in the task options. For example, you can set
+up Core ML Delegate in <code>ImageClassifier</code> as follows:</p>
+<p>```c++
+// Initialization
+ImageClassifierOptions options;
+// Load the TFLite model.
+options.mutable_base_options()-&gt;mutable_model_file()-&gt;set_file_name(model_file);
+// Turn on Core ML delegation.
+options.mutable_base_options()-&gt;mutable_compute_settings()-&gt;mutable_tflite_settings()-&gt;set_delegate(::tflite::proto::Delegate::CORE_ML);
+// Set DEVICES_ALL to enable Core ML delegation on any device (in contrast to
+// DEVICES_WITH_NEURAL_ENGINE which creates Core ML delegate only on devices
+// with Apple Neural Engine).
+options.mutable_base_options()-&gt;mutable_compute_settings()-&gt;mutable_tflite_settings()-&gt;mutable_coreml_settings()-&gt;set_enabled_devices(::tflite::proto::CoreMLSettings::DEVICES_ALL);
+// Create ImageClassifier from options.
+std::unique_ptr<ImageClassifier> image_classifier = ImageClassifier::CreateFromOptions(options).value();</p>
+<p>// Run inference on Core ML.
+const ClassificationResult result = image_classifier-&gt;Classify(*frame_buffer).value();
+```</p>

@@ -1,0 +1,38 @@
+<h1>TensorFlow Lite converter</h1>
+<p>The TensorFlow Lite converter takes a TensorFlow model and generates a
+TensorFlow Lite model, which is an optimized
+<a href="https://google.github.io/flatbuffers/">FlatBuffer</a> (identified by the <code>.tflite</code>
+file extension).</p>
+<p>Note: This page contains documentation on the converter API for TensorFlow 1.x.
+The API for TensorFlow 2.0 is available
+<a href="https://www.tensorflow.org/lite/models/convert">here</a>.</p>
+<h2>Options</h2>
+<p>The TensorFlow Lite Converter can be used in two ways:</p>
+<ul>
+<li><a href="python_api.md">Python API</a> (<strong>recommended</strong>): Using the Python API makes it
+    easier to convert models as part of a model development pipeline and helps
+    mitigate compatibility issues early on.</li>
+<li><a href="cmdline_examples.md">Command line</a></li>
+</ul>
+<h2>Workflow</h2>
+<h3>Why use the 'FlatBuffer' format?</h3>
+<p>FlatBuffer is an efficient open-source cross-platform serialization library. It
+is similar to <a href="https://developers.google.com/protocol-buffers">protocol buffers</a>
+used in the TensorFlow model format, with the distinction that FlatBuffers do
+not need a parsing/unpacking step to a secondary representation before data can
+be accessed, avoiding per-object memory allocation. The code footprint of
+FlatBuffers is an order of magnitude smaller than protocol buffers.</p>
+<h3>Convert the model</h3>
+<p>The converter supports the following input formats:</p>
+<ul>
+<li><a href="https://www.tensorflow.org/guide/saved_model#using_savedmodel_with_estimators">SavedModels</a></li>
+<li><code>tf.keras</code> H5 models.</li>
+<li>Frozen <code>GraphDef</code> models generated using
+    <a href="https://www.tensorflow.org/code/tensorflow/python/tools/freeze_graph.py">freeze_graph.py</a>.</li>
+<li><code>tf.Session</code> models (Python API only).</li>
+</ul>
+<h3>Run inference</h3>
+<p>The TensorFlow Lite model is then deployed to a client device, and the
+TensorFlow Lite interpreter uses the compressed model for on-device inference.
+This conversion process is shown in the diagram below:</p>
+<p><img alt="TFLite converter workflow" src="../images/convert/workflow.svg" /></p>

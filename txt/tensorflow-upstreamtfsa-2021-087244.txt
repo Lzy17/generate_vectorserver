@@ -1,0 +1,25 @@
+<h2>TFSA-2021-087: Division by zero in TFLite's implementation of <code>Split</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29599</p>
+<h3>Impact</h3>
+<p>The implementation of the <code>Split</code> TFLite operator is <a href="https://github.com/tensorflow/tensorflow/blob/e2752089ef7ce9bcf3db0ec618ebd23ea119d0c7/tensorflow/lite/kernels/split.cc#L63-L65">vulnerable to a
+division by zero
+error</a>:</p>
+<p><code>cc
+TF_LITE_ENSURE_MSG(context, input_size % num_splits == 0, "Not an even split");
+const int slice_size = input_size / num_splits;</code></p>
+<p>An attacker can craft a model such that <code>num_splits</code> would be 0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/b22786e7e9b7bdb6a56936ff29cc7e9968d7bc1d">b22786e7e9b7bdb6a56936ff29cc7e9968d7bc1d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

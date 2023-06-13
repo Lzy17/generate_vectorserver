@@ -1,0 +1,43 @@
+<h2>TFSA-2020-029: Uninitialized memory access in Eigen types</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-26266</p>
+<h3>Impact</h3>
+<p>Under certain cases, a saved model can trigger use of uninitialized values
+during code execution. This is caused by having tensor buffers be filled with
+the default value of the type but forgetting to <a href="https://github.com/tensorflow/tensorflow/blob/f70160322a579144950dff1537dcbe3c7c09d6f5/third_party/eigen3/unsupported/Eigen/CXX11/src/FixedPoint/FixedPointTypes.h#L61-L104">default initialize the
+quantized floating point types in
+Eigen</a>:</p>
+<p>```cc
+struct QUInt8 {
+  QUInt8() {}
+  // ...
+  uint8_t value;
+};</p>
+<p>struct QInt16 {
+  QInt16() {}
+  // ...
+  int16_t value;
+};</p>
+<p>struct QUInt16 {
+  QUInt16() {}
+  // ...
+  uint16_t value;
+};</p>
+<p>struct QInt32 {
+  QInt32() {}
+  // ...
+  int32_t value;
+};
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ace0c15a22f7f054abcc1f53eabbcb0a1239a9e2">ace0c15a22f7f054abcc1f53eabbcb0a1239a9e2</a>
+and will release TensorFlow 2.4.0 containing the patch. TensorFlow nightly
+packages after this commit will also have the issue resolved.</p>
+<p>Since this issue also impacts TF versions before 2.4, we will patch all releases
+between 1.15 and 2.3 inclusive.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>

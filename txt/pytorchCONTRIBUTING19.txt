@@ -1,0 +1,28 @@
+<h1>Contributing to QNNPACK</h1>
+<p>We want to make contributing to this project as easy and transparent as
+possible.</p>
+<h2>Code of Conduct</h2>
+<p>The code of conduct is described in <a href="CODE_OF_CONDUCT.md"><code>CODE_OF_CONDUCT.md</code></a>.</p>
+<h2>Pull Requests</h2>
+<p>We actively welcome your pull requests.</p>
+<ol>
+<li>Fork the repo and create your branch from <code>master</code>.</li>
+<li>If you've added code that should be tested, add tests.</li>
+<li>If you've added new micro-kernels, update or add micro-benchmarks.</li>
+<li>Ensure the test suite passes.</li>
+<li>Make sure your code lints.</li>
+<li>If you haven't already, complete the Contributor License Agreement ("CLA").</li>
+</ol>
+<h2>Contributor License Agreement ("CLA")</h2>
+<p>In order to accept your pull request, we need you to submit a CLA. You only need
+to do this once to work on any of Facebook's open source projects.</p>
+<p>Complete your CLA here: <a href="https://code.facebook.com/cla">https://code.facebook.com/cla</a></p>
+<h2>Issues</h2>
+<p>We use GitHub issues to track public bugs. Please ensure your description is
+clear and has sufficient instructions to be able to reproduce the issue.</p>
+<p>Facebook has a <a href="https://www.facebook.com/whitehat/">bounty program</a> for the safe
+disclosure of security bugs. In those cases, please go through the process
+outlined on that page and do not file a public issue.</p>
+<h2>License</h2>
+<p>By contributing to QNNPACK, you agree that your contributions will be licensed
+under the LICENSE file in the root directory of this source tree.</p>

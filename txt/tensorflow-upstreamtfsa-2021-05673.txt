@@ -1,0 +1,37 @@
+<h2>TFSA-2021-056: Lack of validation in <code>SparseDenseCwiseMul</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29567</p>
+<h3>Impact</h3>
+<p>Due to lack of validation in <code>tf.raw_ops.SparseDenseCwiseMul</code>, an attacker can
+trigger denial of service via <code>CHECK</code>-fails or accesses to outside the bounds of
+heap allocated data:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>indices = tf.constant([], shape=[10, 0], dtype=tf.int64)
+values = tf.constant([], shape=[0], dtype=tf.int64)
+shape = tf.constant([0, 0], shape=[2], dtype=tf.int64)
+dense = tf.constant([], shape=[0], dtype=tf.int64)</p>
+<p>tf.raw_ops.SparseDenseCwiseMul(
+    sp_indices=indices, sp_values=values, sp_shape=shape, dense=dense)
+```</p>
+<p>Since the
+<a href="https://github.com/tensorflow/tensorflow/blob/38178a2f7a681a7835bb0912702a134bfe3b4d84/tensorflow/core/kernels/sparse_dense_binary_op_shared.cc#L68-L80">implementation</a>
+only validates the rank of the input arguments but no <a href="https://www.tensorflow.org/api_docs/python/tf/raw_ops/SparseDenseCwiseMul">constraints between
+dimensions</a>,
+an attacker can abuse them to trigger internal <code>CHECK</code> assertions (and cause
+program termination, denial of service) or to write to memory outside of bounds
+of heap allocated tensor buffers.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/7ae2af34087fb4b5c8915279efd03da3b81028bc">7ae2af34087fb4b5c8915279efd03da3b81028bc</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

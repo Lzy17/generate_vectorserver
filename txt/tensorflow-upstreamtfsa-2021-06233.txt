@@ -1,0 +1,35 @@
+<h2>TFSA-2021-062: Division by 0 in <code>MaxPoolGradWithArgmax</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29573</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.MaxPoolGradWithArgmax</code> is vulnerable to a
+division by 0:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.float32)
+grad = tf.constant([], shape=[0, 0, 0, 0], dtype=tf.float32)
+argmax = tf.constant([], shape=[0], dtype=tf.int64)
+ksize = [1, 1, 1, 1]
+strides = [1, 1, 1, 1]</p>
+<p>tf.raw_ops.MaxPoolGradWithArgmax(
+  input=input, grad=grad, argmax=argmax, ksize=ksize, strides=strides,
+  padding='SAME', include_batch_in_index=False)
+```</p>
+<p>The
+<a href="https://github.com/tensorflow/tensorflow/blob/279bab6efa22752a2827621b7edb56a730233bd8/tensorflow/core/kernels/maxpooling_op.cc#L1033-L1034">implementation</a>
+fails to validate that the batch dimension of the tensor is non-zero, before
+dividing by this quantity.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/376c352a37ce5a68b721406dc7e77ac4b6cf483d">376c352a37ce5a68b721406dc7e77ac4b6cf483d</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

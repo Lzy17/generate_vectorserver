@@ -1,0 +1,31 @@
+<h2>TFSA-2021-174: Access to invalid memory during shape inference in <code>Cudnn*</code> ops</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41221</p>
+<h3>Impact</h3>
+<p>The <a href="https://github.com/tensorflow/tensorflow/blob/9ff27787893f76d6971dcd1552eb5270d254f31b/tensorflow/core/ops/cudnn_rnn_ops.cc">shape inference code</a> for the <code>Cudnn*</code> operations in TensorFlow can be tricked into accessing invalid memory, via a heap buffer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>@tf.function
+def func():
+  return tf.raw_ops.CudnnRNNV3(
+    input=[0.1, 0.1],
+    input_h=[0.5],
+    input_c=[0.1, 0.1, 0.1],
+    params=[0.5, 0.5],
+    sequence_lengths=[-1, 0, 1])</p>
+<p>func()
+```</p>
+<p>This occurs because the ranks of the <code>input</code>, <code>input_h</code> and <code>input_c</code> parameters are not validated, but code assumes they have certain values:</p>
+<p><code>cc
+auto input_shape = c-&gt;input(0);
+auto input_h_shape = c-&gt;input(1);
+auto seq_length = c-&gt;Dim(input_shape, 0);
+auto batch_size = c-&gt;Dim(input_shape, 1);  // assumes rank &gt;= 2
+auto num_units = c-&gt;Dim(input_h_shape, 2); // assumes rank &gt;= 3</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/af5fcebb37c8b5d71c237f4e59c6477015c78ce6">af5fcebb37c8b5d71c237f4e59c6477015c78ce6</a>.</p>
+<p>The fix will be included in TensorFlow 2.7.0. We will also cherrypick this commit on TensorFlow 2.6.1, TensorFlow 2.5.2, and TensorFlow 2.4.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo 360.</p>

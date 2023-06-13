@@ -1,0 +1,17 @@
+<h2>TFSA-2023-018: OOB read in DynamicStitch</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-25659</p>
+<h3>Impact</h3>
+<p>If the parameter <code>indices</code> for <code>DynamicStitch</code> does not match the shape of the parameter <code>data</code>, it can trigger an stack OOB read.</p>
+<p><code>python
+import tensorflow as tf
+func = tf.raw_ops.DynamicStitch
+para={'indices': [[0xdeadbeef], [405], [519], [758], [1015]], 'data': [[110.27793884277344], [120.29475402832031], [157.2418212890625], [157.2626953125], [188.45382690429688]]}
+y = func(**para)</code></p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/ee004b18b976eeb5a758020af8880236cd707d05">ee004b18b976eeb5a758020af8880236cd707d05</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This has been reported via Google OSS VRP.</p>

@@ -1,0 +1,10 @@
+<h2>TFSA-2022-049: Multiple <code>CHECK</code>-fails in <code>function.cc</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-23586</p>
+<h3>Impact</h3>
+<p>A malicious user can cause a denial of service by altering a <code>SavedModel</code> such that <a href="https://github.com/tensorflow/tensorflow/blob/a1320ec1eac186da1d03f033109191f715b2b130/tensorflow/core/framework/function.cc">assertions in <code>function.cc</code></a> would be falsified and crash the Python interpreter.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commits <a href="https://github.com/tensorflow/tensorflow/commit/dcc21c7bc972b10b6fb95c2fb0f4ab5a59680ec2">dcc21c7bc972b10b6fb95c2fb0f4ab5a59680ec2</a> and <a href="https://github.com/tensorflow/tensorflow/commit/3d89911481ba6ebe8c88c1c0b595412121e6c645">3d89911481ba6ebe8c88c1c0b595412121e6c645</a>.</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

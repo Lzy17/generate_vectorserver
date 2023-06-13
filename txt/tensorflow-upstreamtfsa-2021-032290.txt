@@ -1,0 +1,32 @@
+<h2>TFSA-2021-032: <code>CHECK</code>-fail in <code>CTCGreedyDecoder</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29543</p>
+<h3>Impact</h3>
+<p>An attacker can trigger a denial of service via a <code>CHECK</code>-fail in
+<code>tf.raw_ops.CTCGreedyDecoder</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>inputs = tf.constant([], shape=[18, 2, 0], dtype=tf.float32)
+sequence_length = tf.constant([-100, 17], shape=[2], dtype=tf.int32)
+merge_repeated = False</p>
+<p>tf.raw_ops.CTCGreedyDecoder(inputs=inputs, sequence_length=sequence_length, merge_repeated=merge_repeated)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/1615440b17b364b875eb06f43d087381f1460a65/tensorflow/core/kernels/ctc_decoder_ops.cc#L37-L50">implementation</a>
+has a <code>CHECK_LT</code> inserted to validate some invariants. When this condition is
+false, the program aborts, instead of returning a valid error to the user. This
+abnormal termination can be weaponized in denial of service attacks.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/ea3b43e98c32c97b35d52b4c66f9107452ca8fb2">ea3b43e98c32c97b35d52b4c66f9107452ca8fb2</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Yakun Zhang and Ying Wang of Baidu
+X-Team.</p>

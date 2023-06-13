@@ -1,0 +1,34 @@
+<h2>TFSA-2021-045: Division by 0 in <code>Reverse</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-29556</p>
+<h3>Impact</h3>
+<p>An attacker can cause a denial of service via a FPE runtime error in
+<code>tf.raw_ops.Reverse</code>:</p>
+<p>```python
+import tensorflow as tf</p>
+<p>tensor_input = tf.constant([], shape=[0, 1, 1], dtype=tf.int32)
+dims = tf.constant([False, True, False], shape=[3], dtype=tf.bool)</p>
+<p>tf.raw_ops.Reverse(tensor=tensor_input, dims=dims)
+```</p>
+<p>This is because the
+<a href="https://github.com/tensorflow/tensorflow/blob/36229ea9e9451dac14a8b1f4711c435a1d84a594/tensorflow/core/kernels/reverse_op.cc#L75-L76">implementation</a>
+performs a division based on the first dimension of the tensor argument:</p>
+<p><code>cc
+const int64 N = input.dim_size(0);
+const int64 cost_per_unit = input.NumElements() / N;</code></p>
+<p>Since this is controlled by the user, an attacker can trigger a denial of
+service.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit
+<a href="https://github.com/tensorflow/tensorflow/commit/4071d8e2f6c45c1955a811fee757ca2adbe462c1">4071d8e2f6c45c1955a811fee757ca2adbe462c1</a>.</p>
+<p>The fix will be included in TensorFlow 2.5.0. We will also cherrypick this
+commit on TensorFlow 2.4.2, TensorFlow 2.3.3, TensorFlow 2.2.3 and TensorFlow
+2.1.4, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Ying Wang and Yakun Zhang of Baidu
+X-Team.</p>

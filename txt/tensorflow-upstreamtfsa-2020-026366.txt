@@ -1,0 +1,39 @@
+<h2>TFSA-2020-026: Segfault in <code>tf.raw_ops.Switch</code> in eager mode</h2>
+<h3>CVE Number</h3>
+<p>CVE-2020-15190</p>
+<h3>Impact</h3>
+<p>The
+<a href="https://www.tensorflow.org/api_docs/python/tf/raw_ops/Switch"><code>tf.raw_ops.Switch</code></a>
+operation takes as input a tensor and a boolean and outputs two tensors.
+Depending on the boolean value, one of the tensors is exactly the input tensor
+whereas the other one should be an empty tensor.</p>
+<p>However, the eager runtime <a href="https://github.com/tensorflow/tensorflow/blob/0e68f4d3295eb0281a517c3662f6698992b7b2cf/tensorflow/core/common_runtime/eager/kernel_and_device.cc#L308-L313">traverses all tensors in the
+output</a>:
+<code>cc
+  if (outputs != nullptr) {
+    outputs-&gt;clear();
+    for (int i = 0; i &lt; context.num_outputs(); ++i) {
+      outputs-&gt;push_back(Tensor(*context.mutable_output(i)));
+    }
+  }</code></p>
+<p>Since only one of the tensors is defined, the other one is <code>nullptr</code>, hence we
+are binding a reference to <code>nullptr</code>. This is undefined behavior and reported as
+an error if compiling with <code>-fsanitize=null</code>. In this case, this results in a
+segmentation fault.</p>
+<h3>Vulnerable Versions</h3>
+<p>TensorFlow 1.15.0, 1.15.1, 1.15.2, 1.15.3, 2.0.0, 2.0.1, 2.0.2, 2.1.0, 2.1.1,
+2.2.0, 2.3.0.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in
+<a href="https://github.com/tensorflow/tensorflow/commit/da8558533d925694483d2c136a9220d6d49d843c">da8558533d925694483d2c136a9220d6d49d843c</a>
+and will release a patch release for all affected versions.</p>
+<p>We recommend users to upgrade to TensorFlow 1.15.4, 2.0.3, 2.1.2, 2.2.1, or
+2.3.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security
+guide</a> for
+more information regarding the security model and how to contact us with issues
+and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by members of the Aivul Team from Qihoo
+360.</p>

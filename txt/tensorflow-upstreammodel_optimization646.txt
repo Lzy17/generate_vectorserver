@@ -1,0 +1,172 @@
+<h1>Model optimization</h1>
+<p>Edge devices often have limited memory or computational power. Various
+optimizations can be applied to models so that they can be run within these
+constraints. In addition, some optimizations allow the use of specialized
+hardware for accelerated inference.</p>
+<p>TensorFlow Lite and the
+<a href="https://www.tensorflow.org/model_optimization">TensorFlow Model Optimization Toolkit</a>
+provide tools to minimize the complexity of optimizing inference.</p>
+<p>It's recommended that you consider model optimization during your application
+development process. This document outlines some best practices for optimizing
+TensorFlow models for deployment to edge hardware.</p>
+<h2>Why models should be optimized</h2>
+<p>There are several main ways model optimization can help with application
+development.</p>
+<h3>Size reduction</h3>
+<p>Some forms of optimization can be used to reduce the size of a model. Smaller
+models have the following benefits:</p>
+<ul>
+<li><strong>Smaller storage size:</strong> Smaller models occupy less storage space on your
+    users' devices. For example, an Android app using a smaller model will take
+    up less storage space on a user's mobile device.</li>
+<li><strong>Smaller download size:</strong> Smaller models require less time and bandwidth to
+    download to users' devices.</li>
+<li><strong>Less memory usage:</strong> Smaller models use less RAM when they are run, which
+    frees up memory for other parts of your application to use, and can
+    translate to better performance and stability.</li>
+</ul>
+<p>Quantization can reduce the size of a model in all of these cases, potentially
+at the expense of some accuracy. Pruning and clustering can reduce the size of a
+model for download by making it more easily compressible.</p>
+<h3>Latency reduction</h3>
+<p><em>Latency</em> is the amount of time it takes to run a single inference with a given
+model. Some forms of optimization can reduce the amount of computation required
+to run inference using a model, resulting in lower latency. Latency can also
+have an impact on power consumption.</p>
+<p>Currently, quantization can be used to reduce latency by simplifying the
+calculations that occur during inference, potentially at the expense of some
+accuracy.</p>
+<h3>Accelerator compatibility</h3>
+<p>Some hardware accelerators, such as the
+<a href="https://cloud.google.com/edge-tpu/">Edge TPU</a>, can run inference extremely fast
+with models that have been correctly optimized.</p>
+<p>Generally, these types of devices require models to be quantized in a specific
+way. See each hardware accelerator's documentation to learn more about their
+requirements.</p>
+<h2>Trade-offs</h2>
+<p>Optimizations can potentially result in changes in model accuracy, which must be
+considered during the application development process.</p>
+<p>The accuracy changes depend on the individual model being optimized, and are
+difficult to predict ahead of time. Generally, models that are optimized for
+size or latency will lose a small amount of accuracy. Depending on your
+application, this may or may not impact your users' experience. In rare cases,
+certain models may gain some accuracy as a result of the optimization process.</p>
+<h2>Types of optimization</h2>
+<p>TensorFlow Lite currently supports optimization via quantization, pruning and
+clustering.</p>
+<p>These are part of the
+<a href="https://www.tensorflow.org/model_optimization">TensorFlow Model Optimization Toolkit</a>,
+which provides resources for model optimization techniques that are compatible
+with TensorFlow Lite.</p>
+<h3>Quantization</h3>
+<p><a href="https://www.tensorflow.org/model_optimization/guide/quantization/post_training">Quantization</a>
+works by reducing the precision of the numbers used to represent a model's
+parameters, which by default are 32-bit floating point numbers. This results in
+a smaller model size and faster computation.</p>
+<p>The following types of quantization are available in TensorFlow Lite:</p>
+<p>Technique                                                                                               | Data requirements                | Size reduction | Accuracy                    | Supported hardware
+------------------------------------------------------------------------------------------------------- | -------------------------------- | -------------- | --------------------------- | ------------------
+<a href="post_training_float16_quant.ipynb">Post-training float16 quantization</a>                                 | No data                          | Up to 50%      | Insignificant accuracy loss | CPU, GPU
+<a href="post_training_quant.ipynb">Post-training dynamic range quantization</a>                                   | No data                          | Up to 75%      | Smallest accuracy loss               | CPU, GPU (Android)
+<a href="post_training_integer_quant.ipynb">Post-training integer quantization</a>                                 | Unlabelled representative sample | Up to 75%      | Small accuracy loss       | CPU, GPU (Android), EdgeTPU, Hexagon DSP
+<a href="http://www.tensorflow.org/model_optimization/guide/quantization/training">Quantization-aware training</a> | Labelled training data           | Up to 75%      | Smallest accuracy loss      | CPU, GPU (Android), EdgeTPU, Hexagon DSP</p>
+<p>The following decision tree helps you select the quantization schemes you might
+want to use for your model, simply based on the expected model size and
+accuracy.</p>
+<p><img alt="quantization-decision-tree" src="images/quantization_decision_tree.png" /></p>
+<p>Below are the latency and accuracy results for post-training quantization and
+quantization-aware training on a few models. All latency numbers are measured on
+Pixel 2 devices using a single big core CPU. As the toolkit improves, so will
+the numbers here:</p>
+<figure>
+  <table>
+    <tr>
+      <th>Model</th>
+      <th>Top-1 Accuracy (Original) </th>
+      <th>Top-1 Accuracy (Post Training Quantized) </th>
+      <th>Top-1 Accuracy (Quantization Aware Training) </th>
+      <th>Latency (Original) (ms) </th>
+      <th>Latency (Post Training Quantized) (ms) </th>
+      <th>Latency (Quantization Aware Training) (ms) </th>
+      <th> Size (Original) (MB)</th>
+      <th> Size (Optimized) (MB)</th>
+    </tr> <tr><td>Mobilenet-v1-1-224</td><td>0.709</td><td>0.657</td><td>0.70</td>
+      <td>124</td><td>112</td><td>64</td><td>16.9</td><td>4.3</td></tr>
+    <tr><td>Mobilenet-v2-1-224</td><td>0.719</td><td>0.637</td><td>0.709</td>
+      <td>89</td><td>98</td><td>54</td><td>14</td><td>3.6</td></tr>
+   <tr><td>Inception_v3</td><td>0.78</td><td>0.772</td><td>0.775</td>
+      <td>1130</td><td>845</td><td>543</td><td>95.7</td><td>23.9</td></tr>
+   <tr><td>Resnet_v2_101</td><td>0.770</td><td>0.768</td><td>N/A</td>
+      <td>3973</td><td>2868</td><td>N/A</td><td>178.3</td><td>44.9</td></tr>
+ </table>
+  <figcaption>
+    <b>Table 1</b> Benefits of model quantization for select CNN models
+  </figcaption>
+</figure>
+
+<h3>Full integer quantization with int16 activations and int8 weights</h3>
+<p><a href="https://www.tensorflow.org/model_optimization/guide/quantization/post_training">Quantization with int16 activations</a>
+is a full integer quantization scheme with activations in int16 and weights in
+int8. This mode can improve accuracy of the quantized model in comparison to the
+full integer quantization scheme with both activations and weights in int8
+keeping a similar model size. It is recommended when activations are sensitive
+to the quantization.</p>
+<p><i>NOTE:</i> Currently only non-optimized reference kernel implementations are
+available in TFLite for this quantization scheme, so by default the performance
+will be slow compared to int8 kernels. Full advantages of this mode can
+currently be accessed via specialised hardware, or custom software.</p>
+<p>Below are the accuracy results for some models that benefit from this mode.</p>
+<figure>
+  <table>
+    <tr>
+      <th>Model</th>
+      <th>Accuracy metric type </th>
+      <th>Accuracy (float32 activations) </th>
+      <th>Accuracy (int8 activations) </th>
+      <th>Accuracy (int16 activations) </th>
+    </tr> <tr><td>Wav2letter</td><td>WER</td><td>6.7%</td><td>7.7%</td>
+      <td>7.2%</td></tr>
+    <tr><td>DeepSpeech 0.5.1 (unrolled)</td><td>CER</td><td>6.13%</td><td>43.67%</td>
+      <td>6.52%</td></tr>
+    <tr><td>YoloV3</td><td>mAP(IOU=0.5)</td><td>0.577</td><td>0.563</td>
+      <td>0.574</td></tr>
+    <tr><td>MobileNetV1</td><td>Top-1 Accuracy</td><td>0.7062</td><td>0.694</td>
+      <td>0.6936</td></tr>
+    <tr><td>MobileNetV2</td><td>Top-1 Accuracy</td><td>0.718</td><td>0.7126</td>
+      <td>0.7137</td></tr>
+    <tr><td>MobileBert</td><td>F1(Exact match)</td><td>88.81(81.23)</td><td>2.08(0)</td>
+      <td>88.73(81.15)</td></tr>
+ </table>
+  <figcaption>
+    <b>Table 2</b> Benefits of model quantization with int16 activations
+  </figcaption>
+</figure>
+
+<h3>Pruning</h3>
+<p><a href="https://www.tensorflow.org/model_optimization/guide/pruning">Pruning</a> works by
+removing parameters within a model that have only a minor impact on its
+predictions. Pruned models are the same size on disk, and have the same runtime
+latency, but can be compressed more effectively. This makes pruning a useful
+technique for reducing model download size.</p>
+<p>In the future, TensorFlow Lite will provide latency reduction for pruned models.</p>
+<h3>Clustering</h3>
+<p><a href="https://www.tensorflow.org/model_optimization/guide/clustering">Clustering</a>
+works by grouping the weights of each layer in a model into a predefined number
+of clusters, then sharing the centroid values for the weights belonging to each
+individual cluster. This reduces the number of unique weight values in a model,
+thus reducing its complexity.</p>
+<p>As a result, clustered models can be compressed more effectively, providing
+deployment benefits similar to pruning.</p>
+<h2>Development workflow</h2>
+<p>As a starting point, check if the models in
+<a href="../guide/hosted_models.md">hosted models</a> can work for your application. If
+not, we recommend that users start with the
+<a href="post_training_quantization.md">post-training quantization tool</a> since this is
+broadly applicable and does not require training data.</p>
+<p>For cases where the accuracy and latency targets are not met, or hardware
+accelerator support is important,
+<a href="https://www.tensorflow.org/model_optimization/guide/quantization/training">quantization-aware training</a>{:.external}
+is the better option. See additional optimization techniques under the
+<a href="https://www.tensorflow.org/model_optimization">TensorFlow Model Optimization Toolkit</a>.</p>
+<p>If you want to further reduce your model size, you can try <a href="#pruning">pruning</a>
+and/or <a href="#clustering">clustering</a> prior to quantizing your models.</p>

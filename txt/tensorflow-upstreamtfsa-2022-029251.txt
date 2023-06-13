@@ -1,0 +1,19 @@
+<h2>TFSA-2022-029: Missing validation causes <code>tf.sparse.split</code> to crash when <code>axis</code> is a tuple</h2>
+<h3>CVE Number</h3>
+<p>CVE-2021-41206</p>
+<h3>Impact</h3>
+<p>The implementation of <a href="https://github.com/tensorflow/tensorflow/blob/5100e359aef5c8021f2e71c7b986420b85ce7b3d/tensorflow/core/kernels/sparse_split_op.cc#L26-L102"><code>tf.sparse.split</code></a> does not fully validate the input arguments. Hence, a malicious user can trigger a denial of service via a segfault or a heap OOB read:</p>
+<p><code>python
+import tensorflow as tf
+data = tf.random.uniform([1, 32, 32], dtype=tf.float32)
+axis = [1, 2]
+x = tf.sparse.from_dense(data)
+result = tf.sparse.split(x,3, axis=axis)</code></p>
+<p>The code assumes <code>axis</code> is a scalar. This is another instance of <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/security/advisory/tfsa-2021-190.md">TFSA-2021-190</a> (CVE-2021-41206).</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/61bf91e768173b001d56923600b40d9a95a04ad5">61bf91e768173b001d56923600b40d9a95a04ad5</a> (merging <a href="https://github.com/tensorflow/tensorflow/pull/53695">#53695</a>).</p>
+<p>The fix will be included in TensorFlow 2.8.0. We will also cherrypick this commit on TensorFlow 2.7.1, TensorFlow 2.6.3, and TensorFlow 2.5.3, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported externally via a <a href="https://github.com/tensorflow/tensorflow/issues/53660">GitHub issue</a>.</p>

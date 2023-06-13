@@ -1,0 +1,28 @@
+<h2>TFSA-2022-139: Null-dereference in <code>mlir::tfg::GraphDefImporter::ConvertNodeDef</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-36013</p>
+<h3>Impact</h3>
+<p>When <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ir/importexport/graphdef_import.cc"><code>mlir::tfg::GraphDefImporter::ConvertNodeDef</code></a> tries to convert NodeDefs without an op name, it crashes.
+```cpp
+Status GraphDefImporter::ConvertNodeDef(OpBuilder &amp;builder, ConversionState &amp;s,
+                                        const NodeDef &amp;node) {
+  VLOG(4) &lt;&lt; "Importing: " &lt;&lt; node.name();
+  OperationState state(ConvertLocation(node), absl::StrCat("tfg.", node.op()));</p>
+<p>// The GraphImporter does light shape inference, but here we will defer all of
+  // that to the shape inference pass.
+  const OpDef <em>op_def;
+  const OpRegistrationData </em>op_reg_data = nullptr;
+  if ((op_reg_data = registry_.LookUp(node.op()))) {
+    op_def = &amp;op_reg_data-&gt;op_def;
+  } else {
+    auto it = function_op_defs_.find(node.op());
+    if (it == function_op_defs_.end())
+      return InvalidArgument("Unable to find OpDef for ", node.op());
+    op_def = it-&gt;second;
+  }
+<code>``</code>node.op()` cannot be empty.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/a0f0b9a21c9270930457095092f558fbad4c03e5">a0f0b9a21c9270930457095092f558fbad4c03e5</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>

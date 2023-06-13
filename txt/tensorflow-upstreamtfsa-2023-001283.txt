@@ -1,0 +1,12 @@
+<h2>TFSA-2023-001: FPE in TFLite in conv kernel</h2>
+<h3>CVE Number</h3>
+<p>CVE-2023-27579 </p>
+<h3>Impact</h3>
+<p>Constructing a tflite model with a paramater <code>filter_input_channel</code> of less than 1 gives a FPE.</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/34f8368c535253f5c9cb3a303297743b62442aaa">34f8368c535253f5c9cb3a303297743b62442aaa</a>.</p>
+<p>The fix will be included in TensorFlow 2.12. We will also cherrypick this commit on TensorFlow 2.11.1.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability was reported by Wang Xuan of Qihoo 360 AIVul Team.</p>

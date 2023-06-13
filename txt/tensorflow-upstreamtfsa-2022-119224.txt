@@ -1,0 +1,17 @@
+<h2>TFSA-2022-119: <code>CHECK</code> fail in <code>tf.linalg.matrix_rank</code></h2>
+<h3>CVE Number</h3>
+<p>CVE-2022-35988</p>
+<h3>Impact</h3>
+<p>When <code>tf.linalg.matrix_rank</code> receives an empty input <code>a</code>, the GPU kernel gives a <code>CHECK</code> fail that can be used to trigger a denial of service attack.
+```python
+import tensorflow as tf</p>
+<p>a = tf.constant([], shape=[0, 1, 1], dtype=tf.float32)
+tf.linalg.matrix_rank(a=a)
+```</p>
+<h3>Patches</h3>
+<p>We have patched the issue in GitHub commit <a href="https://github.com/tensorflow/tensorflow/commit/c55b476aa0e0bd4ee99d0f3ad18d9d706cd1260a">c55b476aa0e0bd4ee99d0f3ad18d9d706cd1260a</a>.</p>
+<p>The fix will be included in TensorFlow 2.10.0. We will also cherrypick this commit on TensorFlow 2.9.1, TensorFlow 2.8.1, and TensorFlow 2.7.2, as these are also affected and still in supported range.</p>
+<h3>For more information</h3>
+<p>Please consult <a href="https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md">our security guide</a> for more information regarding the security model and how to contact us with issues and questions.</p>
+<h3>Attribution</h3>
+<p>This vulnerability has been reported by Kang Hong Jin.</p>
